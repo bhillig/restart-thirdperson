@@ -77,7 +77,7 @@ void ARestartPlayerCharacter::OnTurn(const FInputActionValue& Value)
 {
 	const FVector2D Axis = Value.Get<FVector2D>();
 
-	AddControllerPitchInput(-Axis.Y);
+	AddControllerPitchInput(Axis.Y);
 	AddControllerYawInput(Axis.X);
 }
 
