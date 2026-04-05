@@ -7,6 +7,8 @@
 namespace rs
 {
 
-void LogMessage(const FString& Msg, FColor Color = FColor::White, float TimeToDisplay = 1.f);
+void LogOnce(const FString& Msg, FColor Color = FColor::White, float TimeToDisplay = 1.f);
+
+void LogTick(const FString& Msg, int32 Key, FColor Color = FColor::White);
 
 }

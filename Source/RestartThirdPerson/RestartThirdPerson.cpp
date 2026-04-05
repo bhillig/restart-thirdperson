@@ -8,12 +8,19 @@ IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, RestartThirdPerson, "Rest
 namespace rs
 {
 
-void LogMessage(const FString& Msg, FColor Color, float TimeToDisplay)
+void LogOnce(const FString& Msg, FColor Color, float TimeToDisplay)
 {
-	UE_LOG(LogTemp, Warning, TEXT("%s"), *Msg);
 	if (GEngine)
 	{
-		GEngine->AddOnScreenDebugMessage(FMath::Rand(), TimeToDisplay, Color, Msg);
+		GEngine->AddOnScreenDebugMessage(-1, TimeToDisplay, Color, Msg);
+	}
+}
+
+void LogTick(const FString& Msg, int32 Key, FColor Color)
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(Key, 0.f, Color, Msg);
 	}
 }
 

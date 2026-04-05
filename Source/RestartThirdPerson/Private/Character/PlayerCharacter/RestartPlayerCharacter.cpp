@@ -40,7 +40,7 @@ void ARestartPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 			}
 			else
 			{
-				rs::LogMessage(FString::Printf(TEXT("DefaultIMC is not set!")), FColor::Red);
+				rs::LogOnce(FString::Printf(TEXT("DefaultIMC is not set!")), FColor::Red);
 			}
 		}
 	}
