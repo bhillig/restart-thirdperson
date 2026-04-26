@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
 #include "ALS/Character/ALSCharacter.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "ALSCharacterAnimInstance.generated.h"
 
 
@@ -15,6 +16,14 @@ enum class ELocomotionDirection : uint8
 	Backward = 1,
 	Left = 2,
 	Right = 3
+};
+
+UENUM(BlueprintType)
+enum class ERootYawOffsetMode : uint8
+{
+	Hold = 0,
+	BlendOut = 1,
+	Accumulate = 2
 };
 
 /**
@@ -73,6 +82,9 @@ protected:
 	float VelocityDirectionAngle;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
+	float VelocityDirectionAngleWithOffset;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
 	float AccelerationDirectionAngle;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
@@ -105,6 +117,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
 	float DeltaActorYaw;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Character Movement")
+	float RootYawOffset;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Character Movement")
+	ERootYawOffsetMode RootYawOffsetMode;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
 	float LeanAngle;
 
@@ -116,11 +134,16 @@ protected:
 
 	EGate IncomingGate;
 
+	FFloatSpringState RootYawOffsetToZeroSpringState;
+
 protected:
 
 	UFUNCTION()
 	void OnGateSwitched(EGate Gate);
 
 	ELocomotionDirection CalculateLocomotionDirection(float Angle, float DeadZone, ELocomotionDirection CurrentDirection);
+
+	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
+	void UpdateRootYawOffset(float DeltaSeconds);
 
 };

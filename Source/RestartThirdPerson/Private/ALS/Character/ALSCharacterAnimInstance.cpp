@@ -46,6 +46,7 @@ void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	// Debug variables
 	rs::LogFloat("Velocity Direction Angle", VelocityDirectionAngle, FColor::Yellow);
 	rs::LogFloat("Acceleration Direction Angle", AccelerationDirectionAngle, FColor::Green);
+	rs::LogFloat("Root Yaw Offset", RootYawOffset, FColor::Orange);
 	rs::LogEnum("Velocity Locomotion Direction", VelocityLocomotionDirection, FColor::White);
 	rs::LogEnum("Acceleration Locomotion Direction", AccelerationLocomotionDirection, FColor::Emerald);
 
@@ -116,6 +117,9 @@ void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSecon
 	// Get Velocity Direction Angle
 	VelocityDirectionAngle = UKismetAnimationLibrary::CalculateDirection(Velocity, ActorRotation);
 
+	// Get Velocity Direction Angle With Offset
+	VelocityDirectionAngleWithOffset = FRotator::NormalizeAxis(VelocityDirectionAngle - RootYawOffset);
+
 	// Get Acceleration Direction Angle
 	AccelerationDirectionAngle = UKismetAnimationLibrary::CalculateDirection(Acceleration, ActorRotation);
 
@@ -139,6 +143,11 @@ void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSecon
 
 	// Get Delta Actor Yaw
 	DeltaActorYaw = ActorYaw - LastFrameActorYaw;
+
+	// Get RootYawOffset
+	UpdateRootYawOffset(DeltaSeconds);
+
+	// Get Root Yaw Offset
 
 	// Get Lean Angle
 	LeanAngle = DeltaActorYaw / DeltaSeconds / 6.0f;
@@ -220,4 +229,23 @@ ELocomotionDirection UALSCharacterAnimInstance::CalculateLocomotionDirection(flo
 	}
 
 	return ELocomotionDirection::Backward;
+}
+
+void UALSCharacterAnimInstance::UpdateRootYawOffset(float DeltaSeconds)
+{
+	// Update RootYawOffset depending on the mode (e.g idle state overrides RootYawOffsetMode to Accumulate)
+	switch (RootYawOffsetMode)
+	{
+	case ERootYawOffsetMode::Accumulate:
+		RootYawOffset = FRotator::NormalizeAxis(RootYawOffset - DeltaActorYaw);
+		break;
+	case ERootYawOffsetMode::BlendOut:
+		RootYawOffset = UKismetMathLibrary::FloatSpringInterp(RootYawOffset, 0.f, RootYawOffsetToZeroSpringState, 80.f, 1.f, DeltaSeconds, 1.f, 0.5f);
+		break;
+	case ERootYawOffsetMode::Hold:
+		break;
+	}
+
+	// Set RootYawOffsetMode to BlendOut
+	RootYawOffsetMode = ERootYawOffsetMode::BlendOut;
 }
