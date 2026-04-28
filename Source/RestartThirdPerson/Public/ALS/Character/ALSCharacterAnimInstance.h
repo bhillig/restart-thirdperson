@@ -132,6 +132,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
 	float DistanceUntilStop;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
+	bool bIsCrouching;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
+	bool bLastFrameIsCrouching;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
+	bool bCrouchGateChanged;
+
 	EGate IncomingGate;
 
 	FFloatSpringState RootYawOffsetToZeroSpringState;

@@ -71,6 +71,9 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComp->BindAction(AimAction, ETriggerEvent::Started, this, &AALSCharacter::OnAimStarted);
 		EnhancedInputComp->BindAction(AimAction, ETriggerEvent::Completed, this, &AALSCharacter::OnAimCompleted);
 
+		// Crouching
+		EnhancedInputComp->BindAction(ToggleCrouchAction, ETriggerEvent::Started, this, &AALSCharacter::OnCrouchToggled);
+
 		// Equipping weapons
 		EnhancedInputComp->BindAction(UnequipWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnUnequipWeaponPressed);
 		EnhancedInputComp->BindAction(EquipPrimaryWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnPrimaryWeaponEquippedPressed);
@@ -110,6 +113,25 @@ void AALSCharacter::OnAimCompleted()
 {
 	// Enter jogging state
 	SwitchGate(EGate::Jogging);
+}
+
+void AALSCharacter::OnCrouchToggled()
+{
+	if (CurrentGate == EGate::Crouching)
+	{
+		// Enter jogging state
+		SwitchGate(EGate::Jogging);
+
+		// Uncrouch the character
+		UnCrouch();
+		return;
+	}
+
+	// Enter crouching state
+	SwitchGate(EGate::Crouching);
+
+	// Crouch the character
+	Crouch();
 }
 
 void AALSCharacter::SwitchGate(EGate Gate)

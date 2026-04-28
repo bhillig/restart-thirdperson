@@ -50,6 +50,9 @@ void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	rs::LogEnum("Velocity Locomotion Direction", VelocityLocomotionDirection, FColor::White);
 	rs::LogEnum("Acceleration Locomotion Direction", AccelerationLocomotionDirection, FColor::Emerald);
 
+	const FString CrouchMsg = FString::Printf(TEXT("Is Crouching: %s"), bIsCrouching ? TEXT("TRUE") : TEXT("FALSE"));
+	GEngine->AddOnScreenDebugMessage(23, 0.f, FColor::Cyan, CrouchMsg);
+
 	if (const APawn* PawnOwner = TryGetPawnOwner())
 	{
 		const FVector ActorLoc = PawnOwner->GetActorLocation();
@@ -176,6 +179,15 @@ void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSecon
 
 	// Get Changed Gate
 	bChangedGate = LastFrameGate != CurrentGate;
+
+	// Get Last Frame Is Crouching
+	bLastFrameIsCrouching = bIsCrouching;
+
+	// Get Is Crouching
+	bIsCrouching = CurrentGate == EGate::Crouching;
+
+	// Get Crouching Gate Changed
+	bCrouchGateChanged = bLastFrameIsCrouching != bIsCrouching;
 }
 
 void UALSCharacterAnimInstance::OnGateSwitched(EGate Gate)

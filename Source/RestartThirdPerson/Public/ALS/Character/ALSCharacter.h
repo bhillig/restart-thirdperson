@@ -24,7 +24,8 @@ UENUM(BlueprintType)
 enum class EGate : uint8
 {
 	Walking = 0,
-	Jogging = 1
+	Jogging = 1,
+	Crouching = 2
 };
 
 USTRUCT(BlueprintType)
@@ -103,6 +104,9 @@ protected:
 	TObjectPtr<UInputAction> AimAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> ToggleCrouchAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> UnequipWeaponAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
@@ -147,6 +151,8 @@ private:
 	void OnAimStarted();
 
 	void OnAimCompleted();
+
+	void OnCrouchToggled();
 
 	void SwitchGate(EGate Gate);
 
