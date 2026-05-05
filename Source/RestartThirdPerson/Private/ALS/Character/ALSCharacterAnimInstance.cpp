@@ -23,9 +23,9 @@ void UALSCharacterAnimInstance::NativeBeginPlay()
 {
 	Super::NativeBeginPlay();
 
-	if (AALSCharacter* ALSCharacter = Cast<AALSCharacter>(TryGetPawnOwner()))
+	if (AALSCharacter* Character = Cast<AALSCharacter>(TryGetPawnOwner()))
 	{
-		ALSCharacter->OnGateSwitched.AddDynamic(this, &UALSCharacterAnimInstance::OnGateSwitched);
+		Character->OnGateSwitched.AddDynamic(this, &UALSCharacterAnimInstance::OnGateSwitched);
 	}
 }
 
@@ -33,8 +33,9 @@ void UALSCharacterAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
 
-	if (ACharacter* Character = Cast<ACharacter>(TryGetPawnOwner()))
+	if (AALSCharacter* Character = Cast<AALSCharacter>(TryGetPawnOwner()))
 	{
+		ALSCharacter = Character;
 		CharacterMovementComponent = Character->GetCharacterMovement();
 	}
 }
@@ -47,11 +48,8 @@ void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	rs::LogFloat("Velocity Direction Angle", VelocityDirectionAngle, FColor::Yellow);
 	rs::LogFloat("Acceleration Direction Angle", AccelerationDirectionAngle, FColor::Green);
 	rs::LogFloat("Root Yaw Offset", RootYawOffset, FColor::Orange);
-	rs::LogEnum("Velocity Locomotion Direction", VelocityLocomotionDirection, FColor::White);
-	rs::LogEnum("Acceleration Locomotion Direction", AccelerationLocomotionDirection, FColor::Emerald);
-
-	const FString CrouchMsg = FString::Printf(TEXT("Is Crouching: %s"), bIsCrouching ? TEXT("TRUE") : TEXT("FALSE"));
-	GEngine->AddOnScreenDebugMessage(23, 0.f, FColor::Cyan, CrouchMsg);
+	rs::LogFloat("Time Remaining To Jump Apex", TimeRemainingToJumpApex, FColor::Emerald);
+	rs::LogFloat("Distance From Ground", DistanceFromGround, FColor::Red);
 
 	if (const APawn* PawnOwner = TryGetPawnOwner())
 	{
@@ -188,6 +186,22 @@ void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSecon
 
 	// Get Crouching Gate Changed
 	bCrouchGateChanged = bLastFrameIsCrouching != bIsCrouching;
+
+	// Get Is In Air
+	bIsInAir = CharacterMovementComponent->MovementMode == MOVE_Falling;
+
+	// Get Is Jumping
+	bIsJumping = bIsInAir && Velocity.Z >= 0.1f;
+
+	// Get Is Falling
+	bIsFalling = bIsInAir && Velocity.Z <= -0.1f;
+
+	// Get Time Remaining To Jump Apex
+	TimeRemainingToJumpApex = bIsJumping ? -Velocity.Z / (CharacterMovementComponent->GetGravityZ() * CharacterMovementComponent->GravityScale) : 0.f;
+
+	// Get Distance From Ground
+	DistanceFromGround = ALSCharacter->GetDistanceFromGround();
+	
 }
 
 void UALSCharacterAnimInstance::OnGateSwitched(EGate Gate)

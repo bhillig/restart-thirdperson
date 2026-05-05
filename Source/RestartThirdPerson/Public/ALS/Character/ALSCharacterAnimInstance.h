@@ -50,6 +50,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
 	TObjectPtr<UCharacterMovementComponent> CharacterMovementComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
+	TObjectPtr<AALSCharacter> ALSCharacter;
+
+
 	// Character Movement Values
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
 	FVector LastFrameLocation;
@@ -140,6 +144,21 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
 	bool bCrouchGateChanged;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
+	bool bIsInAir;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
+	bool bIsJumping;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
+	bool bIsFalling;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
+	float TimeRemainingToJumpApex;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
+	float DistanceFromGround;
 
 	EGate IncomingGate;
 

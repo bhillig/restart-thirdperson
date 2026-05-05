@@ -26,6 +26,15 @@ void LogTick(const FString& Msg, int32 Key, FColor Color)
 	}
 }
 
+void LogBool(const FString& VariableName, bool Value, FColor Color, float TimeToDisplay)
+{
+	if (GEngine)
+	{
+		const FString Message = FString::Printf(TEXT("%s = %s"), *VariableName, Value ? TEXT("True") : TEXT("False"));
+		GEngine->AddOnScreenDebugMessage((int32)GetTypeHash(VariableName), TimeToDisplay, Color, Message);
+	}
+}
+
 void LogFloat(const FString& VariableName, float Value, FColor Color, float TimeToDisplay)
 {
 	if (GEngine)

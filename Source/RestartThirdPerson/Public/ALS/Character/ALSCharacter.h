@@ -72,6 +72,11 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnGateSwitched OnGateSwitched;
 
+public:
+
+	// Returns Distance From Ground, 0.f if on ground, -1.f if not above ground.
+	float GetDistanceFromGround() const { return DistanceFromGround; }
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -104,6 +109,9 @@ protected:
 	TObjectPtr<UInputAction> AimAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> JumpAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> ToggleCrouchAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
@@ -126,6 +134,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement")
 	TMap<EGate, FGateSettings> GateSettingsMap;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement")
+	float DistanceFromGround;
 
 protected:
 

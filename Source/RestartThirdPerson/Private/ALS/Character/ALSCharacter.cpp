@@ -6,9 +6,11 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
@@ -47,6 +49,41 @@ void AALSCharacter::Tick(float DeltaSeconds)
 		rs::LogTick(FString::Printf(TEXT("Braking Friction: %f"), GetCharacterMovement()->BrakingFriction), 5, FColor::White);
 		rs::LogTick(FString::Printf(TEXT("Use Separate Braking Friction: %s"), GetCharacterMovement()->bUseSeparateBrakingFriction ? TEXT("TRUE") : TEXT("FALSE")), 6, FColor::Red);
 	}
+
+
+	// Calculate Distance From Ground (if we are falling)
+	if (GetCharacterMovement()->MovementMode == MOVE_Falling)
+	{
+		if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+		{
+			const FVector StartFeetLocation = GetActorLocation() - FVector(0, 0, Capsule->GetScaledCapsuleHalfHeight());
+			const FVector EndLocation = StartFeetLocation + FVector::DownVector * 50'000.f;
+
+			// Perform Line Trace
+			FCollisionQueryParams QueryParams;
+			QueryParams.AddIgnoredActor(this);
+
+			FCollisionShape CollisionShape;
+			CollisionShape.SetSphere(30.f);
+
+			FHitResult OutResult;
+			GetWorld()->SweepSingleByChannel(OutResult, StartFeetLocation, EndLocation, FQuat::Identity, ECC_Visibility, CollisionShape, QueryParams);
+
+			if (OutResult.bBlockingHit)
+			{
+				DistanceFromGround = OutResult.Distance;
+			}
+			else
+			{
+				DistanceFromGround = -1.f;
+			}
+		}
+
+	}
+	else
+	{
+		DistanceFromGround = 0.f;
+	}
 }
 
 void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -70,6 +107,10 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		// Aiming
 		EnhancedInputComp->BindAction(AimAction, ETriggerEvent::Started, this, &AALSCharacter::OnAimStarted);
 		EnhancedInputComp->BindAction(AimAction, ETriggerEvent::Completed, this, &AALSCharacter::OnAimCompleted);
+
+		// Jumping
+		EnhancedInputComp->BindAction(JumpAction, ETriggerEvent::Started, this, &AALSCharacter::Jump);
+		EnhancedInputComp->BindAction(JumpAction, ETriggerEvent::Completed, this, &AALSCharacter::StopJumping);
 
 		// Crouching
 		EnhancedInputComp->BindAction(ToggleCrouchAction, ETriggerEvent::Started, this, &AALSCharacter::OnCrouchToggled);
