@@ -127,6 +127,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Character Movement")
 	ERootYawOffsetMode RootYawOffsetMode;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Character Movement")
+	float AimPitch;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
 	float LeanAngle;
 
