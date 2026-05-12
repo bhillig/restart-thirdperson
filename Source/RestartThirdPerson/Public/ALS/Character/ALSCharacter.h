@@ -20,6 +20,22 @@ enum class EWeapon : uint8
 	Rifle = 2
 };
 
+USTRUCT(BlueprintType)
+struct FWeaponSocketLocations
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	FName PistolUnEquipped;
+
+	UPROPERTY(EditAnywhere)
+	FName RifleUnEquipped;
+
+	UPROPERTY(EditAnywhere)
+	FName WeaponEquipped;
+};
+
+
 UENUM(BlueprintType)
 enum class EGate : uint8
 {
@@ -95,6 +111,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> FollowCamera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<USkeletalMeshComponent> PistolMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<USkeletalMeshComponent> RifleMesh;
+
 	// Input
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputMappingContext> ALSInputMappingContext;
@@ -138,6 +160,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement")
 	float DistanceFromGround;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	FWeaponSocketLocations WeaponSocketLocations;
+
 protected:
 
 	// Anim Instances
@@ -176,6 +201,8 @@ private:
 	void ToggleSlowMotion();
 
 	void SwitchWeapon(EWeapon Weapon);
+
+	void UpdateWeaponMeshLocations(EWeapon Weapon);
 
 	void UpdateAnimInstanceForWeapon(EWeapon Weapon);
 

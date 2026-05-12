@@ -26,6 +26,12 @@ AALSCharacter::AALSCharacter()
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>("FollowCamera");
 	FollowCamera->SetupAttachment(SpringArm);
+
+	PistolMesh = CreateDefaultSubobject<USkeletalMeshComponent>("PistolMesh");
+	PistolMesh->SetupAttachment(GetMesh());
+
+	RifleMesh = CreateDefaultSubobject<USkeletalMeshComponent>("RifleMesh");
+	RifleMesh->SetupAttachment(GetMesh());
 }
 
 void AALSCharacter::BeginPlay()
@@ -229,7 +235,31 @@ void AALSCharacter::SwitchWeapon(EWeapon Weapon)
 	CurrentWeapon = Weapon;
 	OnWeaponSwitched.Broadcast(Weapon);
 	UpdateAnimInstanceForWeapon(Weapon);
+	UpdateWeaponMeshLocations(Weapon);
 }
+
+void AALSCharacter::UpdateWeaponMeshLocations(EWeapon Weapon)
+{
+	const FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, false);
+	USkeletalMeshComponent* MeshComp = GetMesh();
+
+	switch (Weapon)
+	{
+	case EWeapon::Unarmed:
+		PistolMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.PistolUnEquipped);
+		RifleMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.RifleUnEquipped);
+		break;
+	case EWeapon::Pistol:
+		PistolMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.WeaponEquipped);
+		RifleMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.RifleUnEquipped);
+		break;
+	case EWeapon::Rifle:
+		PistolMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.PistolUnEquipped);
+		RifleMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.WeaponEquipped);
+		break;
+	}
+}
+
 
 void AALSCharacter::UpdateAnimInstanceForWeapon(EWeapon Weapon)
 {
