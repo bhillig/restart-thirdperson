@@ -158,14 +158,20 @@ void AALSCharacter::OnLookTriggered(const FInputActionValue& Value)
 
 void AALSCharacter::OnAimStarted()
 {
-	// Enter walking state
-	SwitchGate(EGate::Walking);
+	if (CurrentGate == EGate::Jogging)
+	{
+		// Enter walking state
+		SwitchGate(EGate::Walking);
+	}
 }
 
 void AALSCharacter::OnAimCompleted()
 {
-	// Enter jogging state
-	SwitchGate(EGate::Jogging);
+	if (CurrentGate == EGate::Walking)
+	{
+		// Enter jogging state
+		SwitchGate(EGate::Jogging);
+	}
 }
 
 void AALSCharacter::OnCrouchToggled()
