@@ -137,6 +137,12 @@ protected:
 	TObjectPtr<UInputAction> ToggleCrouchAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> FireWeaponAction;;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> ReloadWeaponAction;;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> UnequipWeaponAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
@@ -148,12 +154,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> ToggleSlowMotionAction;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	EWeapon CurrentWeapon;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	EGate CurrentGate;
-
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement")
 	TMap<EGate, FGateSettings> GateSettingsMap;
 
@@ -162,6 +162,36 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FWeaponSocketLocations WeaponSocketLocations;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float PistolRateOfFire;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float RifleRateOfFire;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UAnimMontage> CharacterPistolFireAnimMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UAnimMontage> CharacterRifleFireAnimMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UAnimSequence> PistolFireAnim;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UAnimSequence> RifleFireAnim;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UAnimMontage> CharacterPistolReloadAnimMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UAnimMontage> CharacterRifleReloadAnimMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UAnimSequence> PistolReloadAnim;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UAnimSequence> RifleReloadAnim;
 
 protected:
 
@@ -190,6 +220,10 @@ private:
 
 	void OnCrouchToggled();
 
+	void OnFireTriggered();
+
+	void OnWeaponReloadStarted();
+
 	void SwitchGate(EGate Gate);
 
 	void OnUnequipWeaponPressed();
@@ -206,4 +240,19 @@ private:
 
 	void UpdateAnimInstanceForWeapon(EWeapon Weapon);
 
+	bool CanFireWeapon();
+
+
+protected:
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	EWeapon CurrentWeapon;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	EGate CurrentGate;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool bRateOfFireElapsed = true;
+
+	FTimerHandle TimerHandle_WeaponRateOfFire; // Timer responsible for using the current weapon's rate of fire to determine when bRateOfFireElapsed is set back to true
 };

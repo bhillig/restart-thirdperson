@@ -120,6 +120,12 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 		// Crouching
 		EnhancedInputComp->BindAction(ToggleCrouchAction, ETriggerEvent::Started, this, &AALSCharacter::OnCrouchToggled);
+		
+		// Fire Weapon
+		EnhancedInputComp->BindAction(FireWeaponAction, ETriggerEvent::Triggered, this, &AALSCharacter::OnFireTriggered);
+
+		// Reload Weapon
+		EnhancedInputComp->BindAction(ReloadWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnWeaponReloadStarted);
 
 		// Equipping weapons
 		EnhancedInputComp->BindAction(UnequipWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnUnequipWeaponPressed);
@@ -179,6 +185,74 @@ void AALSCharacter::OnCrouchToggled()
 
 	// Crouch the character
 	Crouch();
+}
+
+void AALSCharacter::OnFireTriggered()
+{
+	if (!CanFireWeapon())
+	{
+		return;
+	}
+
+	if (GEngine)
+	{
+		const FString Message = FString::Printf(TEXT("FireTriggered"));
+		GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Emerald, Message);
+	}
+
+	bRateOfFireElapsed = false;
+
+	FTimerDelegate Delegate;
+	Delegate.BindLambda([this]()
+		{
+			bRateOfFireElapsed = true;
+		});
+
+
+	// TODO: Hack for now since we only have two weapons. We'd want something more fleshed out if weapons got more complicated.
+	const float RateOfFire = CurrentWeapon == EWeapon::Rifle ? RifleRateOfFire : PistolRateOfFire;
+
+	GetWorldTimerManager().SetTimer(TimerHandle_WeaponRateOfFire, Delegate, RateOfFire, false);
+
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		// Rifle
+		if (CurrentWeapon == EWeapon::Rifle && RifleMesh)
+		{
+			AnimInstance->Montage_Play(CharacterRifleFireAnimMontage);
+			RifleMesh->PlayAnimation(RifleFireAnim, false);
+		}
+		// Pistol
+		else if (CurrentWeapon == EWeapon::Pistol && PistolMesh)
+		{
+			AnimInstance->Montage_Play(CharacterPistolFireAnimMontage);
+			PistolMesh->PlayAnimation(PistolFireAnim, false);
+		}
+	}
+}
+
+void AALSCharacter::OnWeaponReloadStarted()
+{
+	if (CurrentWeapon == EWeapon::Unarmed)
+	{
+		return;
+	}
+
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		// Rifle
+		if (CurrentWeapon == EWeapon::Rifle && RifleMesh)
+		{
+			AnimInstance->Montage_Play(CharacterRifleReloadAnimMontage);
+			RifleMesh->PlayAnimation(RifleReloadAnim, false);
+		}
+		// Pistol
+		else if (CurrentWeapon == EWeapon::Pistol && PistolMesh)
+		{
+			AnimInstance->Montage_Play(CharacterPistolReloadAnimMontage);
+			PistolMesh->PlayAnimation(PistolReloadAnim, false);
+		}
+	}
 }
 
 void AALSCharacter::SwitchGate(EGate Gate)
@@ -286,5 +360,16 @@ void AALSCharacter::UpdateAnimInstanceForWeapon(EWeapon Weapon)
 	}
 
 	CharacterMesh->LinkAnimClassLayers(LayerClass);
+}
+
+bool AALSCharacter::CanFireWeapon()
+{
+	// Make sure we are aiming a weapon
+	if (CurrentGate == EGate::Jogging || CurrentWeapon == EWeapon::Unarmed)
+	{
+		return false;
+	}
+
+	return bRateOfFireElapsed;
 }
 

@@ -10,6 +10,8 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
+static TAutoConsoleVariable CVar_DebugALSAnimInstance(TEXT("Debug.ALS"), false, TEXT("Show debug info for ALS AnimInstance"));
+
 namespace
 {
 	constexpr float kForwardMaximum = 50.f;
@@ -44,36 +46,38 @@ void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	// Debug variables
-	rs::LogFloat("Velocity Direction Angle", VelocityDirectionAngle, FColor::Yellow);
-	rs::LogFloat("Acceleration Direction Angle", AccelerationDirectionAngle, FColor::Green);
-	rs::LogFloat("Root Yaw Offset", RootYawOffset, FColor::Orange);
-	rs::LogFloat("Time Remaining To Jump Apex", TimeRemainingToJumpApex, FColor::Emerald);
-	rs::LogFloat("Distance From Ground", DistanceFromGround, FColor::Red);
-
-	if (const APawn* PawnOwner = TryGetPawnOwner())
+	if (CVar_DebugALSAnimInstance.GetValueOnAnyThread()) 
 	{
-		const FVector ActorLoc = PawnOwner->GetActorLocation();
-		const FVector ActorFeetLoc = FVector(ActorLoc.X, ActorLoc.Y, 0);
+		// Debug variables
+		rs::LogFloat("Velocity Direction Angle", VelocityDirectionAngle, FColor::Yellow);
+		rs::LogFloat("Acceleration Direction Angle", AccelerationDirectionAngle, FColor::Green);
+		rs::LogFloat("Root Yaw Offset", RootYawOffset, FColor::Orange);
+		rs::LogFloat("Time Remaining To Jump Apex", TimeRemainingToJumpApex, FColor::Emerald);
+		rs::LogFloat("Distance From Ground", DistanceFromGround, FColor::Red);
 
-		// Draw Ground Velocity
-		const FVector GroundVelocity = FVector(Velocity.X, Velocity.Y, 0);
-		const FVector EndLocationVelocity = ActorFeetLoc + GroundVelocity;
-
-		rs::DrawDebugArrowWithText(ActorFeetLoc, EndLocationVelocity, TEXT("Ground Velocity"), PawnOwner->GetWorld(), FColor::Yellow);
-
-		// Draw Ground Acceleration
-		const FVector EndLocationAcceleration = ActorFeetLoc + GroundAcceleration;
-		rs::DrawDebugArrowWithText(ActorFeetLoc, EndLocationAcceleration, TEXT("Ground Acceleration"), PawnOwner->GetWorld(), FColor::Emerald);
-
-		// Draw Predicted Stop Location
-		const FVector EndLocationPredictedStop = ActorLoc + PredictedGroundStopLocation;
-		if (EndLocationPredictedStop != ActorLoc)
+		if (const APawn* PawnOwner = TryGetPawnOwner())
 		{
-			UKismetSystemLibrary::DrawDebugCapsule(this, EndLocationPredictedStop, 20.f, 20.f, FRotator::ZeroRotator, FColor::Orange, 0.f, 2);
+			const FVector ActorLoc = PawnOwner->GetActorLocation();
+			const FVector ActorFeetLoc = FVector(ActorLoc.X, ActorLoc.Y, 0);
+
+			// Draw Ground Velocity
+			const FVector GroundVelocity = FVector(Velocity.X, Velocity.Y, 0);
+			const FVector EndLocationVelocity = ActorFeetLoc + GroundVelocity;
+
+			rs::DrawDebugArrowWithText(ActorFeetLoc, EndLocationVelocity, TEXT("Ground Velocity"), PawnOwner->GetWorld(), FColor::Yellow);
+
+			// Draw Ground Acceleration
+			const FVector EndLocationAcceleration = ActorFeetLoc + GroundAcceleration;
+			rs::DrawDebugArrowWithText(ActorFeetLoc, EndLocationAcceleration, TEXT("Ground Acceleration"), PawnOwner->GetWorld(), FColor::Emerald);
+
+			// Draw Predicted Stop Location
+			const FVector EndLocationPredictedStop = ActorLoc + PredictedGroundStopLocation;
+			if (EndLocationPredictedStop != ActorLoc)
+			{
+				UKismetSystemLibrary::DrawDebugCapsule(this, EndLocationPredictedStop, 20.f, 20.f, FRotator::ZeroRotator, FColor::Orange, 0.f, 2);
+			}
 		}
 	}
-
 }
 
 void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
