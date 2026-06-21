@@ -2,6 +2,7 @@
 
 
 #include "ALS/Character/ALSCharacter.h"
+#include "RestartThirdPerson/RestartThirdPerson.h"
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -10,11 +11,13 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetMathLibrary.h"
-
-#include "RestartThirdPerson/RestartThirdPerson.h"
+#include "ActorComponents/AttributesComponent.h"
+#include "ActorComponents/WeaponsComponent.h"
 
 static TAutoConsoleVariable CVar_DebugGateSettings(TEXT("Debug.GateSettings"), false, TEXT("Debug gate setting movement variables"));
+
+static TAutoConsoleVariable CVar_AddWeapon(TEXT("Player.AddWeapon"), FString(""), TEXT("Adds a weapon to the player"));
+
 
 AALSCharacter::AALSCharacter()
 {
@@ -27,11 +30,22 @@ AALSCharacter::AALSCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>("FollowCamera");
 	FollowCamera->SetupAttachment(SpringArm);
 
-	PistolMesh = CreateDefaultSubobject<USkeletalMeshComponent>("PistolMesh");
-	PistolMesh->SetupAttachment(GetMesh());
+	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>("AttributesComponent");
+	WeaponsComponent = CreateDefaultSubobject<UWeaponsComponent>("WeaponsComponent");
+}
 
-	RifleMesh = CreateDefaultSubobject<USkeletalMeshComponent>("RifleMesh");
-	RifleMesh->SetupAttachment(GetMesh());
+void AALSCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	if (WeaponsComponent)
+	{
+		WeaponsComponent->OnWeaponAdded.AddDynamic(this, &AALSCharacter::OnWeaponAdded);
+		WeaponsComponent->OnWeaponEquipped.AddDynamic(this, &AALSCharacter::OnWeaponEquipped);
+		WeaponsComponent->OnWeaponAnimationRequested.AddDynamic(this, &AALSCharacter::OnWeaponAnimationsRequested);
+	}
+
+	CVar_AddWeapon->AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateUObject(this, &AALSCharacter::OnWeaponRequested));
 }
 
 void AALSCharacter::BeginPlay()
@@ -39,7 +53,16 @@ void AALSCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	SwitchGate(EGate::Jogging);
-	SwitchWeapon(EWeapon::Unarmed);
+	CurrentSpringArmLength = JoggingSpringArmLength;
+
+	if (WeaponsComponent)
+	{
+		//for (const FWeaponConfig& WeaponConfig : StartingWeapons)
+		//{
+		//	WeaponsComponent->AddWeapon(WeaponConfig);
+		//}
+		WeaponsComponent->EquipWeaponType(EWeapon::Unarmed);
+	}
 }
 
 void AALSCharacter::Tick(float DeltaSeconds)
@@ -55,7 +78,6 @@ void AALSCharacter::Tick(float DeltaSeconds)
 		rs::LogTick(FString::Printf(TEXT("Braking Friction: %f"), GetCharacterMovement()->BrakingFriction), 5, FColor::White);
 		rs::LogTick(FString::Printf(TEXT("Use Separate Braking Friction: %s"), GetCharacterMovement()->bUseSeparateBrakingFriction ? TEXT("TRUE") : TEXT("FALSE")), 6, FColor::Red);
 	}
-
 
 	// Calculate Distance From Ground (if we are falling)
 	if (GetCharacterMovement()->MovementMode == MOVE_Falling)
@@ -90,6 +112,15 @@ void AALSCharacter::Tick(float DeltaSeconds)
 	{
 		DistanceFromGround = 0.f;
 	}
+
+	// Lerp Spring Arm Length
+	const float GoalSpringArmLength = CurrentGate == EGate::Walking ? AimingSpringArmLength : JoggingSpringArmLength;
+	const float AimSpeed = CurrentGate == EGate::Walking ? AimZoomInSpeed : AimZoomOutSpeed;
+	CurrentSpringArmLength = FMath::FInterpTo(CurrentSpringArmLength, GoalSpringArmLength, DeltaSeconds, AimSpeed);
+	if (SpringArm)
+	{
+		SpringArm->TargetArmLength = CurrentSpringArmLength;
+	}
 }
 
 void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -114,20 +145,23 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComp->BindAction(AimAction, ETriggerEvent::Started, this, &AALSCharacter::OnAimStarted);
 		EnhancedInputComp->BindAction(AimAction, ETriggerEvent::Completed, this, &AALSCharacter::OnAimCompleted);
 
+		// Interact
+		EnhancedInputComp->BindAction(InteractAction, ETriggerEvent::Started, this, &AALSCharacter::OnInteractStarted);
+
 		// Jumping
 		EnhancedInputComp->BindAction(JumpAction, ETriggerEvent::Started, this, &AALSCharacter::Jump);
 		EnhancedInputComp->BindAction(JumpAction, ETriggerEvent::Completed, this, &AALSCharacter::StopJumping);
 
 		// Crouching
 		EnhancedInputComp->BindAction(ToggleCrouchAction, ETriggerEvent::Started, this, &AALSCharacter::OnCrouchToggled);
-		
+
 		// Fire Weapon
 		EnhancedInputComp->BindAction(FireWeaponAction, ETriggerEvent::Triggered, this, &AALSCharacter::OnFireTriggered);
 
 		// Reload Weapon
 		EnhancedInputComp->BindAction(ReloadWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnWeaponReloadStarted);
 
-		// Equipping weapons
+		// Equipping Weapons
 		EnhancedInputComp->BindAction(UnequipWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnUnequipWeaponPressed);
 		EnhancedInputComp->BindAction(EquipPrimaryWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnPrimaryWeaponEquippedPressed);
 		EnhancedInputComp->BindAction(EquipSecondaryWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnSecondaryWeaponEquippedPressed);
@@ -136,6 +170,12 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComp->BindAction(ToggleSlowMotionAction, ETriggerEvent::Started, this, &AALSCharacter::ToggleSlowMotion);
 	}
 
+}
+
+void AALSCharacter::GetWeaponAimRay(FVector& OutOrigin, FVector& OutDirection) const
+{
+	OutOrigin = FollowCamera->GetComponentLocation();
+	OutDirection = FollowCamera->GetForwardVector();
 }
 
 void AALSCharacter::OnMoveTriggered(const FInputActionValue& Value)
@@ -156,8 +196,22 @@ void AALSCharacter::OnLookTriggered(const FInputActionValue& Value)
 	AddControllerPitchInput(Axis.Y);
 }
 
+void AALSCharacter::OnInteractStarted()
+{
+	if (WeaponsComponent)
+	{
+		WeaponsComponent->TryPickupWeapon();
+	}
+}
+
 void AALSCharacter::OnAimStarted()
 {
+	// Can not aim if no weapon is equipped
+	if (!WeaponsComponent || !WeaponsComponent->HasWeaponEquipped())
+	{
+		return;
+	}
+
 	if (CurrentGate == EGate::Jogging)
 	{
 		// Enter walking state
@@ -195,69 +249,23 @@ void AALSCharacter::OnCrouchToggled()
 
 void AALSCharacter::OnFireTriggered()
 {
-	if (!CanFireWeapon())
+	// Make sure we are aiming a weapon
+	if (CurrentGate != EGate::Walking)
 	{
 		return;
 	}
 
-	if (GEngine)
+	if (WeaponsComponent && WeaponsComponent->HasWeaponEquipped())
 	{
-		const FString Message = FString::Printf(TEXT("FireTriggered"));
-		GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Emerald, Message);
-	}
-
-	bRateOfFireElapsed = false;
-
-	FTimerDelegate Delegate;
-	Delegate.BindLambda([this]()
-		{
-			bRateOfFireElapsed = true;
-		});
-
-
-	// TODO: Hack for now since we only have two weapons. We'd want something more fleshed out if weapons got more complicated.
-	const float RateOfFire = CurrentWeapon == EWeapon::Rifle ? RifleRateOfFire : PistolRateOfFire;
-
-	GetWorldTimerManager().SetTimer(TimerHandle_WeaponRateOfFire, Delegate, RateOfFire, false);
-
-	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-	{
-		// Rifle
-		if (CurrentWeapon == EWeapon::Rifle && RifleMesh)
-		{
-			AnimInstance->Montage_Play(CharacterRifleFireAnimMontage);
-			RifleMesh->PlayAnimation(RifleFireAnim, false);
-		}
-		// Pistol
-		else if (CurrentWeapon == EWeapon::Pistol && PistolMesh)
-		{
-			AnimInstance->Montage_Play(CharacterPistolFireAnimMontage);
-			PistolMesh->PlayAnimation(PistolFireAnim, false);
-		}
+		WeaponsComponent->FireWeapon();
 	}
 }
 
 void AALSCharacter::OnWeaponReloadStarted()
 {
-	if (CurrentWeapon == EWeapon::Unarmed)
+	if (WeaponsComponent && WeaponsComponent->CanReloadEquippedWeapon())
 	{
-		return;
-	}
-
-	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-	{
-		// Rifle
-		if (CurrentWeapon == EWeapon::Rifle && RifleMesh)
-		{
-			AnimInstance->Montage_Play(CharacterRifleReloadAnimMontage);
-			RifleMesh->PlayAnimation(RifleReloadAnim, false);
-		}
-		// Pistol
-		else if (CurrentWeapon == EWeapon::Pistol && PistolMesh)
-		{
-			AnimInstance->Montage_Play(CharacterPistolReloadAnimMontage);
-			PistolMesh->PlayAnimation(PistolReloadAnim, false);
-		}
+		WeaponsComponent->ReloadEquippedWeapon();
 	}
 }
 
@@ -267,32 +275,41 @@ void AALSCharacter::SwitchGate(EGate Gate)
 	OnGateSwitched.Broadcast(Gate);
 
 	UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement();
-	if (!CharacterMovementComp)
+	FGateSettings* CurrentGateSettings = GateSettingsMap.Find(Gate);
+	if (CharacterMovementComp && CurrentGateSettings)
 	{
-		return;
+		CharacterMovementComp->MaxWalkSpeed = CurrentGateSettings->MaxWalkSpeed;
+		CharacterMovementComp->MaxAcceleration = CurrentGateSettings->MaxAcceleration;
+		CharacterMovementComp->BrakingDecelerationWalking = CurrentGateSettings->BrakingDeceleration;
+		CharacterMovementComp->BrakingFrictionFactor = CurrentGateSettings->BrakingFrictionFactor;
+		CharacterMovementComp->BrakingFriction = CurrentGateSettings->BrakingFriction;
+		CharacterMovementComp->bUseSeparateBrakingFriction = CurrentGateSettings->bUseSeparateBrakingFriction;
 	}
-
-	CharacterMovementComp->MaxWalkSpeed = GateSettingsMap[Gate].MaxWalkSpeed;
-	CharacterMovementComp->MaxAcceleration = GateSettingsMap[Gate].MaxAcceleration;
-	CharacterMovementComp->BrakingDecelerationWalking = GateSettingsMap[Gate].BrakingDeceleration;
-	CharacterMovementComp->BrakingFrictionFactor = GateSettingsMap[Gate].BrakingFrictionFactor;
-	CharacterMovementComp->BrakingFriction = GateSettingsMap[Gate].BrakingFriction;
-	CharacterMovementComp->bUseSeparateBrakingFriction = GateSettingsMap[Gate].bUseSeparateBrakingFriction;
 }
 
 void AALSCharacter::OnUnequipWeaponPressed()
 {
-	SwitchWeapon(EWeapon::Unarmed);
+	// TODO: Maybe change this to unequip?
+	if (WeaponsComponent && WeaponsComponent->CanEquipWeaponType(EWeapon::Unarmed))
+	{
+		WeaponsComponent->EquipWeaponType(EWeapon::Unarmed);
+	}
 }
 
 void AALSCharacter::OnPrimaryWeaponEquippedPressed()
 {
-	SwitchWeapon(EWeapon::Rifle);
+	if (WeaponsComponent && WeaponsComponent->CanEquipWeaponType(EWeapon::Rifle))
+	{
+		WeaponsComponent->EquipWeaponType(EWeapon::Rifle);
+	}
 }
 
 void AALSCharacter::OnSecondaryWeaponEquippedPressed()
 {
-	SwitchWeapon(EWeapon::Pistol);
+	if (WeaponsComponent && WeaponsComponent->CanEquipWeaponType(EWeapon::Pistol))
+	{
+		WeaponsComponent->EquipWeaponType(EWeapon::Pistol);
+	}
 }
 
 void AALSCharacter::ToggleSlowMotion()
@@ -310,33 +327,60 @@ void AALSCharacter::ToggleSlowMotion()
 	}
 }
 
-void AALSCharacter::SwitchWeapon(EWeapon Weapon)
+void AALSCharacter::OnWeaponAdded(const FWeapon& Weapon)
 {
-	CurrentWeapon = Weapon;
-	OnWeaponSwitched.Broadcast(Weapon);
-	UpdateAnimInstanceForWeapon(Weapon);
-	UpdateWeaponMeshLocations(Weapon);
+	ensureMsgf(Weapon.Config.Mesh, TEXT("Weapon mesh must be set"));
+
+	// Spawn a SkeletalMeshComponent for this weapon
+	USkeletalMeshComponent* WeaponMeshComponent = NewObject<USkeletalMeshComponent>(this);
+	WeaponMeshComponent->SetSkeletalMesh(Weapon.Config.Mesh);
+	WeaponMeshComponent->ComponentTags.Add(Weapon.Config.MeshTag);
+	WeaponMeshComponent->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
+	WeaponMeshComponent->RegisterComponent();
+	WeaponMeshComponent->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, GetUnequippedSocketName(Weapon.Config.WeaponType));
+	WeaponMeshes.Add(Weapon.Config.WeaponType, WeaponMeshComponent);
 }
 
-void AALSCharacter::UpdateWeaponMeshLocations(EWeapon Weapon)
+void AALSCharacter::OnWeaponAnimationsRequested(EWeapon WeaponType, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation)
+{
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		AnimInstance->Montage_Play(CharacterAnimation);
+	}
+
+	if (USkeletalMeshComponent* WeaponMesh = WeaponMeshes.FindRef(WeaponType))
+	{
+		WeaponMesh->PlayAnimation(WeaponAnimation, false);
+	}
+}
+
+void AALSCharacter::OnWeaponEquipped(const FWeapon& Weapon)
+{
+	UpdateAnimInstanceForWeapon(Weapon.Config.WeaponType);
+	UpdateWeaponMeshLocations(Weapon.Config.WeaponType);
+}
+
+void AALSCharacter::UpdateWeaponMeshLocations(EWeapon WeaponType)
 {
 	const FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, false);
 	USkeletalMeshComponent* MeshComp = GetMesh();
+	USkeletalMeshComponent* EquippedWeaponMesh = WeaponMeshes.FindRef(WeaponType);
 
-	switch (Weapon)
+	// Detach all other weapons
+	for (const auto& [Type, WeaponMesh] : WeaponMeshes)
 	{
-	case EWeapon::Unarmed:
-		PistolMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.PistolUnEquipped);
-		RifleMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.RifleUnEquipped);
-		break;
-	case EWeapon::Pistol:
-		PistolMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.WeaponEquipped);
-		RifleMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.RifleUnEquipped);
-		break;
-	case EWeapon::Rifle:
-		PistolMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.PistolUnEquipped);
-		RifleMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.WeaponEquipped);
-		break;
+		if (WeaponMesh == EquippedWeaponMesh)
+		{
+			continue;
+		}
+
+		WeaponMesh->AttachToComponent(MeshComp, AttachmentRules, GetUnequippedSocketName(Type));
+	}
+
+	// Attach newly equipped weapon
+	if (EquippedWeaponMesh)
+	{
+		EquippedWeaponMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.WeaponEquipped);
 	}
 }
 
@@ -368,14 +412,32 @@ void AALSCharacter::UpdateAnimInstanceForWeapon(EWeapon Weapon)
 	CharacterMesh->LinkAnimClassLayers(LayerClass);
 }
 
-bool AALSCharacter::CanFireWeapon()
+FName AALSCharacter::GetUnequippedSocketName(EWeapon WeaponType) const 
 {
-	// Make sure we are aiming a weapon
-	if (CurrentGate == EGate::Jogging || CurrentWeapon == EWeapon::Unarmed)
+	switch (WeaponType)
 	{
-		return false;
+	case EWeapon::Rifle:
+		return WeaponSocketLocations.RifleUnEquipped;
+	case EWeapon::Pistol:
+		return WeaponSocketLocations.PistolUnEquipped;
+	default:
+		break;
 	}
 
-	return bRateOfFireElapsed;
+	return "";
+}
+
+void AALSCharacter::OnWeaponRequested(IConsoleVariable* ConsoleVariable)
+{
+	const FString WeaponRequested = ConsoleVariable->GetString();
+
+	if (WeaponRequested == "Rifle")
+	{
+		WeaponsComponent->AddWeapon(StartingWeapons[1]);
+	}
+	else if (WeaponRequested == "Pistol")
+	{
+		WeaponsComponent->AddWeapon(StartingWeapons[0]);
+	}
 }
 

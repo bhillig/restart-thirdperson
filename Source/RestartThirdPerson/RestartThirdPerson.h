@@ -21,6 +21,8 @@ void LogEnum(const FString& VariableName, TEnum Value, FColor Color = FColor::Wh
 	
 void LogBool(const FString& VariableName, bool Value, FColor Color = FColor::White, float TimeToDisplay = 0.f);
 
+void LogInt(const FString& VariableName, int32 Value, FColor Color = FColor::White, float TimeToDisplay = 0.f);
+
 void LogFloat(const FString& VariableName, float Value, FColor Color = FColor::White, float TimeToDisplay = 0.f);
 
 void DrawDebugArrowWithText(const FVector& Start, const FVector& End, const FString& Message, UWorld* World, FColor Color = FColor::Red, float TimeToDisplay = 0.f);

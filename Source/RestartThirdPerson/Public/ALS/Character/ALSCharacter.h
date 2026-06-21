@@ -3,22 +3,19 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ActorComponents/WeaponsComponent.h"
 #include "GameFramework/Character.h"
 #include "ALSCharacter.generated.h"
 
+class UWeaponsComponent;
+class UAttributesComponent;
+class UNiagaraSystem;
 struct FInputActionValue;
 class UInputAction;
 class UInputMappingContext;
 class UCameraComponent;
 class USpringArmComponent;
-
-UENUM(BlueprintType)
-enum class EWeapon : uint8
-{
-	Unarmed = 0,
-	Pistol = 1,
-	Rifle = 2
-};
+class UMetaSoundSource;
 
 USTRUCT(BlueprintType)
 struct FWeaponSocketLocations
@@ -69,21 +66,15 @@ struct FGateSettings
 
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponSwitched, EWeapon, Weapon);
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGateSwitched, EGate, Gate);
 
-
 UCLASS()
-class RESTARTTHIRDPERSON_API AALSCharacter : public ACharacter
+class RESTARTTHIRDPERSON_API AALSCharacter : public ACharacter, public IWeaponAimSource
 {
 	GENERATED_BODY()
 
 public:
 	AALSCharacter();
-
-	UPROPERTY(BlueprintAssignable)
-	FOnWeaponSwitched OnWeaponSwitched;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnGateSwitched OnGateSwitched;
@@ -94,6 +85,8 @@ public:
 	float GetDistanceFromGround() const { return DistanceFromGround; }
 
 protected:
+	virtual void PostInitializeComponents() override;
+
 	virtual void BeginPlay() override;
 
 	virtual void Tick(float DeltaSeconds) override;
@@ -101,6 +94,13 @@ protected:
 public:	
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	// Inherited via IWeaponAimSource
+	virtual void GetWeaponAimRay(FVector& OutOrigin, FVector& OutDirection) const override;
+
+public:
+
+	UCameraComponent* GetFollowCamera() { return FollowCamera; }
 
 protected:
 
@@ -111,11 +111,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> FollowCamera;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<USkeletalMeshComponent> PistolMesh;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attributes")
+	TObjectPtr<UAttributesComponent> AttributesComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<USkeletalMeshComponent> RifleMesh;
+	TObjectPtr<UWeaponsComponent> WeaponsComponent;
 
 	// Input
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
@@ -129,6 +129,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> AimAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> InteractAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> JumpAction;
@@ -154,44 +157,31 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> ToggleSlowMotionAction;
 
+	// Character Movement
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement")
 	TMap<EGate, FGateSettings> GateSettingsMap;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement")
 	float DistanceFromGround;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement")
+	float AimingSpringArmLength;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement")
+	float JoggingSpringArmLength;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement")
+	float AimZoomInSpeed;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character Movement")
+	float AimZoomOutSpeed;
+
+	// Weapon
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FWeaponSocketLocations WeaponSocketLocations;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	float PistolRateOfFire;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	float RifleRateOfFire;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<UAnimMontage> CharacterPistolFireAnimMontage;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<UAnimMontage> CharacterRifleFireAnimMontage;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<UAnimSequence> PistolFireAnim;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<UAnimSequence> RifleFireAnim;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<UAnimMontage> CharacterPistolReloadAnimMontage;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<UAnimMontage> CharacterRifleReloadAnimMontage;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<UAnimSequence> PistolReloadAnim;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<UAnimSequence> RifleReloadAnim;
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TArray<FWeaponConfig> StartingWeapons;
 
 protected:
 
@@ -214,6 +204,8 @@ private:
 
 	void OnLookTriggered(const FInputActionValue& Value);
 
+	void OnInteractStarted();
+
 	void OnAimStarted();
 
 	void OnAimCompleted();
@@ -234,25 +226,34 @@ private:
 
 	void ToggleSlowMotion();
 
-	void SwitchWeapon(EWeapon Weapon);
+	UFUNCTION()
+	void OnWeaponAdded(const FWeapon& Weapon);
+
+	UFUNCTION()
+	void OnWeaponEquipped(const FWeapon& Weapon);
+
+	UFUNCTION()
+	void OnWeaponAnimationsRequested(EWeapon Weapon, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation);
 
 	void UpdateWeaponMeshLocations(EWeapon Weapon);
 
 	void UpdateAnimInstanceForWeapon(EWeapon Weapon);
 
-	bool CanFireWeapon();
-
+	FName GetUnequippedSocketName(EWeapon WeaponType) const;
 
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	EWeapon CurrentWeapon;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	EGate CurrentGate;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	bool bRateOfFireElapsed = true;
+	float CurrentSpringArmLength;
 
-	FTimerHandle TimerHandle_WeaponRateOfFire; // Timer responsible for using the current weapon's rate of fire to determine when bRateOfFireElapsed is set back to true
+private:
+	TMap<EWeapon, TObjectPtr<USkeletalMeshComponent>> WeaponMeshes;
+
+
+// Console Variable Callbacks
+private:
+	void OnWeaponRequested(IConsoleVariable* ConsoleVariable);
+
 };
