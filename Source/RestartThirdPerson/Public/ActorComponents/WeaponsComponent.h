@@ -143,6 +143,13 @@ enum class EWeaponFireState : uint8
 	CanFire = 3
 };
 
+UENUM(BlueprintType)
+enum class EHitMarkerType : uint8
+{
+	Base = 0,
+	Kill = 1
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponAdded, const FWeapon&, Weapon);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponEquipped, const FWeapon&, Weapon);
@@ -150,8 +157,14 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponEquipped, const FWeapon&, W
 // Used by character classes to play shooting/reloading animations
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnWeaponAnimationRequested, EWeapon, WeaponType, UAnimSequenceBase*, WeaponAnimation, UAnimMontage*, CharacterAnimation);
 
+// Used for weapon pickup UI (only fired for locally controlled pawns)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWeaponPickupChanged, AWeaponPickup*, OldWeaponPickup, AWeaponPickup*, NewWeaponPickup);
+
 // Used for weapon ammo UI
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWeaponAmmoChanged, int32, BulletsInClip, int32, TotalBullets);
+
+// Used for hitmarker UI (only fire for locally controlled pawns)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHitMarkerRequested, EHitMarkerType, HitMarkerType);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class RESTARTTHIRDPERSON_API UWeaponsComponent : public UActorComponent
@@ -174,6 +187,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnWeaponAmmoChanged OnWeaponAmmoChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnWeaponPickupChanged OnWeaponPickupChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnHitMarkerRequested OnHitMarkerRequested;
 
 protected:
 	virtual void BeginPlay() override;
@@ -255,4 +274,6 @@ private:
 	TScriptInterface<IWeaponAimSource> WeaponAimSource; // Interface for retrieving weapon's aim ray (character, enemy, etc)
 
 	TArray<TObjectPtr<AWeaponPickup>> WeaponPickupsInRange; // Weapons in range to be picked up
+
+	TObjectPtr<AWeaponPickup> CurrentClosestWeaponPickup; // Closest weapon pickup in range
 };

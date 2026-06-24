@@ -43,11 +43,6 @@ void AWeaponPickup::PostInitializeComponents()
 	TriggerSphere->OnComponentEndOverlap.AddDynamic(this, &AWeaponPickup::OnComponentEndOverlap);
 }
 
-void AWeaponPickup::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 void AWeaponPickup::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (UWeaponsComponent* WeaponsComp = FindWeaponsComponentOnActor(OtherActor))
@@ -64,7 +59,7 @@ void AWeaponPickup::OnComponentEndOverlap(UPrimitiveComponent* OverlappedCompone
 	}
 }
 
-UWeaponsComponent* AWeaponPickup::FindWeaponsComponentOnActor(AActor* OtherActor)
+UWeaponsComponent* AWeaponPickup::FindWeaponsComponentOnActor(AActor* OtherActor) const
 {
 	if (!OtherActor)
 	{

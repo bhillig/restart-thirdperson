@@ -4,6 +4,7 @@
 
 #include "MetasoundSource.h"
 #include "NiagaraFunctionLibrary.h"
+#include "ActorComponents/AttributesComponent.h"
 #include "Actors/WeaponPickup.h"
 #include "Kismet/GameplayStatics.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
@@ -165,21 +166,35 @@ void UWeaponsComponent::FireWeapon()
 	// If we hit any object
 	if (CameraHitResult.bBlockingHit || GunBarrelToImpactPointHitResult.bBlockingHit)
 	{
-		const FHitResult& HitResultToUse = CameraHitResult.bBlockingHit ? CameraHitResult : GunBarrelToImpactPointHitResult;
+		const FHitResult& HitResultToUse = GunBarrelToImpactPointHitResult.bBlockingHit ? GunBarrelToImpactPointHitResult : CameraHitResult;
 		AActor* HitActor = HitResultToUse.GetActor();
 
 		APawn* InstigatorPawn = Cast<APawn>(GetOwner());
 		AController* EventInstigator = InstigatorPawn ? InstigatorPawn->GetController() : nullptr;
 
+		TArray<UAttributesComponent*> AttributeComponents;
+		HitActor->GetComponents(UAttributesComponent::StaticClass(), AttributeComponents);
+		UAttributesComponent* AttributeComp = !AttributeComponents.IsEmpty() ? AttributeComponents[0] : nullptr;
+
+		const float OldHealth = AttributeComp ? AttributeComp->GetHealth() : 0.f;
+
 		// Apply damage
 		UGameplayStatics::ApplyPointDamage(HitActor, WeaponConfig.DamagePerBullet, WeaponDirection, HitResultToUse, EventInstigator, GetOwner(), UDamageType::StaticClass());
+
+		const float NewHealth = AttributeComp ? AttributeComp->GetHealth() : 0.f;
+
+		if (AttributeComp)
+		{
+			// We hit an object with an attributes component so broadcast a hitmarker
+			const EHitMarkerType HitMarkerType = FMath::IsNearlyZero(NewHealth) ? EHitMarkerType::Kill : EHitMarkerType::Base;
+			OnHitMarkerRequested.Broadcast(HitMarkerType);
+		}
 
 		UNiagaraSystem* ImpactParticles = PlasterImpactParticles;
 		UMetaSoundSource* ImpactSound = PlasterImpactSound;
 		UMetaSoundSource* DebrisImpactSound = PlasterDebrisImpactSound;
 
-		const EPhysicalSurface SurfaceHit = UGameplayStatics::GetSurfaceType(HitResultToUse);
-		switch (SurfaceHit)
+		switch (const EPhysicalSurface SurfaceHit = UGameplayStatics::GetSurfaceType(HitResultToUse))
 		{
 		case SurfaceType1: // Glass
 			ImpactParticles = GlassImpactParticles;
@@ -284,11 +299,25 @@ USkeletalMeshComponent* UWeaponsComponent::FindWeaponMesh(const FWeaponConfig& C
 void UWeaponsComponent::AddWeaponPickupInRange(AWeaponPickup* WeaponPickup)
 {
 	WeaponPickupsInRange.Add(WeaponPickup);
-	rs::LogOnce(FString::Printf(TEXT("In Range!")), FColor::Emerald, 2.0f);
+
+	// TODO: Recalculate closest pickup
+
+	APawn* OwningPawn = Cast<APawn>(GetOwner());
+	if (OwningPawn && OwningPawn->IsLocallyControlled())
+	{
+		OnWeaponPickupChanged.Broadcast(CurrentClosestWeaponPickup, WeaponPickup);
+		CurrentClosestWeaponPickup = WeaponPickup;
+	}
 }
 
 void UWeaponsComponent::RemoveWeaponPickupInRange(AWeaponPickup* WeaponPickup)
 {
 	WeaponPickupsInRange.Remove(WeaponPickup);
-	rs::LogOnce(FString::Printf(TEXT("Out Of Range!")), FColor::Emerald, 2.0f);
+
+	APawn* OwningPawn = Cast<APawn>(GetOwner());
+	if (OwningPawn && OwningPawn->IsLocallyControlled())
+	{
+		OnWeaponPickupChanged.Broadcast(CurrentClosestWeaponPickup, nullptr);
+		CurrentClosestWeaponPickup = nullptr;
+	}
 }

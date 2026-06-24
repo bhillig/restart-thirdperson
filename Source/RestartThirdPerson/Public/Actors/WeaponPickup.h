@@ -26,8 +26,6 @@ protected:
 
 	virtual void PostInitializeComponents() override;
 
-	virtual void BeginPlay() override;
-
 protected:
 
 	// Components
@@ -52,7 +50,7 @@ private:
 	UFUNCTION()
 	void OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	UWeaponsComponent* FindWeaponsComponentOnActor(AActor* OtherActor);
+	UWeaponsComponent* FindWeaponsComponentOnActor(AActor* OtherActor) const;
 
 	TArray<TObjectPtr<UWeaponsComponent>> WeaponsComponentsInRange;
 };

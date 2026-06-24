@@ -36,6 +36,8 @@ public:
 
 	bool ApplyHealthDelta(float Delta, AController* EventInstigator = nullptr, AActor* DamageCauser = nullptr);
 
+	float GetHealth() const { return Health; }
+
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Health")
