@@ -154,12 +154,12 @@ void UWeaponsComponent::FireWeapon()
 	QueryParams.AddIgnoredActor(GetOwner());
 
 	FHitResult CameraHitResult;
-	GetWorld()->LineTraceSingleByChannel(CameraHitResult, Start, End, ECC_Visibility, QueryParams);
+	GetWorld()->LineTraceSingleByChannel(CameraHitResult, Start, End, ECC_Pawn, QueryParams);
 
 	const FVector PotentialImpactPoint = CameraHitResult.bBlockingHit ? CameraHitResult.ImpactPoint : End;
 
 	FHitResult GunBarrelToImpactPointHitResult;
-	GetWorld()->LineTraceSingleByChannel(GunBarrelToImpactPointHitResult, WeaponBarrelLocation, PotentialImpactPoint, ECC_Visibility, QueryParams);
+	GetWorld()->LineTraceSingleByChannel(GunBarrelToImpactPointHitResult, WeaponBarrelLocation, PotentialImpactPoint, ECC_Pawn, QueryParams);
 
 	const FVector ImpactPoint = GunBarrelToImpactPointHitResult.bBlockingHit ? GunBarrelToImpactPointHitResult.ImpactPoint : PotentialImpactPoint;
 
@@ -183,7 +183,9 @@ void UWeaponsComponent::FireWeapon()
 
 		const float NewHealth = AttributeComp ? AttributeComp->GetHealth() : 0.f;
 
-		if (AttributeComp)
+		const float DamageDealt = OldHealth - NewHealth;
+
+		if (AttributeComp && DamageDealt > 0.f)
 		{
 			// We hit an object with an attributes component so broadcast a hitmarker
 			const EHitMarkerType HitMarkerType = FMath::IsNearlyZero(NewHealth) ? EHitMarkerType::Kill : EHitMarkerType::Base;
@@ -200,6 +202,11 @@ void UWeaponsComponent::FireWeapon()
 			ImpactParticles = GlassImpactParticles;
 			ImpactSound = GlassImpactSound;
 			DebrisImpactSound = GlassDebrisImpactSound;
+			break;
+		case SurfaceType2: // Human
+			ImpactParticles = HumanImpactParticles;
+			ImpactSound = HumanImpactSound;
+			DebrisImpactSound = HumanDebrisImpactSound;
 			break;
 		case SurfaceType_Default: // Default, already assigned
 		default:

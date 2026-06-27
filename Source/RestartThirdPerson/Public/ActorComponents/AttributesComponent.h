@@ -6,12 +6,9 @@
 #include "Components/ActorComponent.h"
 #include "AttributesComponent.generated.h"
 
-// NewHealth
-// MaxHealth
-// Delta
-// EventInstigator
-// DamageCauser
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FOnHealthChanged, float, NewHealth, float, MaxHealth, float, Delta, AController*, EventInstigator, AActor*, DamageCauser);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDeath, AController*, EventInstigator, AActor*, DamageCauser);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class RESTARTTHIRDPERSON_API UAttributesComponent : public UActorComponent
@@ -23,6 +20,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnHealthChanged OnHealthChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnDeath OnDeath;
 
 protected:
 

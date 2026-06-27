@@ -50,15 +50,22 @@ bool UAttributesComponent::ApplyHealthDelta(float Delta, AController* EventInsti
 
 	// Calculate the actual delta dealt
 	const float NewHealth = FMath::Clamp(Health + Delta, 0.f, MaxHealth);
-	const float ActualDelta = FMath::Abs(NewHealth - OldHealth);
+	const float ActualDelta = NewHealth - OldHealth;
 
 	if (FMath::IsNearlyEqual(ActualDelta, 0))
 	{
 		return false;
 	}
 
-	OnHealthChanged.Broadcast(NewHealth, MaxHealth, ActualDelta, EventInstigator, DamageCauser);
 	Health = NewHealth;
+	OnHealthChanged.Broadcast(NewHealth, MaxHealth, ActualDelta, EventInstigator, DamageCauser);
+
+	if (FMath::IsNearlyEqual(Health, 0))
+	{
+		// A delta was applied and health now equals zero 
+		OnDeath.Broadcast(EventInstigator, DamageCauser);
+	}
+
 	return true;
 }
 

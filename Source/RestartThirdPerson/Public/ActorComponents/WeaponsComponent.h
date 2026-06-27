@@ -245,10 +245,19 @@ protected:
 	TObjectPtr<UMetaSoundSource> GlassDebrisImpactSound;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
+	TObjectPtr<UMetaSoundSource> HumanImpactSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
+	TObjectPtr<UMetaSoundSource> HumanDebrisImpactSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
 	TObjectPtr<UNiagaraSystem> PlasterImpactParticles;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
 	TObjectPtr<UNiagaraSystem> GlassImpactParticles;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
+	TObjectPtr<UNiagaraSystem> HumanImpactParticles;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
 	TObjectPtr<UNiagaraSystem> BulletTracerVFX;
