@@ -16,9 +16,6 @@
 
 static TAutoConsoleVariable CVar_DebugGateSettings(TEXT("Debug.GateSettings"), false, TEXT("Debug gate setting movement variables"));
 
-static TAutoConsoleVariable CVar_AddWeapon(TEXT("Player.AddWeapon"), FString(""), TEXT("Adds a weapon to the player"));
-
-
 AALSCharacter::AALSCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -44,8 +41,6 @@ void AALSCharacter::PostInitializeComponents()
 		WeaponsComponent->OnWeaponEquipped.AddDynamic(this, &AALSCharacter::OnWeaponEquipped);
 		WeaponsComponent->OnWeaponAnimationRequested.AddDynamic(this, &AALSCharacter::OnWeaponAnimationsRequested);
 	}
-
-	CVar_AddWeapon->AsVariable()->SetOnChangedCallback(FConsoleVariableDelegate::CreateUObject(this, &AALSCharacter::OnWeaponRequested));
 }
 
 void AALSCharacter::BeginPlay()
@@ -57,10 +52,6 @@ void AALSCharacter::BeginPlay()
 
 	if (WeaponsComponent)
 	{
-		//for (const FWeaponConfig& WeaponConfig : StartingWeapons)
-		//{
-		//	WeaponsComponent->AddWeapon(WeaponConfig);
-		//}
 		WeaponsComponent->EquipWeaponType(EWeapon::Unarmed);
 	}
 }
@@ -147,10 +138,6 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 		// Interact
 		EnhancedInputComp->BindAction(InteractAction, ETriggerEvent::Started, this, &AALSCharacter::OnInteractStarted);
-
-		// Jumping
-		EnhancedInputComp->BindAction(JumpAction, ETriggerEvent::Started, this, &AALSCharacter::Jump);
-		EnhancedInputComp->BindAction(JumpAction, ETriggerEvent::Completed, this, &AALSCharacter::StopJumping);
 
 		// Crouching
 		EnhancedInputComp->BindAction(ToggleCrouchAction, ETriggerEvent::Started, this, &AALSCharacter::OnCrouchToggled);
@@ -380,7 +367,8 @@ void AALSCharacter::UpdateWeaponMeshLocations(EWeapon WeaponType)
 	// Attach newly equipped weapon
 	if (EquippedWeaponMesh)
 	{
-		EquippedWeaponMesh->AttachToComponent(MeshComp, AttachmentRules, WeaponSocketLocations.WeaponEquipped);
+		const FName EquippedSocketName = WeaponType == EWeapon::Rifle ? WeaponSocketLocations.RifleEquipped : WeaponSocketLocations.PistolEquipped;
+		EquippedWeaponMesh->AttachToComponent(MeshComp, AttachmentRules, EquippedSocketName);
 	}
 }
 
@@ -426,18 +414,3 @@ FName AALSCharacter::GetUnequippedSocketName(EWeapon WeaponType) const
 
 	return "";
 }
-
-void AALSCharacter::OnWeaponRequested(IConsoleVariable* ConsoleVariable)
-{
-	const FString WeaponRequested = ConsoleVariable->GetString();
-
-	if (WeaponRequested == "Rifle")
-	{
-		WeaponsComponent->AddWeapon(StartingWeapons[1]);
-	}
-	else if (WeaponRequested == "Pistol")
-	{
-		WeaponsComponent->AddWeapon(StartingWeapons[0]);
-	}
-}
-

@@ -6,6 +6,7 @@
 #include "BrainComponent.h"
 #include "ActorComponents/AttributesComponent.h"
 #include "Controllers/ZombieAIController.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -65,7 +66,10 @@ void AZombieCharacter::OnHealthChanged(float NewHealth, float MaxHealth, float D
 
 			Delegate.BindLambda([this, OldMovementMode]()
 				{
-					GetCharacterMovement()->SetMovementMode(OldMovementMode);
+					if (UCharacterMovementComponent* CharacterMovement = GetCharacterMovement())
+					{
+						CharacterMovement->SetMovementMode(OldMovementMode);
+					}
 				});
 
 			if (AZombieAIController* AICon = Cast<AZombieAIController>(GetController()))
@@ -101,6 +105,7 @@ void AZombieCharacter::OnDeath(AController* EventInstigator, AActor* DamageCause
 				Destroy();
 			});
 
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		GetCharacterMovement()->StopMovementImmediately();
 		GetCharacterMovement()->SetMovementMode(MOVE_None);
 		// TODO: Remove hack

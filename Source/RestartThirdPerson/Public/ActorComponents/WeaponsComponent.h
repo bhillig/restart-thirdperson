@@ -34,6 +34,10 @@ struct FWeaponConfig
 {
 	GENERATED_BODY()
 
+	// Weapon Name
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	FText WeaponName;
+
 	// Weapon Type
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	EWeapon WeaponType = EWeapon::Unarmed;

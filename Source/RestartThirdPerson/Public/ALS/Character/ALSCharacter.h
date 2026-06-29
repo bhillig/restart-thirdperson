@@ -29,7 +29,10 @@ struct FWeaponSocketLocations
 	FName RifleUnEquipped;
 
 	UPROPERTY(EditAnywhere)
-	FName WeaponEquipped;
+	FName RifleEquipped;
+
+	UPROPERTY(EditAnywhere)
+	FName PistolEquipped;
 };
 
 
@@ -97,10 +100,6 @@ public:
 
 	// Inherited via IWeaponAimSource
 	virtual void GetWeaponAimRay(FVector& OutOrigin, FVector& OutDirection) const override;
-
-public:
-
-	UCameraComponent* GetFollowCamera() { return FollowCamera; }
 
 protected:
 
@@ -180,9 +179,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FWeaponSocketLocations WeaponSocketLocations;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
-	TArray<FWeaponConfig> StartingWeapons;
-
 protected:
 
 	// Anim Instances
@@ -250,10 +246,5 @@ protected:
 
 private:
 	TMap<EWeapon, TObjectPtr<USkeletalMeshComponent>> WeaponMeshes;
-
-
-// Console Variable Callbacks
-private:
-	void OnWeaponRequested(IConsoleVariable* ConsoleVariable);
 
 };
