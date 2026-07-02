@@ -7,7 +7,6 @@
 #include "ActorComponents/AttributesComponent.h"
 #include "Actors/WeaponPickup.h"
 #include "Kismet/GameplayStatics.h"
-#include "RestartThirdPerson/RestartThirdPerson.h"
 
 UWeaponsComponent::UWeaponsComponent()
 {
@@ -154,12 +153,12 @@ void UWeaponsComponent::FireWeapon()
 	QueryParams.AddIgnoredActor(GetOwner());
 
 	FHitResult CameraHitResult;
-	GetWorld()->LineTraceSingleByChannel(CameraHitResult, Start, End, ECC_Pawn, QueryParams);
+	GetWorld()->LineTraceSingleByChannel(CameraHitResult, Start, End, ECC_Visibility, QueryParams);
 
 	const FVector PotentialImpactPoint = CameraHitResult.bBlockingHit ? CameraHitResult.ImpactPoint : End;
 
 	FHitResult GunBarrelToImpactPointHitResult;
-	GetWorld()->LineTraceSingleByChannel(GunBarrelToImpactPointHitResult, WeaponBarrelLocation, PotentialImpactPoint, ECC_Pawn, QueryParams);
+	GetWorld()->LineTraceSingleByChannel(GunBarrelToImpactPointHitResult, WeaponBarrelLocation, PotentialImpactPoint, ECC_Visibility, QueryParams);
 
 	const FVector ImpactPoint = GunBarrelToImpactPointHitResult.bBlockingHit ? GunBarrelToImpactPointHitResult.ImpactPoint : PotentialImpactPoint;
 
@@ -179,6 +178,7 @@ void UWeaponsComponent::FireWeapon()
 		const float OldHealth = AttributeComp ? AttributeComp->GetHealth() : 0.f;
 
 		// Apply damage
+		// TODO: Allow weapons to specify their damage type class
 		UGameplayStatics::ApplyPointDamage(HitActor, WeaponConfig.DamagePerBullet, WeaponDirection, HitResultToUse, EventInstigator, GetOwner(), UDamageType::StaticClass());
 
 		const float NewHealth = AttributeComp ? AttributeComp->GetHealth() : 0.f;

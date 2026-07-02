@@ -19,8 +19,8 @@ void AZombieCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	AttributesComponent->OnHealthChanged.AddDynamic(this, &AZombieCharacter::OnHealthChanged);
-	AttributesComponent->OnDeath.AddDynamic(this, &AZombieCharacter::OnDeath);
+	OnTakePointDamage.AddDynamic(this, &AZombieCharacter::OnZombieTakePointDamage);
+	AttributesComponent->OnDeath.AddDynamic(this, &AZombieCharacter::OnZombieDeath);
 }
 
 bool AZombieCharacter::Attack(AActor* TargetActor)
@@ -43,50 +43,60 @@ bool AZombieCharacter::Attack(AActor* TargetActor)
 	return true;
 }
 
-void AZombieCharacter::OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser)
+bool AZombieCharacter::IsDead()
 {
-	if (FMath::IsNearlyZero(NewHealth))
+	return bIsDead;
+}
+
+void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy,
+                                               FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser)
+{
+	if (FMath::IsNearlyZero(AttributesComponent->GetHealth()))
 	{
 		// Let the OnDeath callback handle death
 		return;
 	}
 
-
-	if (Delta < 0.f)
+	// Play fire react montage
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
 	{
-		// We were dealt damage so react
 
-		// Play fire react montage
-		if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-		{
+		FTimerDelegate Delegate;
 
-			FTimerDelegate Delegate;
+		const EMovementMode OldMovementMode = GetCharacterMovement()->GetGroundMovementMode();
 
-			const EMovementMode OldMovementMode = GetCharacterMovement()->GetGroundMovementMode();
-
-			Delegate.BindLambda([this, OldMovementMode]()
-				{
-					if (UCharacterMovementComponent* CharacterMovement = GetCharacterMovement())
-					{
-						CharacterMovement->SetMovementMode(OldMovementMode);
-					}
-				});
-
-			if (AZombieAIController* AICon = Cast<AZombieAIController>(GetController()))
+		Delegate.BindLambda([this, OldMovementMode]()
 			{
-				AICon->StopMovement();
-			}
-			GetCharacterMovement()->StopMovementImmediately();
-			GetCharacterMovement()->SetMovementMode(MOVE_None);
-			const float MontageLength = AnimInstance->Montage_Play(FireReactMontage);
+				if (UCharacterMovementComponent* CharacterMovement = GetCharacterMovement())
+				{
+					CharacterMovement->SetMovementMode(OldMovementMode);
+				}
+			});
 
-			GetWorldTimerManager().SetTimer(FireReactTimerHandle, Delegate, MontageLength, false);
+		if (AZombieAIController* AICon = Cast<AZombieAIController>(GetController()))
+		{
+			AICon->StopMovement();
 		}
+		GetCharacterMovement()->StopMovementImmediately();
+		GetCharacterMovement()->SetMovementMode(MOVE_None);
+
+
+		const float MontageLength = AnimInstance->Montage_Play(FireReactMontage);
+
+		GetWorldTimerManager().SetTimer(FireReactTimerHandle, Delegate, MontageLength, false);
 	}
+
 }
 
-void AZombieCharacter::OnDeath(AController* EventInstigator, AActor* DamageCauser)
+void AZombieCharacter::OnZombieDeath(AController* EventInstigator, AActor* DamageCauser)
 {
+	bIsDead = true;
+
+	// Stop character movement and collision
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->SetMovementMode(MOVE_None);
+
 	// Disable AI input
 	if (AZombieAIController* AICon = Cast<AZombieAIController>(GetController()))
 	{
@@ -97,24 +107,21 @@ void AZombieCharacter::OnDeath(AController* EventInstigator, AActor* DamageCause
 	// Play death montage
 	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
 	{
-
-		FTimerDelegate Delegate;
-
-		Delegate.BindLambda([this]()
-			{
-				Destroy();
-			});
-
-		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		GetCharacterMovement()->StopMovementImmediately();
-		GetCharacterMovement()->SetMovementMode(MOVE_None);
-		// TODO: Remove hack
-		const float MontageLength = AnimInstance->Montage_Play(DeathMontage) - 0.3f;
-
-		GetWorldTimerManager().SetTimer(DeathTimerHandle, Delegate, MontageLength, false);
+		const float Duration = AnimInstance->Montage_Play(DeathMontage);
+		if (Duration > 0.f)
+		{
+			FOnMontageEnded EndDelegate;
+			EndDelegate.BindUObject(this, &AZombieCharacter::OnDeathMontageEnded);
+			AnimInstance->Montage_SetEndDelegate(EndDelegate);
+		}
 	}
-	else
-	{
-		Destroy();
-	}
+}
+
+void AZombieCharacter::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	// Lock corpse in death pose
+	GetMesh()->SetComponentTickEnabled(false);
+
+	// Destroy zombie character after duration
+	SetLifeSpan(CorpseLifeSpanAfterDeath);
 }

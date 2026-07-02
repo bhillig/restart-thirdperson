@@ -25,6 +25,9 @@ public:
 	// Attack Player (called via BTTask_CloseRangedAttack)
 	bool Attack(AActor* TargetActor);
 
+	UFUNCTION(BlueprintCallable, Category = "Death")
+	bool IsDead();
+
 protected:
 	virtual void PostInitializeComponents() override;
 
@@ -40,15 +43,27 @@ protected:
 	TObjectPtr<UAnimMontage> FireReactMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	TObjectPtr<UAnimMontage> HeadReactMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<UAnimMontage> DeathMontage;
 
+	// Params
+	UPROPERTY(EditAnywhere, Category = "Death")
+	float CorpseLifeSpanAfterDeath = 60.f;
+
 protected:
-	UFUNCTION()
-	void OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser);
 
 	UFUNCTION()
-	void OnDeath(AController* EventInstigator, AActor* DamageCauser);
+	void OnZombieTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser);
+
+	UFUNCTION()
+	void OnZombieDeath(AController* EventInstigator, AActor* DamageCauser);
+
+	UFUNCTION()
+	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	FTimerHandle FireReactTimerHandle; // Timer handle for callback upon hit fire react concluding
-	FTimerHandle DeathTimerHandle; // Timer handle for callback upon dying
+
+	bool bIsDead = false;
 };

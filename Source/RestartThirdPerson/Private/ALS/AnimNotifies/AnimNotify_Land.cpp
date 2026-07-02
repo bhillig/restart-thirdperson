@@ -4,7 +4,6 @@
 #include "ALS/AnimNotifies/AnimNotify_Land.h"
 
 #include "Kismet/GameplayStatics.h"
-#include "RestartThirdPerson/RestartThirdPerson.h"
 
 void UAnimNotify_Land::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	const FAnimNotifyEventReference& EventReference)
