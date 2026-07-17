@@ -3,10 +3,25 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "NativeGameplayTags.h"
 #include "GameFramework/Character.h"
 #include "ZombieCharacter.generated.h"
 
 class UAttributesComponent;
+class UStateTreeComponent;
+
+
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_StateTreeEvent_Zombie_StartChasing);
+UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_StateTreeEvent_Zombie_StopChasing);
+
+USTRUCT(BlueprintType)
+struct FZombieStartChasingPayload
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<APawn> TargetPawn = nullptr;
+};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAttackFinished, bool, bInterrupted);
 
@@ -31,11 +46,17 @@ public:
 protected:
 	virtual void PostInitializeComponents() override;
 
+	virtual void BeginPlay() override;
+
 protected:
 	// Components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAttributesComponent> AttributesComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UStateTreeComponent> StateTreeComponent;
+
+	// Animations
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<UAnimMontage> AttackMontage;
 
@@ -66,4 +87,9 @@ protected:
 	FTimerHandle FireReactTimerHandle; // Timer handle for callback upon hit fire react concluding
 
 	bool bIsDead = false;
+
+private:
+	// State Tree Data Bindings
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<APawn> TargetPawn;
 };
