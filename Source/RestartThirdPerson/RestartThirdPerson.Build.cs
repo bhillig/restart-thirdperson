@@ -8,7 +8,20 @@ public class RestartThirdPerson : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "AnimGraphRuntime", "AnimationLocomotionLibraryRuntime", "MetasoundEngine", "Niagara", "NiagaraCore", "AIModule" });
+        PublicDependencyModuleNames.AddRange(new string[] { "Core", 
+            "CoreUObject", 
+            "Engine", 
+            "InputCore", 
+            "EnhancedInput", 
+            "AnimGraphRuntime", 
+            "AnimationLocomotionLibraryRuntime", 
+            "MetasoundEngine", 
+            "Niagara", 
+            "NiagaraCore", 
+            "AIModule", 
+            "StateTreeModule", 
+            "GameplayStateTreeModule",
+            "GameplayTags" });
 
         PrivateDependencyModuleNames.AddRange(new string[] { });
 

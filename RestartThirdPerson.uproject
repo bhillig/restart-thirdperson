@@ -11,7 +11,8 @@
 			"AdditionalDependencies": [
 				"Engine",
 				"UMG",
-				"AIModule"
+				"AIModule",
+				"StateTreeModule"
 			]
 		}
 	],
@@ -29,6 +30,10 @@
 		},
 		{
 			"Name": "AnimationLocomotionLibrary",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayStateTree",
 			"Enabled": true
 		}
 	]
