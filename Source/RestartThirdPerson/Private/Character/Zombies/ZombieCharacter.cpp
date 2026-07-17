@@ -3,13 +3,10 @@
 
 #include "Character/Zombies/ZombieCharacter.h"
 
-#include "BrainComponent.h"
 #include "ActorComponents/AttributesComponent.h"
 #include "Controllers/ZombieAIController.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/StateTreeComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
 UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_StateTreeEvent_Zombie_StartChasing, "StateTreeEvent.Zombie.StartChasing", "State Tree Event for when a zombie starts chasing a target");
@@ -18,9 +15,6 @@ UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_StateTreeEvent_Zombie_StopChasing, "StateTree
 AZombieCharacter::AZombieCharacter()
 {
 	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>("AttributesComponent");
-
-	StateTreeComponent = CreateDefaultSubobject<UStateTreeComponent>("StateTreeComponent");
-	StateTreeComponent->SetStartLogicAutomatically(true);
 }
 
 void AZombieCharacter::PostInitializeComponents()
@@ -29,17 +23,6 @@ void AZombieCharacter::PostInitializeComponents()
 
 	OnTakePointDamage.AddDynamic(this, &AZombieCharacter::OnZombieTakePointDamage);
 	AttributesComponent->OnDeath.AddDynamic(this, &AZombieCharacter::OnZombieDeath);
-}
-
-void AZombieCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-
-	TargetPawn = UGameplayStatics::GetPlayerPawn(this, 0);
-
-	//FZombieStartChasingPayload Payload;
-	//Payload.TargetPawn = TargetPawn;
-	//StateTreeComponent->SendStateTreeEvent(TAG_StateTreeEvent_Zombie_StartChasing, FConstStructView::Make(Payload));
 }
 
 bool AZombieCharacter::Attack(AActor* TargetActor)
@@ -115,13 +98,6 @@ void AZombieCharacter::OnZombieDeath(AController* EventInstigator, AActor* Damag
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCharacterMovement()->StopMovementImmediately();
 	GetCharacterMovement()->SetMovementMode(MOVE_None);
-
-	// Disable AI input
-	if (AZombieAIController* AICon = Cast<AZombieAIController>(GetController()))
-	{
-		AICon->GetBrainComponent()->StopLogic(TEXT("Death"));
-		AICon->StopMovement();
-	}
 
 	// Play death montage
 	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())

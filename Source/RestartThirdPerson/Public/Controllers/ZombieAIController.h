@@ -6,6 +6,7 @@
 #include "AIController.h"
 #include "ZombieAIController.generated.h"
 
+class UStateTreeAIComponent;
 /**
  * 
  */
@@ -14,15 +15,10 @@ class RESTARTTHIRDPERSON_API AZombieAIController : public AAIController
 {
 	GENERATED_BODY()
 
+	// Components
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UStateTreeAIComponent> StateTreeAI;
+
 public:
 	AZombieAIController();
-
-protected:
-	virtual void BeginPlay() override;
-
-protected:
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
-	TObjectPtr<UBehaviorTree> BehaviorTree;
-
 };
