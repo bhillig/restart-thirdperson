@@ -4,13 +4,10 @@
 #include "Character/Zombies/ZombieCharacter.h"
 
 #include "ActorComponents/AttributesComponent.h"
-#include "Controllers/ZombieAIController.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
-UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_StateTreeEvent_Zombie_StartChasing, "StateTreeEvent.Zombie.StartChasing", "State Tree Event for when a zombie starts chasing a target");
-UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_StateTreeEvent_Zombie_StopChasing, "StateTreeEvent.Zombie.StopChasing", "State Tree Event for when a zombie stops chasing a target");
 
 AZombieCharacter::AZombieCharacter()
 {
@@ -27,7 +24,8 @@ void AZombieCharacter::PostInitializeComponents()
 
 bool AZombieCharacter::Attack(AActor* TargetActor)
 {
-	if (!TargetActor)
+	// Ensure the target is valid
+	if (!IsValid(TargetActor))
 	{
 		return false;
 	}
@@ -45,13 +43,7 @@ bool AZombieCharacter::Attack(AActor* TargetActor)
 	return true;
 }
 
-bool AZombieCharacter::IsDead()
-{
-	return bIsDead;
-}
-
-void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy,
-                                               FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser)
+void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser)
 {
 	if (FMath::IsNearlyZero(AttributesComponent->GetHealth()))
 	{
@@ -59,45 +51,59 @@ void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damag
 		return;
 	}
 
+	// Stop moving
+	if (UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement())
+	{
+		CharacterMovementComp->StopMovementImmediately();
+		CharacterMovementComp->SetMovementMode(MOVE_None);
+	}
+
 	// Play fire react montage
 	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
 	{
-
-		FTimerDelegate Delegate;
-
-		const EMovementMode OldMovementMode = GetCharacterMovement()->GetGroundMovementMode();
-
-		Delegate.BindLambda([this, OldMovementMode]()
-			{
-				if (UCharacterMovementComponent* CharacterMovement = GetCharacterMovement())
-				{
-					CharacterMovement->SetMovementMode(OldMovementMode);
-				}
-			});
-
-		if (AZombieAIController* AICon = Cast<AZombieAIController>(GetController()))
+		const float Duration = AnimInstance->Montage_Play(FireReactMontage);
+		if (Duration > 0.f)
 		{
-			AICon->StopMovement();
+			FOnMontageEnded EndDelegate;
+			EndDelegate.BindUObject(this, &AZombieCharacter::OnFireReactMontageEnded);
+			AnimInstance->Montage_SetEndDelegate(EndDelegate);
 		}
-		GetCharacterMovement()->StopMovementImmediately();
-		GetCharacterMovement()->SetMovementMode(MOVE_None);
+	}
+}
 
-
-		const float MontageLength = AnimInstance->Montage_Play(FireReactMontage);
-
-		GetWorldTimerManager().SetTimer(FireReactTimerHandle, Delegate, MontageLength, false);
+void AZombieCharacter::OnFireReactMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	// Something else took over the montage slot (another react, or death) - whatever
+	// interrupted us owns the movement mode now, so leave it alone
+	if (bInterrupted)
+	{
+		return;
 	}
 
+	if (UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement())
+	{
+		CharacterMovementComp->SetMovementMode(MOVE_Walking);
+	}
 }
 
 void AZombieCharacter::OnZombieDeath(AController* EventInstigator, AActor* DamageCauser)
 {
-	bIsDead = true;
+	// Disable collision
+	if (UCapsuleComponent* CapsuleComp = GetCapsuleComponent())
+	{
+		CapsuleComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	if (USkeletalMeshComponent* ZombieMesh = GetMesh())
+	{
+		ZombieMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
 
-	// Stop character movement and collision
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	GetCharacterMovement()->StopMovementImmediately();
-	GetCharacterMovement()->SetMovementMode(MOVE_None);
+	// Stop character movement
+	if (UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement())
+	{
+		CharacterMovementComp->StopMovementImmediately();
+		CharacterMovementComp->SetMovementMode(MOVE_None);
+	}
 
 	// Play death montage
 	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
@@ -110,13 +116,19 @@ void AZombieCharacter::OnZombieDeath(AController* EventInstigator, AActor* Damag
 			AnimInstance->Montage_SetEndDelegate(EndDelegate);
 		}
 	}
+
+	// Destroy zombie character after duration
+	SetLifeSpan(CorpseLifeSpanAfterDeath);
+
+	// Emit a signal we died
+	OnPawnDeath.Broadcast();
 }
 
 void AZombieCharacter::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	// Lock corpse in death pose
-	GetMesh()->SetComponentTickEnabled(false);
-
-	// Destroy zombie character after duration
-	SetLifeSpan(CorpseLifeSpanAfterDeath);
+	if (USkeletalMeshComponent* ZombieMeshComp = GetMesh())
+	{
+		ZombieMeshComp->SetComponentTickEnabled(false);
+	}
 }

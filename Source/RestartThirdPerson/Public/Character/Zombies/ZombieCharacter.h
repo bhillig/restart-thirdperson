@@ -3,44 +3,34 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "NativeGameplayTags.h"
 #include "GameFramework/Character.h"
 #include "ZombieCharacter.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPawnDeathDelegate);
+
 class UAttributesComponent;
-
-UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_StateTreeEvent_Zombie_StartChasing);
-UE_DECLARE_GAMEPLAY_TAG_EXTERN(TAG_StateTreeEvent_Zombie_StopChasing);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAttackFinished, bool, bInterrupted);
 
 UCLASS()
 class RESTARTTHIRDPERSON_API AZombieCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	// Components
+	/** Components */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess=true))
 	TObjectPtr<UAttributesComponent> AttributesComponent;
 
 public:
 	AZombieCharacter();
 
-	// Delegates
-	UPROPERTY(BlueprintAssignable)
-	FOnAttackFinished OnAttackFinished;
-
-	// Attack Player (called via BTTask_CloseRangedAttack)
-	bool Attack(AActor* TargetActor);
-
-	UFUNCTION(BlueprintCallable, Category = "Death")
-	bool IsDead();
-
 protected:
 	virtual void PostInitializeComponents() override;
 
+public:
+	// Attack Player (called via StateTree: ST_Zombie)
+	bool Attack(AActor* TargetActor);
+
 protected:
-	// Animations
+	/** Animations */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<UAnimMontage> AttackMontage;
 
@@ -53,9 +43,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<UAnimMontage> DeathMontage;
 
-	// Params
+	/** Params */
 	UPROPERTY(EditAnywhere, Category = "Death")
 	float CorpseLifeSpanAfterDeath = 60.f;
+
+public:
+	/** Pawn Death Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FPawnDeathDelegate OnPawnDeath;
 
 protected:
 
@@ -63,12 +58,11 @@ protected:
 	void OnZombieTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser);
 
 	UFUNCTION()
+	void OnFireReactMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
 	void OnZombieDeath(AController* EventInstigator, AActor* DamageCauser);
 
 	UFUNCTION()
 	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
-	FTimerHandle FireReactTimerHandle; // Timer handle for callback upon hit fire react concluding
-
-	bool bIsDead = false;
 };

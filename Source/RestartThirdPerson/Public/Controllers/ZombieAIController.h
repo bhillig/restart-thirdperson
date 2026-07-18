@@ -15,10 +15,23 @@ class RESTARTTHIRDPERSON_API AZombieAIController : public AAIController
 {
 	GENERATED_BODY()
 
-	// Components
+	/** Runs the behavior StateTree for this Zombie */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UStateTreeAIComponent> StateTreeAI;
 
 public:
+	/** Constructor */
 	AZombieAIController();
+
+protected:
+	/** Pawn initialization */
+	virtual void OnPossess(APawn* InPawn) override;
+
+	/** Called when the game begins */
+	virtual void BeginPlay() override;
+
+protected:
+	/** Called when the possessed pawn dies */
+	UFUNCTION()
+	void OnPawnDeath();
 };
