@@ -1,12 +1,19 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Brandon Hillig 2026
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+
+/** Ground detection trace channel (DefaultEngine.ini: ECC_GameTraceChannel1).
+ *  Use this for "where is the floor" queries. Helpful for ignoring other pawns during IK Traces as they block Visibility.
+ */
+constexpr ECollisionChannel ECC_Ground = ECC_GameTraceChannel1;
 
 namespace rs
 {
 
+/** Logging functions */
 void LogOnce(const FString& Msg, FColor Color = FColor::White, float TimeToDisplay = 1.f);
 
 void LogTick(const FString& Msg, int32 Key, FColor Color = FColor::White);

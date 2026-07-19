@@ -210,6 +210,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anim Instance")
 	TSubclassOf<UAnimInstance> RifleAnimInstance;
 
+	/** Animations */
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	TObjectPtr<UAnimMontage> DeathMontage;
+
 private:
 
 	void OnMoveTriggered(const FInputActionValue& Value);
@@ -259,6 +263,17 @@ private:
 
 	FName GetUnequippedSocketName(EWeapon WeaponType) const;
 
+	/** Called when the health attribute changes */
+	UFUNCTION()
+	void OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser);
+
+	/** Called when the health attribute reaches zero */
+	UFUNCTION()
+	void OnDeath(AController* EventInstigator, AActor* DamageCauser);
+
+	UFUNCTION()
+	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -271,6 +286,8 @@ protected:
 	bool bStruggleWindowIsOpen = false;
 
 	float CurrentSpringArmLength;
+
+	bool bIsDead = false;
 
 private:
 	TMap<EWeapon, TObjectPtr<USkeletalMeshComponent>> WeaponMeshes;

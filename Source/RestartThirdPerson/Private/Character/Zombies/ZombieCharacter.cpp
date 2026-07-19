@@ -6,12 +6,17 @@
 #include "ActorComponents/AttributesComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
-
+#include "RestartThirdPerson/RestartThirdPerson.h"
 
 AZombieCharacter::AZombieCharacter()
 {
 	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>("AttributesComponent");
+
+	// Set capsule and mesh to ignore the Ground Trace Channel. Used for IK Traces and should ignore pawns
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
 }
 
 void AZombieCharacter::PostInitializeComponents()
@@ -30,6 +35,9 @@ bool AZombieCharacter::Attack(AActor* TargetActor)
 		return false;
 	}
 
+	// Cache the actor the zombie is attacking
+	VictimActor = TargetActor;
+
 	// Face the actor we are attacking
 	const FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), TargetActor->GetActorLocation());
 	SetActorRotation(LookAtRotation);
@@ -39,8 +47,38 @@ bool AZombieCharacter::Attack(AActor* TargetActor)
 	{
 		AnimInstance->Montage_Play(AttackMontage);
 	}
-
 	return true;
+}
+
+bool AZombieCharacter::PerformHitCheck()
+{
+	FCollisionShape Shape;
+	Shape.SetSphere(30.f);
+
+	FCollisionQueryParams QueryParams(TEXT("ZombieAttack"));
+	QueryParams.AddIgnoredActor(this);
+
+	const FVector Start = GetActorLocation();
+	const FVector End = Start + GetActorForwardVector() * AttackRange;
+
+	// Perform hit check on the actor we are attacking
+	FHitResult OutHit;
+	bool bHitVictim = false;
+	if (GetWorld()->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, ECC_Pawn, Shape, QueryParams))
+	{
+		// If this is the actor we are attacking
+		bHitVictim = OutHit.GetActor() == VictimActor;
+		if (bHitVictim)
+		{
+			// Apply damage
+			UGameplayStatics::ApplyPointDamage(VictimActor, DamagePerHit, OutHit.ImpactNormal, OutHit, GetController(), this, UDamageType::StaticClass());
+		}
+	}
+
+	// Clear victim from cache
+	VictimActor = nullptr;
+
+	return bHitVictim;
 }
 
 void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser)

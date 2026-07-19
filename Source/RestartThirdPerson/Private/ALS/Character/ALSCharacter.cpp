@@ -29,18 +29,22 @@ AALSCharacter::AALSCharacter()
 
 	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>("AttributesComponent");
 	WeaponsComponent = CreateDefaultSubobject<UWeaponsComponent>("WeaponsComponent");
+
+	// Set capsule and mesh to ignore the Ground Trace Channel. Used for IK Traces and should ignore pawns
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
 }
 
 void AALSCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (WeaponsComponent)
-	{
-		WeaponsComponent->OnWeaponAdded.AddDynamic(this, &AALSCharacter::OnWeaponAdded);
-		WeaponsComponent->OnWeaponEquipped.AddDynamic(this, &AALSCharacter::OnWeaponEquipped);
-		WeaponsComponent->OnWeaponAnimationRequested.AddDynamic(this, &AALSCharacter::OnWeaponAnimationsRequested);
-	}
+	AttributesComponent->OnHealthChanged.AddDynamic(this, &AALSCharacter::OnHealthChanged);
+	AttributesComponent->OnDeath.AddDynamic(this, &AALSCharacter::OnDeath);
+
+	WeaponsComponent->OnWeaponAdded.AddDynamic(this, &AALSCharacter::OnWeaponAdded);
+	WeaponsComponent->OnWeaponEquipped.AddDynamic(this, &AALSCharacter::OnWeaponEquipped);
+	WeaponsComponent->OnWeaponAnimationRequested.AddDynamic(this, &AALSCharacter::OnWeaponAnimationsRequested);
 }
 
 void AALSCharacter::BeginPlay()
@@ -59,6 +63,11 @@ void AALSCharacter::BeginPlay()
 void AALSCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	if (bIsDead)
+	{
+		return;
+	}
 
 	if (CVar_DebugGateSettings.GetValueOnGameThread())
 	{
@@ -86,9 +95,7 @@ void AALSCharacter::Tick(float DeltaSeconds)
 			CollisionShape.SetSphere(30.f);
 
 			FHitResult OutResult;
-			GetWorld()->SweepSingleByChannel(OutResult, StartFeetLocation, EndLocation, FQuat::Identity, ECC_Visibility, CollisionShape, QueryParams);
-
-			if (OutResult.bBlockingHit)
+			if (GetWorld()->SweepSingleByChannel(OutResult, StartFeetLocation, EndLocation, FQuat::Identity, ECC_Ground, CollisionShape, QueryParams))
 			{
 				DistanceFromGround = OutResult.Distance;
 			}
@@ -452,4 +459,58 @@ FName AALSCharacter::GetUnequippedSocketName(EWeapon WeaponType) const
 	}
 
 	return "";
+}
+
+void AALSCharacter::OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser)
+{
+	rs::LogFloat("New Health", NewHealth, FColor::Green, 2.0f);
+}
+
+void AALSCharacter::OnDeath(AController* EventInstigator, AActor* DamageCauser)
+{
+	// Disable collision
+	if (UCapsuleComponent* CapsuleComp = GetCapsuleComponent())
+	{
+		CapsuleComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	if (USkeletalMeshComponent* CharacterMesh = GetMesh())
+	{
+		CharacterMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	// Stop character movement
+	if (UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement())
+	{
+		CharacterMovementComp->StopMovementImmediately();
+		CharacterMovementComp->SetMovementMode(MOVE_None);
+	}
+
+	// Play death montage
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		const float Duration = AnimInstance->Montage_Play(DeathMontage);
+		if (Duration > 0.f)
+		{
+			FOnMontageEnded Delegate;
+			Delegate.BindUObject(this, &AALSCharacter::OnDeathMontageEnded);
+			AnimInstance->Montage_SetEndDelegate(Delegate);
+		}
+	}
+
+	// Zoom camera out
+	SpringArm->TargetArmLength = 600.f;
+
+	// Set dead
+	bIsDead = true;
+
+	SetLifeSpan(1.5f);
+}
+
+void AALSCharacter::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	// Lock corpse in death pose
+	if (USkeletalMeshComponent* CharacterMeshComp = GetMesh())
+	{
+		CharacterMeshComp->SetComponentTickEnabled(false);
+	}
 }

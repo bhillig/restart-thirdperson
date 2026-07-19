@@ -4,9 +4,9 @@
 #include "ALS/AnimNotifies/AnimNotify_Land.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "RestartThirdPerson/RestartThirdPerson.h"
 
-void UAnimNotify_Land::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
-	const FAnimNotifyEventReference& EventReference)
+void UAnimNotify_Land::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 
@@ -22,8 +22,7 @@ void UAnimNotify_Land::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBas
 	QueryParams.bReturnPhysicalMaterial = true;
 
 	FHitResult OutHit;
-	MeshComp->GetWorld()->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, ECC_Visibility, Shape, QueryParams);
-	if (OutHit.bBlockingHit)
+	if (MeshComp->GetWorld()->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, ECC_Ground, Shape, QueryParams))
 	{
 		const EPhysicalSurface HitSurface = UGameplayStatics::GetSurfaceType(OutHit);
 

@@ -4,6 +4,7 @@
 #include "ALS/AnimNotifies/AnimNotify_FootOnGround.h"
 
 #include "Kismet/GameplayStatics.h"
+#include "RestartThirdPerson/RestartThirdPerson.h"
 
 void UAnimNotify_FootOnGround::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
                                       const FAnimNotifyEventReference& EventReference)
@@ -24,8 +25,7 @@ void UAnimNotify_FootOnGround::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 	QueryParams.bReturnPhysicalMaterial = true;
 
 	FHitResult OutHit;
-	MeshComp->GetWorld()->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, ECC_Visibility, Shape, QueryParams);
-	if (OutHit.bBlockingHit)
+	if (MeshComp->GetWorld()->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, ECC_Ground, Shape, QueryParams))
 	{
 		const EPhysicalSurface HitSurface = UGameplayStatics::GetSurfaceType(OutHit);
 

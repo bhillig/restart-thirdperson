@@ -15,7 +15,7 @@ class RESTARTTHIRDPERSON_API AZombieCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	/** Components */
+	/** Attributes the zombie has */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess=true))
 	TObjectPtr<UAttributesComponent> AttributesComponent;
 
@@ -26,8 +26,11 @@ protected:
 	virtual void PostInitializeComponents() override;
 
 public:
-	// Attack Player (called via StateTree: ST_Zombie)
+	/** Attack actor (called via StateTree: ST_Zombie) */
 	bool Attack(AActor* TargetActor);
+
+	/** Perform hit check and apply damage if valid (called via AnimNotify_ZombieAttackHit) */
+	bool PerformHitCheck();
 
 protected:
 	/** Animations */
@@ -44,6 +47,12 @@ protected:
 	TObjectPtr<UAnimMontage> DeathMontage;
 
 	/** Params */
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float AttackRange = 120.f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float DamagePerHit = 30.f;
+
 	UPROPERTY(EditAnywhere, Category = "Death")
 	float CorpseLifeSpanAfterDeath = 60.f;
 
@@ -53,7 +62,11 @@ public:
 	FPawnDeathDelegate OnPawnDeath;
 
 protected:
+	/** Actor the zombie is attacking, null when not attacking */
+	UPROPERTY()
+	TObjectPtr<AActor> VictimActor;
 
+protected:
 	UFUNCTION()
 	void OnZombieTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser);
 

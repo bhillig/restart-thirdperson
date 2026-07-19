@@ -3,20 +3,38 @@
 
 #include "AI/RSZombieSTUtility.h"
 #include "StateTreeExecutionContext.h"
+#include "Character/Zombies/ZombieCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "AIController.h"
 
-UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_StateTreeEvent_Zombie_StartChasing, "StateTreeEvent.Zombie.StartChasing", "State Tree Event for when a zombie starts chasing a target");
-UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_StateTreeEvent_Zombie_StopChasing, "StateTreeEvent.Zombie.StopChasing", "State Tree Event for when a zombie stops chasing a target");
+EStateTreeRunStatus FRSStateTreeAttackTargetTask::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
+{
+	if (Transition.ChangeType == EStateTreeStateChangeType::Changed)
+	{
+		// Get the instance data
+		FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
+
+		// Ensure the target is valid
+		if (IsValid(InstanceData.TargetActor))
+		{
+			// Attack the target
+			InstanceData.Character->Attack(InstanceData.TargetActor);
+		}
+	}
+
+	return EStateTreeRunStatus::Running;
+}
+
+////////////////////////////////////////////////////////////////////
 
 EStateTreeRunStatus FRSStateTreeGetPlayerTask::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
 	if (Transition.ChangeType == EStateTreeStateChangeType::Changed)
 	{
-		// get the instance data
+		// Get the instance data
 		FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 
-		// set the player actor
+		// Set the player actor
 		InstanceData.PlayerActor = UGameplayStatics::GetPlayerPawn(InstanceData.Controller, 0);
 	}
 	return EStateTreeRunStatus::Running;
