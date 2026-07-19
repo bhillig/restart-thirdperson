@@ -107,6 +107,9 @@ void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damag
 			AnimInstance->Montage_SetEndDelegate(EndDelegate);
 		}
 	}
+
+	// Broadcast stunned
+	OnPawnStunned.Broadcast();
 }
 
 void AZombieCharacter::OnFireReactMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -118,10 +121,14 @@ void AZombieCharacter::OnFireReactMontageEnded(UAnimMontage* Montage, bool bInte
 		return;
 	}
 
+	// Resume movement
 	if (UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement())
 	{
 		CharacterMovementComp->SetMovementMode(MOVE_Walking);
 	}
+
+	// Broadcast no longer stunned
+	OnPawnNoLongerStunned.Broadcast();
 }
 
 void AZombieCharacter::OnZombieDeath(AController* EventInstigator, AActor* DamageCauser)

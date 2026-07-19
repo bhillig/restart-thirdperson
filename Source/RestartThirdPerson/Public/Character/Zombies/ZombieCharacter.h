@@ -7,6 +7,8 @@
 #include "ZombieCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPawnDeathDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPawnStunnedDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPawnNoLongerStunnedDelegate);
 
 class UAttributesComponent;
 
@@ -60,6 +62,14 @@ public:
 	/** Pawn Death Delegate */
 	UPROPERTY(BlueprintAssignable)
 	FPawnDeathDelegate OnPawnDeath;
+
+	/** Pawn Stunned Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FPawnStunnedDelegate OnPawnStunned;
+
+	/** Pawn No Longer Stunned Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FPawnNoLongerStunnedDelegate OnPawnNoLongerStunned;
 
 protected:
 	/** Actor the zombie is attacking, null when not attacking */

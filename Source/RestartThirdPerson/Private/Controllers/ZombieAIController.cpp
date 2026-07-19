@@ -6,6 +6,9 @@
 #include "Components/StateTreeAIComponent.h"
 #include "Navigation/PathFollowingComponent.h"
 
+UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_StateTreeEvent_Zombie_StartStunned, "StateTreeEvent.Zombie.StartStunned", "StateTree event for when a zombie is stunned");
+UE_DEFINE_GAMEPLAY_TAG_COMMENT(TAG_StateTreeEvent_Zombie_EndStunned, "StateTreeEvent.Zombie.EndStunned", "StateTree event for when a zombie is no longer stunned");
+
 AZombieAIController::AZombieAIController()
 {
 	// Create components
@@ -19,8 +22,10 @@ void AZombieAIController::OnPossess(APawn* InPawn)
 
 	if (AZombieCharacter* ZombieCharacter = Cast<AZombieCharacter>(InPawn))
 	{
-		// Subscribe to the zombie's on death delegate
+		// Subscribe to the zombie's delegates
 		ZombieCharacter->OnPawnDeath.AddDynamic(this, &AZombieAIController::OnPawnDeath);
+		ZombieCharacter->OnPawnStunned.AddDynamic(this, &AZombieAIController::OnPawnStunned);
+		ZombieCharacter->OnPawnNoLongerStunned.AddDynamic(this, &AZombieAIController::OnPawnNoLongerStunned);
 	}
 }
 
@@ -49,4 +54,16 @@ void AZombieAIController::OnPawnDeath()
 
 	// Destroy this controller
 	Destroy();
+}
+
+void AZombieAIController::OnPawnStunned()
+{
+	// Send event to the state tree
+	StateTreeAI->SendStateTreeEvent(TAG_StateTreeEvent_Zombie_StartStunned);
+}
+
+void AZombieAIController::OnPawnNoLongerStunned()
+{
+	// Send event to the state tree
+	StateTreeAI->SendStateTreeEvent(TAG_StateTreeEvent_Zombie_EndStunned);
 }
