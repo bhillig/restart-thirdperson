@@ -146,9 +146,6 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		// Interact
 		EnhancedInputComp->BindAction(InteractAction, ETriggerEvent::Started, this, &AALSCharacter::OnInteractStarted);
 
-		// Struggle (pushing zombies off you)
-		EnhancedInputComp->BindAction(StruggleAction, ETriggerEvent::Started, this, &AALSCharacter::OnStruggleStarted);
-
 		// Crouching
 		EnhancedInputComp->BindAction(ToggleCrouchAction, ETriggerEvent::Started, this, &AALSCharacter::OnCrouchToggled);
 
@@ -167,20 +164,6 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComp->BindAction(ToggleSlowMotionAction, ETriggerEvent::Started, this, &AALSCharacter::ToggleSlowMotion);
 	}
 
-}
-
-void AALSCharacter::AN_OpenStruggleWindow()
-{
-	bStruggleWindowIsOpen = true;
-}
-
-void AALSCharacter::AN_CloseStruggleWindow()
-{
-	bStruggleWindowIsOpen = false;
-	if (GrabbedState != EGrabbedState::Escaping)
-	{
-		FailStruggle();
-	}
 }
 
 void AALSCharacter::GetWeaponAimRay(FVector& OutOrigin, FVector& OutDirection) const
@@ -212,14 +195,6 @@ void AALSCharacter::OnInteractStarted()
 	if (WeaponsComponent)
 	{
 		WeaponsComponent->TryPickupWeapon();
-	}
-}
-
-void AALSCharacter::OnStruggleStarted()
-{
-	if (GrabbedState == EGrabbedState::Grabbed && bStruggleWindowIsOpen)
-	{
-		EscapeStruggle();
 	}
 }
 
@@ -344,20 +319,6 @@ void AALSCharacter::ToggleSlowMotion()
 		// Turn on slow motion
 		UGameplayStatics::SetGlobalTimeDilation(this, 0.1f);
 	}
-}
-
-void AALSCharacter::EscapeStruggle()
-{
-	GrabbedState = EGrabbedState::Escaping;
-
-	// Figure out what animation to play 
-}
-
-void AALSCharacter::FailStruggle()
-{
-	GrabbedState = EGrabbedState::TakingDamage;
-
-	// Figure out what animation to play and take damage
 }
 
 void AALSCharacter::OnWeaponAdded(const FWeapon& Weapon)

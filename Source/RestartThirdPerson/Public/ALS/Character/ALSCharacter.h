@@ -17,16 +17,6 @@ class UCameraComponent;
 class USpringArmComponent;
 class UMetaSoundSource;
 
-UENUM(BlueprintType)
-enum class EGrabbedState : uint8
-{
-	None = 0,
-	Grabbed = 1, // Player is currently being grabbed by the zombie
-	Escaping = 2, // Player succeeded and is escaping from the grabbed state
-	TakingDamage = 3, // Player failed and is taking damage 
-	Dead = 4 // Player is dead
-};
-
 USTRUCT(BlueprintType)
 struct FWeaponSocketLocations
 {
@@ -96,12 +86,6 @@ public:
 
 	// Returns Distance From Ground, 0.f if on ground, -1.f if not above ground.
 	float GetDistanceFromGround() const { return DistanceFromGround; }
-
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void AN_OpenStruggleWindow();
-
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void AN_CloseStruggleWindow();
 
 protected:
 	virtual void PostInitializeComponents() override;
@@ -222,8 +206,6 @@ private:
 
 	void OnInteractStarted();
 
-	void OnStruggleStarted();
-
 	void OnAimStarted();
 
 	void OnAimCompleted();
@@ -243,10 +225,6 @@ private:
 	void OnSecondaryWeaponEquippedPressed();
 
 	void ToggleSlowMotion();
-
-	void EscapeStruggle();
-
-	void FailStruggle();
 
 	UFUNCTION()
 	void OnWeaponAdded(const FWeapon& Weapon);
@@ -278,12 +256,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	EGate CurrentGate;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	EGrabbedState GrabbedState = EGrabbedState::None;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	bool bStruggleWindowIsOpen = false;
 
 	float CurrentSpringArmLength;
 
