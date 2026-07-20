@@ -12,6 +12,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "ActorComponents/AttributesComponent.h"
+#include "ActorComponents/RSDamageFeedbackComponent.h"
 #include "ActorComponents/WeaponsComponent.h"
 
 static TAutoConsoleVariable CVar_DebugGateSettings(TEXT("Debug.GateSettings"), false, TEXT("Debug gate setting movement variables"));
@@ -29,6 +30,7 @@ AALSCharacter::AALSCharacter()
 
 	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>("AttributesComponent");
 	WeaponsComponent = CreateDefaultSubobject<UWeaponsComponent>("WeaponsComponent");
+	DamageFeedbackComponent = CreateDefaultSubobject<URSDamageFeedbackComponent>("DamageFeedbackComponent");
 
 	// Set capsule and mesh to ignore the Ground Trace Channel. Used for IK Traces and should ignore pawns
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);

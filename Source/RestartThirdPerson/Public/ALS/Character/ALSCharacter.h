@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "ALSCharacter.generated.h"
 
+class URSDamageFeedbackComponent;
 class UWeaponsComponent;
 class UAttributesComponent;
 class UNiagaraSystem;
@@ -115,6 +116,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<UWeaponsComponent> WeaponsComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Feedback")
+	TObjectPtr<URSDamageFeedbackComponent> DamageFeedbackComponent;
 
 	// Input
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
