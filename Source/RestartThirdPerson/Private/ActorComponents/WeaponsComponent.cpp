@@ -7,6 +7,7 @@
 #include "ActorComponents/AttributesComponent.h"
 #include "Actors/WeaponPickup.h"
 #include "Kismet/GameplayStatics.h"
+#include "RestartThirdPerson/RestartThirdPerson.h"
 
 UWeaponsComponent::UWeaponsComponent()
 {
@@ -198,17 +199,17 @@ void UWeaponsComponent::FireWeapon()
 
 		switch (const EPhysicalSurface SurfaceHit = UGameplayStatics::GetSurfaceType(HitResultToUse))
 		{
-		case SurfaceType1: // Glass
+		case SurfaceType_Glass:
 			ImpactParticles = GlassImpactParticles;
 			ImpactSound = GlassImpactSound;
 			DebrisImpactSound = GlassDebrisImpactSound;
 			break;
-		case SurfaceType2: // Human
+		case SurfaceType_Human:
 			ImpactParticles = HumanImpactParticles;
 			ImpactSound = HumanImpactSound;
 			DebrisImpactSound = HumanDebrisImpactSound;
 			break;
-		case SurfaceType_Default: // Default, already assigned
+		case SurfaceType_Plaster: // Default, already assigned
 		default:
 			break;
 		}

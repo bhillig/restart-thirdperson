@@ -10,7 +10,6 @@ void UAnimNotify_Land::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBas
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 
-	// Perform a raycast below the character and see what surface they are landing on
 	const FVector Start = MeshComp->GetComponentLocation();
 	const FVector End = Start + (FVector::DownVector * 1000);
 
@@ -21,23 +20,26 @@ void UAnimNotify_Land::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBas
 	QueryParams.AddIgnoredActor(MeshComp->GetOwner());
 	QueryParams.bReturnPhysicalMaterial = true;
 
+	// Calculate what surface we are landing on
 	FHitResult OutHit;
 	if (MeshComp->GetWorld()->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, ECC_Ground, Shape, QueryParams))
 	{
 		const EPhysicalSurface HitSurface = UGameplayStatics::GetSurfaceType(OutHit);
 
+		// Determine what sound to play based on surface
 		USoundBase* LandSound = nullptr;
 		switch (HitSurface)
 		{
-		case SurfaceType1: // Glass
+		case SurfaceType_Glass:
 			LandSound = GlassLandSound;
 			break;
-		case SurfaceType_Default: // Plaster
+		case SurfaceType_Plaster:
 		default:
 			LandSound = PlasterLandSound;
 			break;
 		}
 
+		// Play that sound
 		UGameplayStatics::PlaySoundAtLocation(MeshComp, LandSound, OutHit.ImpactPoint);
 	}
 }

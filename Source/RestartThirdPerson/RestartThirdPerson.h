@@ -10,6 +10,13 @@
  */
 constexpr ECollisionChannel ECC_Ground = ECC_GameTraceChannel1;
 
+/** Default physical material set to plaster */
+constexpr EPhysicalSurface SurfaceType_Plaster = SurfaceType_Default;
+/** Glass surface type */
+constexpr EPhysicalSurface SurfaceType_Glass = SurfaceType1;
+/** Human flesh surface type */
+constexpr EPhysicalSurface SurfaceType_Human = SurfaceType2;
+
 namespace rs
 {
 
