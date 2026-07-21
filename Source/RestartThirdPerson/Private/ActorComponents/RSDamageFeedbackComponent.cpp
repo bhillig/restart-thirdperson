@@ -3,6 +3,8 @@
 
 #include "ActorComponents/RSDamageFeedbackComponent.h"
 
+#include "ActorComponents/AttributesComponent.h"
+
 
 URSDamageFeedbackComponent::URSDamageFeedbackComponent()
 {
@@ -17,11 +19,27 @@ void URSDamageFeedbackComponent::InitializeComponent()
 	if (AActor* OwningActor = GetOwner())
 	{
 		OwningActor->OnTakePointDamage.AddDynamic(this, &URSDamageFeedbackComponent::OnTakePointDamage);
+		if (UAttributesComponent* AttributesComponent = OwningActor->FindComponentByClass<UAttributesComponent>())
+		{
+			AttributesComponent->OnHealthChanged.AddDynamic(this, &URSDamageFeedbackComponent::OnHealthChanged);
+		}
 	}
 }
 
 void URSDamageFeedbackComponent::OnTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser)
 {
+	ShotFromDirectionLast = ShotFromDirection;
+	bUseDirection = true;
+}
+
+void URSDamageFeedbackComponent::OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser)
+{
+	// If we were healed
+	if (Delta >= 0.f)
+	{
+		return;
+	}
+
 	// Get owning pawn
 	APawn* OwningPawn = Cast<APawn>(GetOwner());
 	if (!OwningPawn)
@@ -36,12 +54,25 @@ void URSDamageFeedbackComponent::OnTakePointDamage(AActor* DamagedActor, float D
 		return;
 	}
 
-	// Apply damage camera shake
-	const FRotator ShakeSpace = ShotFromDirection.GetSafeNormal2D().Rotation();
-	PlayerController->ClientStartCameraShake(DamageCameraShake, 1.f, ECameraShakePlaySpace::UserDefined, ShakeSpace);
+	if (bUseDirection)
+	{
+		// Apply directional damage camera shake
+		const FRotator ShakeSpace = ShotFromDirectionLast.GetSafeNormal2D().Rotation();
+		PlayerController->ClientStartCameraShake(DamageCameraShake, 1.f, ECameraShakePlaySpace::UserDefined, ShakeSpace);
+
+		// Reset flag
+		bUseDirection = false;
+	}
+	else
+	{
+		// Apply damage camera shake
+		PlayerController->ClientStartCameraShake(DamageCameraShake);
+	}
+
 
 	// Broadcast damage
 	FRSDamageFeedbackEvent Event;
-	Event.Damage = Damage;
+	Event.Damage = -Delta;
 	OnDamageFeedback.Broadcast(Event);
 }
+

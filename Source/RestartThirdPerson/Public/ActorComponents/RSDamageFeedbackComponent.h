@@ -42,8 +42,13 @@ protected:
 	/** Called to initialize the component */
 	virtual void InitializeComponent() override;	
 
+	/** Called when the owning actor takes point damage. Called before OnHealthChanged. */
 	UFUNCTION()
 	void OnTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser);
+
+	/** Called when the owning actor's health changes. Requires Owner to have UAttributeComponent. */
+	UFUNCTION()
+	void OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser);
 
 public:
 	/** Damage feedback delegate */
@@ -54,4 +59,11 @@ protected:
 	/** Camera shake to apply when receiving damage */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Feedback")
 	TSubclassOf<UCameraShakeBase> DamageCameraShake;
+
+protected:
+	/** Last direction we were damaged in. Cached in OnTakePointDamage and used in OnHealthChanged. */
+	FVector ShotFromDirectionLast = FVector::ZeroVector;
+
+	/** Whether we received a direction from OnTakePointDamage and should use it in OnHealthChanged. Set back to false after using. */
+	bool bUseDirection = false;
 };
