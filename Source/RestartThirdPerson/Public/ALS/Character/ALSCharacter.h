@@ -180,6 +180,12 @@ protected:
 	float AimZoomOutSpeed;
 
 	// Weapon
+
+	/** Starting Weapon */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UWeaponDataAsset> StartingWeapon;
+
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FWeaponSocketLocations WeaponSocketLocations;
 

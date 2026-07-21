@@ -58,7 +58,13 @@ void AALSCharacter::BeginPlay()
 
 	if (WeaponsComponent)
 	{
+		// Start with no weapon
 		WeaponsComponent->EquipWeaponType(EWeapon::Unarmed);
+		if (StartingWeapon)
+		{
+			// Add starter weapon
+			WeaponsComponent->AddWeapon(StartingWeapon->Config);
+		}
 	}
 }
 
