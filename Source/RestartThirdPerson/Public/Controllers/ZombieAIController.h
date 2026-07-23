@@ -31,9 +31,6 @@ protected:
 	/** Pawn initialization */
 	virtual void OnPossess(APawn* InPawn) override;
 
-	/** Called when the game begins */
-	virtual void BeginPlay() override;
-
 protected:
 	/** Called when the possessed pawn dies */
 	UFUNCTION()

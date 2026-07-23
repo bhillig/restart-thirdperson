@@ -12,6 +12,10 @@
 
 AZombieCharacter::AZombieCharacter()
 {
+	// Set default values
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	// Create components
 	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>("AttributesComponent");
 
 	// Set capsule and mesh to ignore the Ground Trace Channel. Used for IK Traces and should ignore pawns

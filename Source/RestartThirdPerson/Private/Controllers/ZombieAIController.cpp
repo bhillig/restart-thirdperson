@@ -27,14 +27,8 @@ void AZombieAIController::OnPossess(APawn* InPawn)
 		ZombieCharacter->OnPawnStunned.AddDynamic(this, &AZombieAIController::OnPawnStunned);
 		ZombieCharacter->OnPawnNoLongerStunned.AddDynamic(this, &AZombieAIController::OnPawnNoLongerStunned);
 	}
-}
-
-void AZombieAIController::BeginPlay()
-{
-	Super::BeginPlay();
 
 	// Start AI Logic
-	// TODO: Move to OnPossess once the ZombieSpawner is implemented. OnPossess is called before BeginPlay for level placed pawns so the StateTree is started on an inactive world.
 	StateTreeAI->StartLogic();
 }
 
