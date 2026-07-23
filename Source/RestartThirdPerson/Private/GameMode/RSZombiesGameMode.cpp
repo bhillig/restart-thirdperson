@@ -25,6 +25,8 @@ void ARSZombiesGameMode::BeginPlay()
 
 void ARSZombiesGameMode::AdvanceRound()
 {
+	rs::LogOnce("Starting New Round...", FColor::Green, 5.f);
+
 	// Increase round number
 	CurrentRoundNumber++;
 
@@ -42,17 +44,16 @@ void ARSZombiesGameMode::AdvanceRound()
 
 void ARSZombiesGameMode::CompleteRound()
 {
+	rs::LogOnce("Round Complete!", FColor::Green, 5.f);
+
 	// Clear current timer
-	TimerHandle_ZombieSpawn.Invalidate();
+	GetWorldTimerManager().ClearTimer(TimerHandle_ZombieSpawn);
 
 	FTimerDelegate Delegate;
 	Delegate.BindUObject(this, &ARSZombiesGameMode::AdvanceRound);
 
 	// Wait duration before starting the next round
 	GetWorldTimerManager().SetTimer(TimerHandle_RoundBreak, Delegate, RoundBreakDuration, false);
-
-	// Advance to the next round
-	AdvanceRound();
 }
 
 int32 ARSZombiesGameMode::GetZombieCountForRound(int32 RoundNumber, int32 PlayerCount)
@@ -124,6 +125,7 @@ void ARSZombiesGameMode::TrySpawnZombie()
 		{
 			ZombieCharacter->OnPawnDeath.AddDynamic(this, &ARSZombiesGameMode::OnZombieDeath);
 			ZombiesLeftToSpawnThisRound--;
+			ZombiesAlive++;
 			rs::LogOnce("Spawned zombie!");
 		}
 	}
@@ -132,9 +134,11 @@ void ARSZombiesGameMode::TrySpawnZombie()
 void ARSZombiesGameMode::OnZombieDeath()
 {
 	ZombiesAlive--;
-	rs::LogInt("ZombiesLeft", ZombiesLeftToSpawnThisRound, FColor::White, 3.0f);
+	rs::LogInt("ZombiesAlive", ZombiesAlive, FColor::White, 3.0f);
+	rs::LogInt("ZombiesLeftToSpawn", ZombiesLeftToSpawnThisRound, FColor::Orange, 3.0f);
 
-	if (ZombiesLeftToSpawnThisRound == 0)
+
+	if (ZombiesAlive == 0 && ZombiesLeftToSpawnThisRound == 0)
 	{
 		// Round complete
 		CompleteRound();
