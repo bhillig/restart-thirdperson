@@ -5,6 +5,7 @@
 #include "Character/Zombies/ZombieCharacter.h"
 #include "Engine/TargetPoint.h"
 #include "Kismet/GameplayStatics.h"
+#include "PlayerStates/RSPlayerState.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
 ARSZombiesGameMode::ARSZombiesGameMode()
@@ -134,12 +135,21 @@ void ARSZombiesGameMode::TrySpawnZombie()
 
 void ARSZombiesGameMode::OnZombieHit(AController* InstigatedBy)
 {
-	// Award points to the instigator
+	// Award credits to the instigator
+	if (ARSPlayerState* PlayerState = InstigatedBy->GetPlayerState<ARSPlayerState>())
+	{
+		PlayerState->AddCredits(CreditsAwardedPerHit);
+	}
 }
 
 void ARSZombiesGameMode::OnZombieDeath(AController* InstigatedBy, bool bWasHeadshot)
 {
-	// Award points to the instigator
+	// Award credits to the instigator
+	if (ARSPlayerState* PlayerState = InstigatedBy->GetPlayerState<ARSPlayerState>())
+	{
+		const int32 CreditsToAward = bWasHeadshot ? CreditsAwardedPerHeadshotKill : CreditsAwardedPerKill;
+		PlayerState->AddCredits(CreditsToAward);
+	}
 
 	ZombiesAlive--;
 	rs::LogInt("ZombiesAlive", ZombiesAlive, FColor::White, 3.0f);

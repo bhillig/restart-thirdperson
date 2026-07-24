@@ -73,14 +73,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Rules|Game")
 	float RoundBreakDuration = 15.f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Rules|Points")
-	int32 PointsAwardedPerHit = 10;
+	UPROPERTY(EditDefaultsOnly, Category = "Rules|Credits")
+	int32 CreditsAwardedPerHit = 10;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Rules|Points")
-	int32 PointsAwardedPerKill = 60;
+	UPROPERTY(EditDefaultsOnly, Category = "Rules|Credits")
+	int32 CreditsAwardedPerKill = 60;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Rules|Points")
-	int32 PointsAwardedPerHeadshotKill = 100;
+	UPROPERTY(EditDefaultsOnly, Category = "Rules|Credits")
+	int32 CreditsAwardedPerHeadshotKill = 100;
 
 	/** Array of target spawn points. Filled in on BeginPlay */
 	UPROPERTY()
