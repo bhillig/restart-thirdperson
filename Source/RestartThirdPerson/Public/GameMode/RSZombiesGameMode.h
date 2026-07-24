@@ -48,11 +48,17 @@ public:
 	FRSOnNewRoundStartedDelegate OnNewRoundStarted;
 
 protected:
+	/** Called when a zombie is hit/shot */
+	UFUNCTION()
+	void OnZombieHit(AController* InstigatedBy);
+
 	/** Called when a zombie dies */
 	UFUNCTION()
-	void OnZombieDeath();
+	void OnZombieDeath(AController* InstigatedBy, bool bWasHeadshot);
 
 protected:
+	/** SPAWN RULES */
+
 	/** Zombie class to spawn */
 	UPROPERTY(EditDefaultsOnly, Category = "Rules|Spawn")
 	TSubclassOf<AZombieCharacter> ZombieClass;
@@ -61,9 +67,20 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Rules|Spawn")
 	float SpawnInterval = 2.f;
 
+	/** GAME RULES */
+
 	/** Duration between rounds */
 	UPROPERTY(EditDefaultsOnly, Category = "Rules|Game")
 	float RoundBreakDuration = 15.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Rules|Points")
+	int32 PointsAwardedPerHit = 10;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Rules|Points")
+	int32 PointsAwardedPerKill = 60;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Rules|Points")
+	int32 PointsAwardedPerHeadshotKill = 100;
 
 	/** Array of target spawn points. Filled in on BeginPlay */
 	UPROPERTY()

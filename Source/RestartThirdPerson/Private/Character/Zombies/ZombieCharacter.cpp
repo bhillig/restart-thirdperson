@@ -87,6 +87,9 @@ bool AZombieCharacter::PerformHitCheck()
 
 void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser)
 {
+	// Cache whether this damage hit the head. Used in OnZombieDeath to broadcast headshot kill.
+	bLastShotWasAHeadshot = BoneName == HeadBoneName;
+
 	if (FMath::IsNearlyZero(AttributesComponent->GetHealth()))
 	{
 		// Let the OnDeath callback handle death
@@ -112,8 +115,8 @@ void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damag
 		}
 	}
 
-	// Broadcast stunned
-	OnPawnStunned.Broadcast();
+	// Broadcast hit
+	OnPawnHit.Broadcast(InstigatedBy);
 }
 
 void AZombieCharacter::OnFireReactMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -170,7 +173,7 @@ void AZombieCharacter::OnZombieDeath(AController* EventInstigator, AActor* Damag
 	SetLifeSpan(CorpseLifeSpanAfterDeath);
 
 	// Emit a signal we died
-	OnPawnDeath.Broadcast();
+	OnPawnDeath.Broadcast(EventInstigator, bLastShotWasAHeadshot);
 }
 
 void AZombieCharacter::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)

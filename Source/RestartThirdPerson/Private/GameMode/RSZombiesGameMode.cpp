@@ -123,6 +123,7 @@ void ARSZombiesGameMode::TrySpawnZombie()
 		// Spawn a zombie
 		if (AZombieCharacter* ZombieCharacter = GetWorld()->SpawnActor<AZombieCharacter>(ZombieClass.Get(), SpawnPosition, FRotator::ZeroRotator, SpawnParams))
 		{
+			ZombieCharacter->OnPawnHit.AddDynamic(this, &ARSZombiesGameMode::OnZombieHit);
 			ZombieCharacter->OnPawnDeath.AddDynamic(this, &ARSZombiesGameMode::OnZombieDeath);
 			ZombiesLeftToSpawnThisRound--;
 			ZombiesAlive++;
@@ -131,12 +132,18 @@ void ARSZombiesGameMode::TrySpawnZombie()
 	}
 }
 
-void ARSZombiesGameMode::OnZombieDeath()
+void ARSZombiesGameMode::OnZombieHit(AController* InstigatedBy)
 {
+	// Award points to the instigator
+}
+
+void ARSZombiesGameMode::OnZombieDeath(AController* InstigatedBy, bool bWasHeadshot)
+{
+	// Award points to the instigator
+
 	ZombiesAlive--;
 	rs::LogInt("ZombiesAlive", ZombiesAlive, FColor::White, 3.0f);
 	rs::LogInt("ZombiesLeftToSpawn", ZombiesLeftToSpawnThisRound, FColor::Orange, 3.0f);
-
 
 	if (ZombiesAlive == 0 && ZombiesLeftToSpawnThisRound == 0)
 	{

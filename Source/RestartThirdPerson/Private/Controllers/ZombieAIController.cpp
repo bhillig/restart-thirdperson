@@ -24,7 +24,7 @@ void AZombieAIController::OnPossess(APawn* InPawn)
 	{
 		// Subscribe to the zombie's delegates
 		ZombieCharacter->OnPawnDeath.AddDynamic(this, &AZombieAIController::OnPawnDeath);
-		ZombieCharacter->OnPawnStunned.AddDynamic(this, &AZombieAIController::OnPawnStunned);
+		ZombieCharacter->OnPawnHit.AddDynamic(this, &AZombieAIController::OnPawnStunned);
 		ZombieCharacter->OnPawnNoLongerStunned.AddDynamic(this, &AZombieAIController::OnPawnNoLongerStunned);
 	}
 
@@ -32,7 +32,7 @@ void AZombieAIController::OnPossess(APawn* InPawn)
 	StateTreeAI->StartLogic();
 }
 
-void AZombieAIController::OnPawnDeath()
+void AZombieAIController::OnPawnDeath(AController* InstigatedBy, bool bWasHeadshot)
 {
 	// Stop path following
 	if (UPathFollowingComponent* PathFollowComp = GetPathFollowingComponent())
@@ -50,7 +50,7 @@ void AZombieAIController::OnPawnDeath()
 	Destroy();
 }
 
-void AZombieAIController::OnPawnStunned()
+void AZombieAIController::OnPawnStunned(AController* InstigatedBy)
 {
 	// Send event to the state tree
 	StateTreeAI->SendStateTreeEvent(TAG_StateTreeEvent_Zombie_StartStunned);

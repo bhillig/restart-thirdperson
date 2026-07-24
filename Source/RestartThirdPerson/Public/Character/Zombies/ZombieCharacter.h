@@ -6,8 +6,8 @@
 #include "GameFramework/Character.h"
 #include "ZombieCharacter.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPawnDeathDelegate);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPawnStunnedDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPawnDeathDelegate, AController*, InstigatedBy, bool, bWasHeadshot);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPawnHitDelegate, AController*, InstigatedBy);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPawnNoLongerStunnedDelegate);
 
 class UAttributesComponent;
@@ -48,24 +48,27 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<UAnimMontage> DeathMontage;
 
-	/** Params */
-	UPROPERTY(EditAnywhere, Category = "Combat")
+	/** Config */
+	UPROPERTY(EditAnywhere, Category = "Config")
 	float AttackRange = 120.f;
 
-	UPROPERTY(EditAnywhere, Category = "Combat")
+	UPROPERTY(EditAnywhere, Category = "Config")
 	float DamagePerHit = 30.f;
 
-	UPROPERTY(EditAnywhere, Category = "Death")
+	UPROPERTY(EditAnywhere, Category = "Config")
 	float CorpseLifeSpanAfterDeath = 60.f;
+
+	UPROPERTY(EditAnywhere, Category = "Config")
+	FName HeadBoneName = "head";
 
 public:
 	/** Pawn Death Delegate */
 	UPROPERTY(BlueprintAssignable)
 	FPawnDeathDelegate OnPawnDeath;
 
-	/** Pawn Stunned Delegate */
+	/** Pawn Hit Delegate */
 	UPROPERTY(BlueprintAssignable)
-	FPawnStunnedDelegate OnPawnStunned;
+	FPawnHitDelegate OnPawnHit;
 
 	/** Pawn No Longer Stunned Delegate */
 	UPROPERTY(BlueprintAssignable)
@@ -75,6 +78,10 @@ protected:
 	/** Actor the zombie is attacking, null when not attacking */
 	UPROPERTY()
 	TObjectPtr<AActor> VictimActor;
+
+	/** State of whether the last shot applied was a headshot */
+	UPROPERTY()
+	bool bLastShotWasAHeadshot;
 
 protected:
 	UFUNCTION()

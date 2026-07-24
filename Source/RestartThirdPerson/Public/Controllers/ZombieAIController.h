@@ -34,11 +34,11 @@ protected:
 protected:
 	/** Called when the possessed pawn dies */
 	UFUNCTION()
-	void OnPawnDeath();
+	void OnPawnDeath(AController* InstigatedBy, bool bWasHeadshot);
 
-	/** Called when the possessed pawn is stunned */
+	/** Called when the possessed pawn is hit/stunned */
 	UFUNCTION()
-	void OnPawnStunned();
+	void OnPawnStunned(AController* InstigatedBy);
 
 
 	/** Called when the possessed pawn is no longer stunned */
