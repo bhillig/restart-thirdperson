@@ -6,7 +6,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "RSZombiesGameMode.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRSOnNewRoundStartedDelegate, int32, RoundNumber);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRSOnRoundStartedDelegate, int32, RoundNumber);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRSOnRoundCompletedDelegate, int32, RoundNumber);
 
 class ATargetPoint;
 class AZombieCharacter;
@@ -43,9 +44,13 @@ protected:
 	void TrySpawnZombie();
 
 public:
-	/** On New Round Started Delegate */
+	/** On Round Started Delegate */
 	UPROPERTY(BlueprintAssignable)
-	FRSOnNewRoundStartedDelegate OnNewRoundStarted;
+	FRSOnRoundStartedDelegate OnRoundStarted;
+
+	/** On Round Completed Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FRSOnRoundCompletedDelegate OnRoundCompleted;
 
 protected:
 	/** Called when a zombie is hit/shot */

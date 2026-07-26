@@ -3,7 +3,6 @@
 
 #include "GameMode/RSZombiesGameMode.h"
 #include "Character/Zombies/ZombieCharacter.h"
-#include "Engine/TargetPoint.h"
 #include "Kismet/GameplayStatics.h"
 #include "PlayerStates/RSPlayerState.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
@@ -40,7 +39,7 @@ void ARSZombiesGameMode::AdvanceRound()
 	GetWorldTimerManager().SetTimer(TimerHandle_ZombieSpawn, Delegate, SpawnInterval, true, 3.f);
 
 	// Broadcast new round started
-	OnNewRoundStarted.Broadcast(CurrentRoundNumber);
+	OnRoundStarted.Broadcast(CurrentRoundNumber);
 }
 
 void ARSZombiesGameMode::CompleteRound()
@@ -55,6 +54,9 @@ void ARSZombiesGameMode::CompleteRound()
 
 	// Wait duration before starting the next round
 	GetWorldTimerManager().SetTimer(TimerHandle_RoundBreak, Delegate, RoundBreakDuration, false);
+
+	// Broadcast round completed
+	OnRoundCompleted.Broadcast(CurrentRoundNumber);
 }
 
 int32 ARSZombiesGameMode::GetZombieCountForRound(int32 RoundNumber, int32 PlayerCount)
