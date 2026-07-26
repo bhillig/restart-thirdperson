@@ -20,7 +20,9 @@ struct FRSPurchaseEffect_GrantWeapon : public FRSPurchaseEffect
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UWeaponDataAsset> WeaponData;
 
-	virtual void Apply(AActor* Owner, ARSPlayerState* Buyer) override;
+	virtual void Apply(AActor* Owner, ARSPlayerState* Buyer) const override;
 
-	virtual ERSPurchaseRepeatPolicy GetRepeatPolicy() override;
+	virtual FString GetPromptText() const override;
+
+	virtual ERSPurchaseRepeatPolicy GetRepeatPolicy() const override;
 };

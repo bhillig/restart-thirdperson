@@ -14,11 +14,9 @@ struct FRSPurchaseEffect_UnlockDoor : public FRSPurchaseEffect
 {
 	GENERATED_BODY()
 
-	/** The door this effect unlocks */
-	UPROPERTY(EditAnywhere, Category = "Input")
-	TObjectPtr<AActor> DoorActor;
+	virtual void Apply(AActor* Owner, ARSPlayerState* Buyer) const override;
 
-	virtual void Apply(AActor* Owner, ARSPlayerState* Buyer) override;
+	virtual FString GetPromptText() const override;
 
-	virtual ERSPurchaseRepeatPolicy GetRepeatPolicy() override;
+	virtual ERSPurchaseRepeatPolicy GetRepeatPolicy() const override;
 };
