@@ -32,6 +32,9 @@ public:
 	 */
 	bool TrySpendCredits(int32 CreditsRequired);
 
+	/** Returns this player's available credits */
+	int32 GetAvailableCredits() const;
+
 public:
 	/** On Credits Changed Delegate */
 	UPROPERTY(BlueprintAssignable)

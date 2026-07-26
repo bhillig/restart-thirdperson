@@ -14,6 +14,7 @@
 #include "ActorComponents/AttributesComponent.h"
 #include "ActorComponents/RSDamageFeedbackComponent.h"
 #include "ActorComponents/WeaponsComponent.h"
+#include "Interact/RSInteractComponent.h"
 
 static TAutoConsoleVariable CVar_DebugGateSettings(TEXT("Debug.GateSettings"), false, TEXT("Debug gate setting movement variables"));
 
@@ -28,6 +29,7 @@ AALSCharacter::AALSCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>("FollowCamera");
 	FollowCamera->SetupAttachment(SpringArm);
 
+	InteractComponent = CreateDefaultSubobject<URSInteractComponent>("InteractComponent");
 	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>("AttributesComponent");
 	WeaponsComponent = CreateDefaultSubobject<UWeaponsComponent>("WeaponsComponent");
 	DamageFeedbackComponent = CreateDefaultSubobject<URSDamageFeedbackComponent>("DamageFeedbackComponent");
@@ -200,10 +202,8 @@ void AALSCharacter::OnLookTriggered(const FInputActionValue& Value)
 
 void AALSCharacter::OnInteractStarted()
 {
-	if (WeaponsComponent)
-	{
-		WeaponsComponent->TryPickupWeapon();
-	}
+	InteractComponent->TryInteract();
+	WeaponsComponent->TryPickupWeapon();
 }
 
 void AALSCharacter::OnAimStarted()

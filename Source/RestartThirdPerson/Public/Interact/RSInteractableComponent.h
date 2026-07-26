@@ -16,6 +16,9 @@ struct FRSInteractionPrompt
 	UPROPERTY(BlueprintReadOnly)
 	FText Text;
 
+	UPROPERTY(BlueprintReadOnly)
+	bool bEnabled = true;
+
 	bool operator==(const FRSInteractionPrompt& Other) const
 	{
 		return Text.EqualTo(Other.Text);

@@ -52,6 +52,11 @@ bool ARSPlayerState::TrySpendCredits(int32 CreditsRequired)
 	return true;
 }
 
+int32 ARSPlayerState::GetAvailableCredits() const
+{
+	return AvailableCredits;
+}
+
 void ARSPlayerState::OnRep_Credits(int32 OldCredits)
 {
 	// Broadcast credits change for clients

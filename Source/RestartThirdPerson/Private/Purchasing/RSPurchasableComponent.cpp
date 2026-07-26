@@ -4,6 +4,7 @@
 #include "Purchasing/RSPurchasableComponent.h"
 
 #include "Net/UnrealNetwork.h"
+#include "PlayerStates/RSPlayerState.h"
 
 URSPurchasableComponent::URSPurchasableComponent()
 {
@@ -47,13 +48,23 @@ FRSInteractionPrompt URSPurchasableComponent::GetInteractionPrompt(ARSPlayerStat
 	ensureMsgf(PurchaseEffect, TEXT("Purchase effect is not set!"));
 
 	FRSInteractionPrompt Prompt;
+	const FString HoldString = FString::Printf(TEXT("Press E to "));
 	const FString CreditsMsg = FString::Printf(TEXT(" for %d credits"), CreditsCost);
-	Prompt.Text = FText::FromString(PurchaseEffect->GetPromptText() + CreditsMsg);
+	Prompt.Text = FText::FromString(HoldString + PurchaseEffect->GetPromptText() + CreditsMsg);
+	Prompt.bEnabled = PlayerState->GetAvailableCredits() >= CreditsCost;
 	return Prompt;
 }
 
 void URSPurchasableComponent::Interact(ARSPlayerState* PlayerState)
 {
+	ensure(PlayerState);
+
+	if (!PlayerState->TrySpendCredits(CreditsCost))
+	{
+		// If the player can't afford this purchasable
+		return;
+	}
+
 	// Get effect
 	const FRSPurchaseEffect* PurchaseEffect = Effect.GetPtr<FRSPurchaseEffect>();
 	ensureMsgf(PurchaseEffect, TEXT("Purchase effect is not set!"));
