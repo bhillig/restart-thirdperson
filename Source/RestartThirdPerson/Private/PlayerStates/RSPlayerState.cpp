@@ -4,7 +4,6 @@
 #include "PlayerStates/RSPlayerState.h"
 
 #include "Net/UnrealNetwork.h"
-#include "RestartThirdPerson/RestartThirdPerson.h"
 
 ARSPlayerState::ARSPlayerState()
 {
@@ -26,8 +25,6 @@ void ARSPlayerState::AddCredits(int32 CreditsToAdd)
 	}
 
 	AvailableCredits += CreditsToAdd;
-
-	rs::LogInt("New Credits", CreditsToAdd, FColor::Emerald, 2.f);
 
 	// Broadcast credits change for server
 	OnCreditsChanged.Broadcast(AvailableCredits, CreditsToAdd);

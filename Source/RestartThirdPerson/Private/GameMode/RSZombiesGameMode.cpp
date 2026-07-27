@@ -5,7 +5,6 @@
 #include "Character/Zombies/ZombieCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "PlayerStates/RSPlayerState.h"
-#include "RestartThirdPerson/RestartThirdPerson.h"
 
 ARSZombiesGameMode::ARSZombiesGameMode()
 {
@@ -46,8 +45,6 @@ void ARSZombiesGameMode::AdvanceRound()
 
 void ARSZombiesGameMode::CompleteRound()
 {
-	rs::LogOnce("Round Complete!", FColor::Green, 5.f);
-
 	// Clear current timer
 	GetWorldTimerManager().ClearTimer(TimerHandle_ZombieSpawn);
 
@@ -99,7 +96,7 @@ int32 ARSZombiesGameMode::GetZombieCountForRound(int32 RoundNumber, int32 Player
 			break;
 		}
 
-		return FMath::Floor((24 + (ScaleFactor * 6 * FMath::Max(1, RoundNumber / 5.f)) * PostScaleFactor));
+		return FMath::Floor((6 + (ScaleFactor * 6 * FMath::Max(1, RoundNumber / 5.f)) * PostScaleFactor));
 	}
 
 	// Round 10 And Above
