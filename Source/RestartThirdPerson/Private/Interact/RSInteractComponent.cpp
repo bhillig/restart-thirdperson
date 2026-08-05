@@ -92,7 +92,7 @@ void URSInteractComponent::SetFocus(URSInteractableComponent* InteractableComp)
 	ensure(OwningController);
 
 	ARSPlayerState* PlayerState = OwningController->GetPlayerState<ARSPlayerState>();
-	ensure(PlayerState);
+	if (!PlayerState) return;
 
 	// Show new prompt
 	if (FocusedInteractable && FocusedInteractable->CanInteract(PlayerState))

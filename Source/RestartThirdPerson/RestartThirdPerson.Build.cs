@@ -21,7 +21,8 @@ public class RestartThirdPerson : ModuleRules
             "AIModule", 
             "StateTreeModule", 
             "GameplayStateTreeModule",
-            "GameplayTags" });
+            "GameplayTags",
+            "DeveloperSettings" });
 
         PrivateDependencyModuleNames.AddRange(new string[] { });
 
