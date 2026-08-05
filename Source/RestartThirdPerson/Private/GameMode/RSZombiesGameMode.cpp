@@ -3,6 +3,7 @@
 
 #include "GameMode/RSZombiesGameMode.h"
 #include "Character/Zombies/ZombieCharacter.h"
+#include "GameStates/RSZombiesGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "PlayerStates/RSPlayerState.h"
 
@@ -28,7 +29,7 @@ void ARSZombiesGameMode::BeginPlay()
 
 void ARSZombiesGameMode::AdvanceRound()
 {
-	// Increase round number
+	// Increment round
 	CurrentRoundNumber++;
 
 	// Calculate the zombies needed this round
@@ -39,8 +40,10 @@ void ARSZombiesGameMode::AdvanceRound()
 	Delegate.BindUObject(this, &ARSZombiesGameMode::TrySpawnZombie);
 	GetWorldTimerManager().SetTimer(TimerHandle_ZombieSpawn, Delegate, SpawnInterval, true, 3.f);
 
-	// Broadcast new round started
-	OnRoundStarted.Broadcast(CurrentRoundNumber);
+	// Notify game state a new round started
+	ARSZombiesGameState* ZombiesGameState = GetGameState<ARSZombiesGameState>();
+	ensure(ZombiesGameState);
+	ZombiesGameState->SetRoundState(CurrentRoundNumber, ERSRoundPhase::InProgress);
 }
 
 void ARSZombiesGameMode::CompleteRound()
@@ -54,8 +57,10 @@ void ARSZombiesGameMode::CompleteRound()
 	// Wait duration before starting the next round
 	GetWorldTimerManager().SetTimer(TimerHandle_RoundBreak, Delegate, RoundBreakDuration, false);
 
-	// Broadcast round completed
-	OnRoundCompleted.Broadcast(CurrentRoundNumber);
+	// Notify game state this round was completed
+	ARSZombiesGameState* ZombiesGameState = GetGameState<ARSZombiesGameState>();
+	ensure(ZombiesGameState);
+	ZombiesGameState->SetRoundState(CurrentRoundNumber, ERSRoundPhase::Intermission);
 }
 
 int32 ARSZombiesGameMode::GetZombieCountForRound(int32 RoundNumber, int32 PlayerCount)
