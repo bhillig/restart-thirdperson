@@ -62,6 +62,9 @@ void AALSCharacter::BeginPlay()
 	{
 		// Start with no weapon
 		WeaponsComponent->EquipWeaponType(EWeapon::Unarmed);
+		UpdateAnimInstanceForWeapon(EWeapon::Unarmed);
+		UpdateWeaponMeshLocations(EWeapon::Unarmed);
+
 		if (StartingWeapon)
 		{
 			// Add starter weapon

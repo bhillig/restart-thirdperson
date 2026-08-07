@@ -4,6 +4,7 @@
 #include "Character/Zombies/ZombieCharacter.h"
 
 #include "ActorComponents/AttributesComponent.h"
+#include "ActorComponents/RSZombieVoiceComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -17,6 +18,9 @@ AZombieCharacter::AZombieCharacter()
 
 	// Create components
 	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>("AttributesComponent");
+
+	ZombieVoiceComponent = CreateDefaultSubobject<URSZombieVoiceComponent>("ZombieVoiceComponent");
+	ZombieVoiceComponent->SetupAttachment(GetMesh(), FName("head"));
 
 	// Set capsule and mesh to ignore the Ground Trace Channel. Used for IK Traces and should ignore pawns
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
