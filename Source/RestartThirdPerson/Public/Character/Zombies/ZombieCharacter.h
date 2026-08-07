@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "ZombieCharacter.generated.h"
 
+class URSZombieVoiceComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPawnDeathDelegate, AController*, InstigatedBy, bool, bWasHeadshot);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPawnHitDelegate, AController*, InstigatedBy);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPawnNoLongerStunnedDelegate);
@@ -20,6 +21,10 @@ class RESTARTTHIRDPERSON_API AZombieCharacter : public ACharacter
 	/** Attributes the zombie has */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess=true))
 	TObjectPtr<UAttributesComponent> AttributesComponent;
+
+	/** Voice component for the zombie */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	TObjectPtr<URSZombieVoiceComponent> ZombieVoiceComponent;
 
 public:
 	AZombieCharacter();
