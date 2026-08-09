@@ -185,6 +185,11 @@ void AALSCharacter::GetWeaponAimRay(FVector& OutOrigin, FVector& OutDirection) c
 	OutDirection = FollowCamera->GetForwardVector();
 }
 
+UWeaponsComponent* AALSCharacter::GetWeaponsComponent() const
+{
+	return WeaponsComponent;
+}
+
 void AALSCharacter::OnMoveTriggered(const FInputActionValue& Value)
 {
 	const FVector2D Axis = Value.Get<FVector2D>();
@@ -348,12 +353,12 @@ void AALSCharacter::OnWeaponAdded(const FWeapon& Weapon)
 
 void AALSCharacter::OnWeaponAnimationsRequested(EWeapon WeaponType, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation)
 {
-	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance(); AnimInstance && CharacterAnimation)
 	{
 		AnimInstance->Montage_Play(CharacterAnimation);
 	}
 
-	if (USkeletalMeshComponent* WeaponMesh = WeaponMeshes.FindRef(WeaponType))
+	if (USkeletalMeshComponent* WeaponMesh = WeaponMeshes.FindRef(WeaponType); WeaponMesh && WeaponAnimation)
 	{
 		WeaponMesh->PlayAnimation(WeaponAnimation, false);
 	}

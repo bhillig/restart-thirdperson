@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "WeaponsComponent.generated.h"
 
+class UWeaponsComponent;
 class AWeaponPickup;
 class UNiagaraSystem;
 class UMetaSoundSource;
@@ -19,6 +20,9 @@ class RESTARTTHIRDPERSON_API IWeaponAimSource
 public:
 	// Returns world-space origin + unit direction for the next shot.
 	virtual void GetWeaponAimRay(FVector& OutOrigin, FVector& OutDirection) const = 0;
+
+	// Returns the weapons component
+	virtual UWeaponsComponent* GetWeaponsComponent() const = 0;
 };
 
 UENUM(BlueprintType)
@@ -27,6 +31,14 @@ enum class EWeapon : uint8
 	Unarmed = 0,
 	Pistol = 1, // TODO: Rename these to primary and secondary
 	Rifle = 2
+};
+
+UENUM(BlueprintType)
+enum class EWeaponSwapPhase : uint8
+{
+	None = 0,
+	Unequipping = 1,
+	Equipping = 2
 };
 
 USTRUCT(BlueprintType)
@@ -53,6 +65,14 @@ struct FWeaponConfig
 	// Muzzle Socket Name
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FName MuzzleSocketName = "Barrel";
+
+	// Character Animation When Equipping
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UAnimMontage> CharacterEquipAnimMontage;
+
+	// Character Animation When Unequipping
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<UAnimMontage> CharacterUnequipAnimMontage;
 
 	// Character Animation When Firing
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
@@ -227,12 +247,28 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void TryPickupWeapon();
 
+	/** Called when the weapon has been unequipped in its unequip animation. Called by an Anim Notify */
+	UFUNCTION(BlueprintCallable)
+	void AN_NotifyWeaponUnequipped();
+
+	/** Called when the weapon has been unequipped in its unequip animation. Called by an Anim Notify */
+	UFUNCTION(BlueprintCallable)
+	void AN_NotifyWeaponEquipped();
+
 	// Functions for Weapon Pickups to register
 	UFUNCTION(BlueprintCallable)
 	void AddWeaponPickupInRange(AWeaponPickup* WeaponPickup);
 
 	UFUNCTION(BlueprintCallable)
 	void RemoveWeaponPickupInRange(AWeaponPickup* WeaponPickup);
+
+protected:
+	/** Only setter for equipped weapon type. Called on server */
+	void SetEquipWeaponType(EWeapon WeaponType);
+
+	void UnequipCurrentWeapon();
+
+	void EquipWeapon(EWeapon WeaponType);
 
 protected:
 
@@ -278,6 +314,14 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	EWeapon EquippedWeaponType;
+
+	/** Weapon type requested. Cached while we unequip the current weapon */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	EWeapon PendingWeaponType = EWeapon::Unarmed;
+
+	/** Swap state of unequipping/equipping weapons. None when not */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	EWeaponSwapPhase WeaponSwapPhase = EWeaponSwapPhase::None;
 
 private:
 	TMap<EWeapon, FWeapon> WeaponInventory;

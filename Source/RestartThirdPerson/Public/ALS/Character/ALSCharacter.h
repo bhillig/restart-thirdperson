@@ -100,8 +100,11 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	// Inherited via IWeaponAimSource
+	/** IWeaponAimSource Begin */
 	virtual void GetWeaponAimRay(FVector& OutOrigin, FVector& OutDirection) const override;
+
+	virtual UWeaponsComponent* GetWeaponsComponent() const override;
+	/** IWeaponAimSource End */
 
 protected:
 

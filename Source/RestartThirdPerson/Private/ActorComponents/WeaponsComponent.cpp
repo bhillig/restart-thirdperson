@@ -39,6 +39,11 @@ bool UWeaponsComponent::CanEquipWeaponType(EWeapon WeaponType) const
 		return false;
 	}
 
+	if (WeaponSwapPhase != EWeaponSwapPhase::None)
+	{
+		return false;
+	}
+
 	if (WeaponType == EWeapon::Unarmed)
 	{
 		return true;
@@ -49,14 +54,26 @@ bool UWeaponsComponent::CanEquipWeaponType(EWeapon WeaponType) const
 
 void UWeaponsComponent::EquipWeaponType(EWeapon WeaponType)
 {
-	EquippedWeaponType = WeaponType;
+	// Check if we need to unequip first
+	if (EquippedWeaponType != EWeapon::Unarmed)
+	{
+		UnequipCurrentWeapon();
 
-	const FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponType];
-	OnWeaponEquipped.Broadcast(EquippedWeapon);
+		// Set pending weapon to equip
+		PendingWeaponType = WeaponType;
+		return;
+	}
+
+	EquipWeapon(WeaponType);
 }
 
 bool UWeaponsComponent::CanReloadEquippedWeapon() const
 {
+	if (WeaponSwapPhase != EWeaponSwapPhase::None)
+	{
+		return false;
+	}
+
 	const FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponType];
 	if (EquippedWeapon.bIsReloading)
 	{
@@ -103,7 +120,7 @@ void UWeaponsComponent::FireWeapon()
 		ReloadEquippedWeapon();
 		return;
 	}
-	if (WeaponFireState != EWeaponFireState::CanFire)
+	if (WeaponFireState != EWeaponFireState::CanFire || WeaponSwapPhase != EWeaponSwapPhase::None)
 	{
 		return;
 	}
@@ -241,6 +258,51 @@ void UWeaponsComponent::TryPickupWeapon()
 	PickupWeapon->Destroy();
 }
 
+void UWeaponsComponent::AN_NotifyWeaponUnequipped()
+{
+	if (PendingWeaponType == EWeapon::Unarmed)
+	{
+		WeaponSwapPhase = EWeaponSwapPhase::None;
+	}
+
+	// Equip pending swap weapon
+	EquipWeapon(PendingWeaponType);
+
+	// Clear flag
+	PendingWeaponType = EWeapon::Unarmed;
+}
+
+void UWeaponsComponent::AN_NotifyWeaponEquipped()
+{
+	WeaponSwapPhase = EWeaponSwapPhase::None;
+}
+
+void UWeaponsComponent::UnequipCurrentWeapon()
+{
+	// Set phase to unequipping
+	WeaponSwapPhase = EWeaponSwapPhase::Unequipping;
+
+	// Play unequip animation on old gun
+	const FWeapon& PreviousEquippedWeapon = WeaponInventory[EquippedWeaponType];
+	OnWeaponAnimationRequested.Broadcast(EquippedWeaponType, nullptr, PreviousEquippedWeapon.Config.CharacterUnequipAnimMontage);
+}
+
+void UWeaponsComponent::EquipWeapon(EWeapon WeaponType)
+{
+	if (WeaponType != EWeapon::Unarmed)
+	{
+		// Set phase to equipping
+		WeaponSwapPhase = EWeaponSwapPhase::Equipping;
+
+		// Play equip animation
+		const FWeapon& NewEquippedWeapon = WeaponInventory[WeaponType];
+		OnWeaponAnimationRequested.Broadcast(WeaponType, nullptr, NewEquippedWeapon.Config.CharacterEquipAnimMontage);
+	}
+
+	// Set new equipped weapon
+	SetEquipWeaponType(WeaponType);
+}
+
 void UWeaponsComponent::AddWeapon(const FWeaponConfig& WeaponConfig)
 {
 	FWeapon Weapon;
@@ -328,4 +390,13 @@ void UWeaponsComponent::RemoveWeaponPickupInRange(AWeaponPickup* WeaponPickup)
 		OnWeaponPickupChanged.Broadcast(CurrentClosestWeaponPickup, nullptr);
 		CurrentClosestWeaponPickup = nullptr;
 	}
+}
+
+void UWeaponsComponent::SetEquipWeaponType(EWeapon WeaponType)
+{
+	// TODO: Add check for authority 
+	EquippedWeaponType = WeaponType;
+
+	const FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponType];
+	OnWeaponEquipped.Broadcast(EquippedWeapon);
 }

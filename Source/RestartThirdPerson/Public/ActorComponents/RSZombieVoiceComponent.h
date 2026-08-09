@@ -44,6 +44,5 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Config")
 	float ChaseInterval = 5.f;
 
-
 	FTimerHandle TimerHandle_ChaseSound;
 };
