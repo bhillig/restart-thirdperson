@@ -13,6 +13,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "ActorComponents/AttributesComponent.h"
 #include "ActorComponents/RSDamageFeedbackComponent.h"
+#include "ActorComponents/RSPlayerVoiceComponent.h"
 #include "ActorComponents/WeaponsComponent.h"
 #include "Interact/RSInteractComponent.h"
 
@@ -33,6 +34,9 @@ AALSCharacter::AALSCharacter()
 	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>("AttributesComponent");
 	WeaponsComponent = CreateDefaultSubobject<UWeaponsComponent>("WeaponsComponent");
 	DamageFeedbackComponent = CreateDefaultSubobject<URSDamageFeedbackComponent>("DamageFeedbackComponent");
+
+	VoiceComponent = CreateDefaultSubobject<URSPlayerVoiceComponent>("VoiceComponent");
+	VoiceComponent->SetupAttachment(GetMesh(), FName("head"));
 
 	// Set capsule and mesh to ignore the Ground Trace Channel. Used for IK Traces and should ignore pawns
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
