@@ -39,6 +39,11 @@ bool UWeaponsComponent::CanEquipWeaponType(EWeapon WeaponType) const
 		return false;
 	}
 
+	if (EquippedWeaponType == WeaponType)
+	{
+		return false;
+	}
+
 	if (WeaponSwapPhase != EWeaponSwapPhase::None)
 	{
 		return false;
