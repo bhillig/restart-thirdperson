@@ -26,7 +26,7 @@ public:
 };
 
 UENUM(BlueprintType)
-enum class EWeapon : uint8
+enum class EWeaponSlot : uint8
 {
 	Unarmed = 0,
 	Pistol = 1, // TODO: Rename these to primary and secondary
@@ -50,9 +50,9 @@ struct FWeaponConfig
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FText WeaponName;
 
-	// Weapon Type
+	// Weapon Slot
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	EWeapon WeaponType = EWeapon::Unarmed;
+	EWeaponSlot WeaponSlot = EWeaponSlot::Unarmed;
 
 	// Mesh
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
@@ -179,7 +179,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponAdded, const FWeapon&, Weap
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponEquipped, const FWeapon&, Weapon);
 
 // Used by character classes to play shooting/reloading animations
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnWeaponAnimationRequested, EWeapon, WeaponType, UAnimSequenceBase*, WeaponAnimation, UAnimMontage*, CharacterAnimation);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnWeaponAnimationRequested, EWeaponSlot, WeaponSlot, UAnimSequenceBase*, WeaponAnimation, UAnimMontage*, CharacterAnimation);
 
 // Used for weapon pickup UI (only fired for locally controlled pawns)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWeaponPickupChanged, AWeaponPickup*, OldWeaponPickup, AWeaponPickup*, NewWeaponPickup);
@@ -227,13 +227,13 @@ public:
 	void AddWeapon(const FWeaponConfig& WeaponConfig);
 
 	UFUNCTION(BlueprintCallable)
-	bool HasWeaponEquipped() const { return EquippedWeaponType != EWeapon::Unarmed; }
+	bool HasWeaponEquipped() const { return EquippedWeaponSlot != EWeaponSlot::Unarmed; }
 
 	UFUNCTION(BlueprintCallable)
-	bool CanEquipWeaponType(EWeapon WeaponType) const;
+	bool CanEquipWeaponSlot(EWeaponSlot WeaponSlot) const;
 
 	UFUNCTION(BlueprintCallable)
-	void EquipWeaponType(EWeapon WeaponType);
+	void EquipWeaponSlot(EWeaponSlot WeaponSlot);
 
 	UFUNCTION(BlueprintCallable)
 	bool CanReloadEquippedWeapon() const;
@@ -263,12 +263,12 @@ public:
 	void RemoveWeaponPickupInRange(AWeaponPickup* WeaponPickup);
 
 protected:
-	/** Only setter for equipped weapon type. Called on server */
-	void SetEquipWeaponType(EWeapon WeaponType);
+	/** Only setter for equipped weapon slot. Called on server */
+	void SetEquipWeaponSlot(EWeaponSlot WeaponSlot);
 
 	void UnequipCurrentWeapon();
 
-	void EquipWeapon(EWeapon WeaponType);
+	void EquipWeapon(EWeaponSlot WeaponSlot);
 
 protected:
 
@@ -313,18 +313,18 @@ private:
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	EWeapon EquippedWeaponType;
+	EWeaponSlot EquippedWeaponSlot;
 
 	/** Weapon type requested. Cached while we unequip the current weapon */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	EWeapon PendingWeaponType = EWeapon::Unarmed;
+	EWeaponSlot PendingWeaponSlot = EWeaponSlot::Unarmed;
 
 	/** Swap state of unequipping/equipping weapons. None when not */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	EWeaponSwapPhase WeaponSwapPhase = EWeaponSwapPhase::None;
 
 private:
-	TMap<EWeapon, FWeapon> WeaponInventory;
+	TMap<EWeaponSlot, FWeapon> WeaponInventory;
 
 	FWeapon UnarmedWeapon;
 

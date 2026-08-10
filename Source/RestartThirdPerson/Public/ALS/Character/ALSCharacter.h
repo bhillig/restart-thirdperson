@@ -254,13 +254,13 @@ private:
 	void OnWeaponEquipped(const FWeapon& Weapon);
 
 	UFUNCTION()
-	void OnWeaponAnimationsRequested(EWeapon Weapon, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation);
+	void OnWeaponAnimationsRequested(EWeaponSlot WeaponSlot, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation);
 
-	void UpdateWeaponMeshLocations(EWeapon Weapon);
+	void UpdateWeaponMeshLocations(EWeaponSlot WeaponSlot);
 
-	void UpdateAnimInstanceForWeapon(EWeapon Weapon);
+	void UpdateAnimInstanceForWeapon(EWeaponSlot WeaponSlot);
 
-	FName GetUnequippedSocketName(EWeapon WeaponType) const;
+	FName GetUnequippedSocketName(EWeaponSlot WeaponSlot) const;
 
 	/** Called when the health attribute changes */
 	UFUNCTION()
@@ -283,6 +283,6 @@ protected:
 	bool bIsDead = false;
 
 private:
-	TMap<EWeapon, TObjectPtr<USkeletalMeshComponent>> WeaponMeshes;
+	TMap<EWeaponSlot, TObjectPtr<USkeletalMeshComponent>> WeaponMeshes;
 
 };
