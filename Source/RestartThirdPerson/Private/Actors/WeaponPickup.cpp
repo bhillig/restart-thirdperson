@@ -21,10 +21,10 @@ AWeaponPickup::AWeaponPickup()
 	TriggerSphere->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 }
 
-const FWeaponConfig& AWeaponPickup::GetWeaponConfig() const
+const UWeaponDataAsset* AWeaponPickup::GetWeaponData() const
 {
 	ensureMsgf(WeaponData, TEXT("WeaponData not set"));
-	return WeaponData->Config;
+	return WeaponData;
 }
 
 void AWeaponPickup::OnConstruction(const FTransform& Transform)

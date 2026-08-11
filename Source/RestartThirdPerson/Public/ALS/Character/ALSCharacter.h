@@ -26,16 +26,16 @@ struct FWeaponSocketLocations
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere)
-	FName PistolUnEquipped;
+	FName PrimaryEquipped = "Crossbow_Hand_Socket";
 
 	UPROPERTY(EditAnywhere)
-	FName RifleUnEquipped;
+	FName SecondaryEquipped = "Pistol_hand_Socket";
 
 	UPROPERTY(EditAnywhere)
-	FName RifleEquipped;
+	FName PrimaryUnequipped = "RifleHolster";
 
 	UPROPERTY(EditAnywhere)
-	FName PistolEquipped;
+	FName SecondaryUnequipped = "Holster_Pistol";
 };
 
 
@@ -194,7 +194,7 @@ protected:
 
 	/** Starting Weapon */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<UWeaponDataAsset> StartingWeapon;
+	TObjectPtr<UWeaponDataAsset> StartingWeaponData;
 
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
@@ -254,11 +254,18 @@ private:
 	void OnWeaponEquipped(const FWeapon& Weapon);
 
 	UFUNCTION()
+	void OnWeaponUnequipped();
+
+	UFUNCTION()
 	void OnWeaponAnimationsRequested(EWeaponSlot WeaponSlot, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation);
 
-	void UpdateWeaponMeshLocations(EWeaponSlot WeaponSlot);
+	void UpdateMeshLocationForWeapon(EWeaponSlot WeaponSlot);
+
+	void DetachAllWeaponMeshes();
 
 	void UpdateAnimInstanceForWeapon(EWeaponSlot WeaponSlot);
+
+	void UpdateAnimInstanceForUnarmed();
 
 	FName GetUnequippedSocketName(EWeaponSlot WeaponSlot) const;
 

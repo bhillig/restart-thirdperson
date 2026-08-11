@@ -19,8 +19,6 @@ void UWeaponsComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	WeaponInventory.Add(EWeaponSlot::Unarmed, UnarmedWeapon);
-
 	if (AActor* Owner = GetOwner())
 	{
 		IWeaponAimSource* AimSource = Cast<IWeaponAimSource>(Owner);
@@ -30,39 +28,44 @@ void UWeaponsComponent::BeginPlay()
 	}
 }
 
-
-bool UWeaponsComponent::CanEquipWeaponSlot(EWeaponSlot WeaponSlot) const
+void UWeaponsComponent::TryUnequipWeapon()
 {
-	// If we are reloading we can not switch yet
-	if (WeaponInventory.Contains(EquippedWeaponSlot) && WeaponInventory[EquippedWeaponSlot].bIsReloading)
+	if (!IsSwappingBlocked())
 	{
-		return false;
+		EquipWeaponSlot(EWeaponSlot::None);
 	}
+}
 
-	if (EquippedWeaponSlot == WeaponSlot)
+void UWeaponsComponent::TryEquipPrimaryWeapon()
+{
+	if (CanEquipPrimaryWeapon())
 	{
-		return false;
+		EquipWeaponSlot(EWeaponSlot::Primary);
 	}
+}
 
-	if (WeaponSwapPhase != EWeaponSwapPhase::None)
+void UWeaponsComponent::TryEquipSecondaryWeapon()
+{
+	if (CanEquipSecondaryWeapon())
 	{
-		return false;
+		EquipWeaponSlot(EWeaponSlot::Secondary);
 	}
+}
 
-	if (WeaponSlot == EWeaponSlot::Unarmed)
+void UWeaponsComponent::TryReloadEquippedWeapon()
+{
+	if (CanReloadEquippedWeapon())
 	{
-		return true;
+		ReloadEquippedWeapon();
 	}
-
-	return WeaponInventory.Contains(WeaponSlot);
 }
 
 void UWeaponsComponent::EquipWeaponSlot(EWeaponSlot WeaponSlot)
 {
 	// Check if we need to unequip first
-	if (EquippedWeaponSlot != EWeaponSlot::Unarmed)
+	if (HasWeaponEquipped())
 	{
-		UnequipCurrentWeapon();
+		PlayUnequipAnimation();
 
 		// Set pending weapon to equip
 		PendingWeaponSlot = WeaponSlot;
@@ -74,6 +77,11 @@ void UWeaponsComponent::EquipWeaponSlot(EWeaponSlot WeaponSlot)
 
 bool UWeaponsComponent::CanReloadEquippedWeapon() const
 {
+	if (!HasWeaponEquipped())
+	{
+		return false;
+	}
+
 	if (WeaponSwapPhase != EWeaponSwapPhase::None)
 	{
 		return false;
@@ -86,13 +94,13 @@ bool UWeaponsComponent::CanReloadEquippedWeapon() const
 	}
 
 	// For each weapon we can reload if we have bullets outside our current clip and our current clip isn't full
-	return EquippedWeapon.TotalBullets > EquippedWeapon.CurrentBulletsInClip && EquippedWeapon.CurrentBulletsInClip != EquippedWeapon.Config.BulletsPerClip;
+	return EquippedWeapon.TotalBullets > EquippedWeapon.CurrentBulletsInClip && EquippedWeapon.CurrentBulletsInClip != EquippedWeapon.Data->Config.BulletsPerClip;
 }
 
 void UWeaponsComponent::ReloadEquippedWeapon()
 {
 	FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponSlot];
-	const FWeaponConfig& WeaponConfig = EquippedWeapon.Config;
+	const FWeaponConfig& WeaponConfig = EquippedWeapon.Data->Config;
 	const EWeaponSlot WeaponSlot = WeaponConfig.WeaponSlot;
 
 	EquippedWeapon.bIsReloading = true;
@@ -105,7 +113,7 @@ void UWeaponsComponent::ReloadEquippedWeapon()
 				Weapon->bIsReloading = false;
 				// Take as much ammo from remaining bullets as possible (up to clip amount)
 				const int32 BulletsOutsideClip = Weapon->TotalBullets - Weapon->CurrentBulletsInClip;
-				const int32 BulletsInNewClip = FMath::Min(Weapon->Config.BulletsPerClip - Weapon->CurrentBulletsInClip, BulletsOutsideClip);
+				const int32 BulletsInNewClip = FMath::Min(Weapon->Data->Config.BulletsPerClip - Weapon->CurrentBulletsInClip, BulletsOutsideClip);
 				Weapon->CurrentBulletsInClip += BulletsInNewClip;
 				OnWeaponAmmoChanged.Broadcast(Weapon->CurrentBulletsInClip, Weapon->TotalBullets);
 			}
@@ -117,8 +125,13 @@ void UWeaponsComponent::ReloadEquippedWeapon()
 	OnWeaponAnimationRequested.Broadcast(EquippedWeaponSlot, WeaponConfig.ReloadAnim, WeaponConfig.CharacterReloadAnimMontage);
 }
 
-void UWeaponsComponent::FireWeapon()
+void UWeaponsComponent::TryFireWeapon()
 {
+	if (!HasWeaponEquipped())
+	{
+		return;
+	}
+
 	const EWeaponFireState WeaponFireState = GetWeaponFireState();
 	if (WeaponFireState == EWeaponFireState::NoAmmoInClip && CanReloadEquippedWeapon())
 	{
@@ -131,7 +144,7 @@ void UWeaponsComponent::FireWeapon()
 	}
 
 	FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponSlot];
-	const FWeaponConfig& WeaponConfig = EquippedWeapon.Config;
+	const FWeaponConfig& WeaponConfig = EquippedWeapon.Data->Config;
 	const EWeaponSlot WeaponSlot = WeaponConfig.WeaponSlot;
 
 	EquippedWeapon.bFireIntervalElapsed = false;
@@ -257,7 +270,7 @@ void UWeaponsComponent::TryPickupWeapon()
 
 	AWeaponPickup* PickupWeapon = WeaponPickupsInRange[0];
 
-	AddWeapon(PickupWeapon->GetWeaponConfig());
+	AddWeapon(PickupWeapon->GetWeaponData());
 
 	WeaponPickupsInRange.Remove(PickupWeapon);
 	PickupWeapon->Destroy();
@@ -265,7 +278,7 @@ void UWeaponsComponent::TryPickupWeapon()
 
 void UWeaponsComponent::AN_NotifyWeaponUnequipped()
 {
-	if (PendingWeaponSlot == EWeaponSlot::Unarmed)
+	if (PendingWeaponSlot == EWeaponSlot::None)
 	{
 		WeaponSwapPhase = EWeaponSwapPhase::None;
 	}
@@ -274,7 +287,7 @@ void UWeaponsComponent::AN_NotifyWeaponUnequipped()
 	EquipWeapon(PendingWeaponSlot);
 
 	// Clear flag
-	PendingWeaponSlot = EWeaponSlot::Unarmed;
+	PendingWeaponSlot = EWeaponSlot::None;
 }
 
 void UWeaponsComponent::AN_NotifyWeaponEquipped()
@@ -282,36 +295,38 @@ void UWeaponsComponent::AN_NotifyWeaponEquipped()
 	WeaponSwapPhase = EWeaponSwapPhase::None;
 }
 
-void UWeaponsComponent::UnequipCurrentWeapon()
+void UWeaponsComponent::PlayUnequipAnimation()
 {
 	// Set phase to unequipping
 	WeaponSwapPhase = EWeaponSwapPhase::Unequipping;
 
 	// Play unequip animation on old gun
-	const FWeapon& PreviousEquippedWeapon = WeaponInventory[EquippedWeaponSlot];
-	OnWeaponAnimationRequested.Broadcast(EquippedWeaponSlot, nullptr, PreviousEquippedWeapon.Config.CharacterUnequipAnimMontage);
+	const FWeaponConfig& PreviousEquippedWeaponConfig = WeaponInventory[EquippedWeaponSlot].Data->Config;
+	OnWeaponAnimationRequested.Broadcast(EquippedWeaponSlot, nullptr, PreviousEquippedWeaponConfig.CharacterUnequipAnimMontage);
 }
 
 void UWeaponsComponent::EquipWeapon(EWeaponSlot WeaponSlot)
 {
-	if (WeaponSlot != EWeaponSlot::Unarmed)
+	if (WeaponSlot != EWeaponSlot::None)
 	{
 		// Set phase to equipping
 		WeaponSwapPhase = EWeaponSwapPhase::Equipping;
 
 		// Play equip animation
-		const FWeapon& NewEquippedWeapon = WeaponInventory[WeaponSlot];
-		OnWeaponAnimationRequested.Broadcast(WeaponSlot, nullptr, NewEquippedWeapon.Config.CharacterEquipAnimMontage);
+		const FWeaponConfig& NewEquippedWeaponConfig = WeaponInventory[WeaponSlot].Data->Config;
+		OnWeaponAnimationRequested.Broadcast(WeaponSlot, nullptr, NewEquippedWeaponConfig.CharacterEquipAnimMontage);
 	}
 
 	// Set new equipped weapon
 	SetEquipWeaponSlot(WeaponSlot);
 }
 
-void UWeaponsComponent::AddWeapon(const FWeaponConfig& WeaponConfig)
+void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData)
 {
 	FWeapon Weapon;
-	Weapon.Config = WeaponConfig;
+	Weapon.Data = WeaponData;
+
+	const FWeaponConfig& WeaponConfig = Weapon.Data->Config;
 
 	Weapon.TotalBullets = WeaponConfig.StartingAmmoCount;
 
@@ -329,7 +344,7 @@ bool UWeaponsComponent::CanPickupWeapon() const
 
 EWeaponFireState UWeaponsComponent::GetWeaponFireState() const
 {
-	check(EquippedWeaponSlot != EWeaponSlot::Unarmed);
+	check(EquippedWeaponSlot != EWeaponSlot::None);
 	const FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponSlot];
 
 	if (EquippedWeapon.bIsReloading)
@@ -396,12 +411,65 @@ void UWeaponsComponent::RemoveWeaponPickupInRange(AWeaponPickup* WeaponPickup)
 		CurrentClosestWeaponPickup = nullptr;
 	}
 }
+bool UWeaponsComponent::CanEquipPrimaryWeapon() const
+{
+	if (IsSwappingBlocked())
+	{
+		return false;
+	}
+
+	if (EquippedWeaponSlot == EWeaponSlot::Primary || !WeaponInventory.Contains(EWeaponSlot::Primary))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool UWeaponsComponent::CanEquipSecondaryWeapon() const
+{
+	if (IsSwappingBlocked())
+	{
+		return false;
+	}
+
+	if (EquippedWeaponSlot == EWeaponSlot::Secondary || !WeaponInventory.Contains(EWeaponSlot::Secondary))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool UWeaponsComponent::IsSwappingBlocked() const
+{
+	if (WeaponInventory.Contains(EquippedWeaponSlot) && WeaponInventory[EquippedWeaponSlot].bIsReloading)
+	{
+		// We are currently reloading
+		return true;
+	}
+
+	if (WeaponSwapPhase != EWeaponSwapPhase::None)
+	{
+		// We are currently swapping
+		return true;
+	}
+
+	return false;
+}
 
 void UWeaponsComponent::SetEquipWeaponSlot(EWeaponSlot WeaponSlot)
 {
 	// TODO: Add check for authority 
 	EquippedWeaponSlot = WeaponSlot;
 
-	const FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponSlot];
-	OnWeaponEquipped.Broadcast(EquippedWeapon);
+	if (HasWeaponEquipped())
+	{
+		const FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponSlot];
+		OnWeaponEquipped.Broadcast(EquippedWeapon);
+	}
+	else
+	{
+		OnWeaponUnequipped.Broadcast();
+	}
 }

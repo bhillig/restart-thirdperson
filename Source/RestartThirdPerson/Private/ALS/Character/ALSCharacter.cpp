@@ -52,6 +52,7 @@ void AALSCharacter::PostInitializeComponents()
 
 	WeaponsComponent->OnWeaponAdded.AddDynamic(this, &AALSCharacter::OnWeaponAdded);
 	WeaponsComponent->OnWeaponEquipped.AddDynamic(this, &AALSCharacter::OnWeaponEquipped);
+	WeaponsComponent->OnWeaponUnequipped.AddDynamic(this, &AALSCharacter::OnWeaponUnequipped);
 	WeaponsComponent->OnWeaponAnimationRequested.AddDynamic(this, &AALSCharacter::OnWeaponAnimationsRequested);
 }
 
@@ -62,18 +63,13 @@ void AALSCharacter::BeginPlay()
 	SwitchGate(EGate::Jogging);
 	CurrentSpringArmLength = JoggingSpringArmLength;
 
-	if (WeaponsComponent)
-	{
-		// Start with no weapon
-		WeaponsComponent->EquipWeaponSlot(EWeaponSlot::Unarmed);
-		UpdateAnimInstanceForWeapon(EWeaponSlot::Unarmed);
-		UpdateWeaponMeshLocations(EWeaponSlot::Unarmed);
+	// Start with no weapon
+	UpdateAnimInstanceForUnarmed();
 
-		if (StartingWeapon)
-		{
-			// Add starter weapon
-			WeaponsComponent->AddWeapon(StartingWeapon->Config);
-		}
+	if (WeaponsComponent && StartingWeaponData)
+	{
+		// Add starter weapon
+		WeaponsComponent->AddWeapon(StartingWeaponData);
 	}
 }
 
@@ -269,17 +265,17 @@ void AALSCharacter::OnFireTriggered()
 		return;
 	}
 
-	if (WeaponsComponent && WeaponsComponent->HasWeaponEquipped())
+	if (WeaponsComponent)
 	{
-		WeaponsComponent->FireWeapon();
+		WeaponsComponent->TryFireWeapon();
 	}
 }
 
 void AALSCharacter::OnWeaponReloadStarted()
 {
-	if (WeaponsComponent && WeaponsComponent->CanReloadEquippedWeapon())
+	if (WeaponsComponent)
 	{
-		WeaponsComponent->ReloadEquippedWeapon();
+		WeaponsComponent->TryReloadEquippedWeapon();
 	}
 }
 
@@ -303,26 +299,25 @@ void AALSCharacter::SwitchGate(EGate Gate)
 
 void AALSCharacter::OnUnequipWeaponPressed()
 {
-	// TODO: Maybe change this to unequip?
-	if (WeaponsComponent && WeaponsComponent->CanEquipWeaponSlot(EWeaponSlot::Unarmed))
+	if (WeaponsComponent)
 	{
-		WeaponsComponent->EquipWeaponSlot(EWeaponSlot::Unarmed);
+		WeaponsComponent->TryUnequipWeapon();
 	}
 }
 
 void AALSCharacter::OnPrimaryWeaponEquippedPressed()
 {
-	if (WeaponsComponent && WeaponsComponent->CanEquipWeaponSlot(EWeaponSlot::Rifle))
+	if (WeaponsComponent)
 	{
-		WeaponsComponent->EquipWeaponSlot(EWeaponSlot::Rifle);
+		WeaponsComponent->TryEquipPrimaryWeapon();
 	}
 }
 
 void AALSCharacter::OnSecondaryWeaponEquippedPressed()
 {
-	if (WeaponsComponent && WeaponsComponent->CanEquipWeaponSlot(EWeaponSlot::Pistol))
+	if (WeaponsComponent)
 	{
-		WeaponsComponent->EquipWeaponSlot(EWeaponSlot::Pistol);
+		WeaponsComponent->TryEquipSecondaryWeapon();
 	}
 }
 
@@ -343,16 +338,17 @@ void AALSCharacter::ToggleSlowMotion()
 
 void AALSCharacter::OnWeaponAdded(const FWeapon& Weapon)
 {
-	ensureMsgf(Weapon.Config.Mesh, TEXT("Weapon mesh must be set"));
+	const FWeaponConfig& WeaponConfig = Weapon.Data->Config;
+	ensureMsgf(WeaponConfig.Mesh, TEXT("Weapon mesh must be set"));
 
 	// Spawn a SkeletalMeshComponent for this weapon
 	USkeletalMeshComponent* WeaponMeshComponent = NewObject<USkeletalMeshComponent>(this);
-	WeaponMeshComponent->SetSkeletalMesh(Weapon.Config.Mesh);
-	WeaponMeshComponent->ComponentTags.Add(Weapon.Config.MeshTag);
+	WeaponMeshComponent->SetSkeletalMesh(WeaponConfig.Mesh);
+	WeaponMeshComponent->ComponentTags.Add(WeaponConfig.MeshTag);
 	WeaponMeshComponent->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
 	WeaponMeshComponent->RegisterComponent();
-	WeaponMeshComponent->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, GetUnequippedSocketName(Weapon.Config.WeaponSlot));
-	WeaponMeshes.Add(Weapon.Config.WeaponSlot, WeaponMeshComponent);
+	WeaponMeshComponent->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, GetUnequippedSocketName(WeaponConfig.WeaponSlot));
+	WeaponMeshes.Add(WeaponConfig.WeaponSlot, WeaponMeshComponent);
 }
 
 void AALSCharacter::OnWeaponAnimationsRequested(EWeaponSlot WeaponSlot, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation)
@@ -368,34 +364,43 @@ void AALSCharacter::OnWeaponAnimationsRequested(EWeaponSlot WeaponSlot, UAnimSeq
 	}
 }
 
-void AALSCharacter::OnWeaponEquipped(const FWeapon& Weapon)
-{
-	UpdateAnimInstanceForWeapon(Weapon.Config.WeaponSlot);
-	UpdateWeaponMeshLocations(Weapon.Config.WeaponSlot);
-}
-
-void AALSCharacter::UpdateWeaponMeshLocations(EWeaponSlot WeaponSlot)
+void AALSCharacter::UpdateMeshLocationForWeapon(EWeaponSlot WeaponSlot)
 {
 	const FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, false);
 	USkeletalMeshComponent* MeshComp = GetMesh();
-	USkeletalMeshComponent* EquippedWeaponMesh = WeaponMeshes.FindRef(WeaponSlot);
-
-	// Detach all other weapons
-	for (const auto& [Type, WeaponMesh] : WeaponMeshes)
-	{
-		if (WeaponMesh == EquippedWeaponMesh)
-		{
-			continue;
-		}
-
-		WeaponMesh->AttachToComponent(MeshComp, AttachmentRules, GetUnequippedSocketName(Type));
-	}
 
 	// Attach newly equipped weapon
+	USkeletalMeshComponent* EquippedWeaponMesh = WeaponMeshes.FindRef(WeaponSlot);
 	if (EquippedWeaponMesh)
 	{
-		const FName EquippedSocketName = WeaponSlot == EWeaponSlot::Rifle ? WeaponSocketLocations.RifleEquipped : WeaponSocketLocations.PistolEquipped;
+		const FName EquippedSocketName = WeaponSlot == EWeaponSlot::Primary ? WeaponSocketLocations.PrimaryEquipped : WeaponSocketLocations.SecondaryEquipped;
 		EquippedWeaponMesh->AttachToComponent(MeshComp, AttachmentRules, EquippedSocketName);
+	}
+}
+
+void AALSCharacter::OnWeaponEquipped(const FWeapon& Weapon)
+{
+	const FWeaponConfig& WeaponConfig = Weapon.Data->Config;
+	UpdateAnimInstanceForWeapon(WeaponConfig.WeaponSlot);
+	DetachAllWeaponMeshes();
+	UpdateMeshLocationForWeapon(WeaponConfig.WeaponSlot);
+}
+
+void AALSCharacter::OnWeaponUnequipped()
+{
+	UpdateAnimInstanceForUnarmed();
+	DetachAllWeaponMeshes();
+}
+
+void AALSCharacter::DetachAllWeaponMeshes()
+{
+	const FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, false);
+	USkeletalMeshComponent* MeshComp = GetMesh();
+
+	// Detach all weapons
+	for (const auto& [Type, WeaponMesh] : WeaponMeshes)
+	{
+		WeaponMesh->AttachToComponent(MeshComp, AttachmentRules, GetUnequippedSocketName(Type));
 	}
 }
 
@@ -412,29 +417,41 @@ void AALSCharacter::UpdateAnimInstanceForWeapon(EWeaponSlot WeaponSlot)
 
 	switch (WeaponSlot)
 	{
-	case EWeaponSlot::Pistol:
-		LayerClass = PistolAnimInstance;
-		break;
-	case EWeaponSlot::Rifle:
+	case EWeaponSlot::Primary:
 		LayerClass = RifleAnimInstance;
 		break;
-	case EWeaponSlot::Unarmed:
+	case EWeaponSlot::Secondary:
+		LayerClass = PistolAnimInstance;
+		break;
 	default:
-		LayerClass = UnarmedAnimInstance;
 		break;
 	}
 
-	CharacterMesh->LinkAnimClassLayers(LayerClass);
+	if (LayerClass)
+	{
+		CharacterMesh->LinkAnimClassLayers(LayerClass);
+	}
+}
+
+void AALSCharacter::UpdateAnimInstanceForUnarmed()
+{
+	USkeletalMeshComponent* CharacterMesh = GetMesh();
+	if (!CharacterMesh)
+	{
+		return;
+	}
+
+	CharacterMesh->LinkAnimClassLayers(UnarmedAnimInstance);
 }
 
 FName AALSCharacter::GetUnequippedSocketName(EWeaponSlot WeaponSlot) const
 {
 	switch (WeaponSlot)
 	{
-	case EWeaponSlot::Rifle:
-		return WeaponSocketLocations.RifleUnEquipped;
-	case EWeaponSlot::Pistol:
-		return WeaponSocketLocations.PistolUnEquipped;
+	case EWeaponSlot::Primary:
+		return WeaponSocketLocations.PrimaryUnequipped;
+	case EWeaponSlot::Secondary:
+		return WeaponSocketLocations.SecondaryUnequipped;
 	default:
 		break;
 	}

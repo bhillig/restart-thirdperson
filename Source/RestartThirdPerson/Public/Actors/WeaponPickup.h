@@ -18,7 +18,7 @@ class RESTARTTHIRDPERSON_API AWeaponPickup : public AActor
 public:	
 	AWeaponPickup();
 
-	const FWeaponConfig& GetWeaponConfig() const;
+	const UWeaponDataAsset* GetWeaponData() const;
 
 protected:
 
@@ -35,9 +35,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> WeaponMesh;
 
-	// Weapon Config
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Config")
-	TObjectPtr<UWeaponDataAsset> WeaponData;
+	// Pickup
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Data")
+	TObjectPtr<const UWeaponDataAsset> WeaponData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Material")
 	TObjectPtr<UMaterialInterface> PickupOverlayMaterial;

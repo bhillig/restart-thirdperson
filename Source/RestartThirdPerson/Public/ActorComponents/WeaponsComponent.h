@@ -28,9 +28,9 @@ public:
 UENUM(BlueprintType)
 enum class EWeaponSlot : uint8
 {
-	Unarmed = 0,
-	Pistol = 1, // TODO: Rename these to primary and secondary
-	Rifle = 2
+	None = 0,
+	Primary = 1,
+	Secondary = 2,
 };
 
 UENUM(BlueprintType)
@@ -52,7 +52,7 @@ struct FWeaponConfig
 
 	// Weapon Slot
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	EWeaponSlot WeaponSlot = EWeaponSlot::Unarmed;
+	EWeaponSlot WeaponSlot = EWeaponSlot::None;
 
 	// Mesh
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
@@ -139,7 +139,7 @@ struct FWeapon
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Config")
-	FWeaponConfig Config;
+	TObjectPtr<const UWeaponDataAsset> Data;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ammo")
 	int32 CurrentBulletsInClip;
@@ -178,6 +178,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponAdded, const FWeapon&, Weap
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponEquipped, const FWeapon&, Weapon);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWeaponUnequipped);
+
 // Used by character classes to play shooting/reloading animations
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnWeaponAnimationRequested, EWeaponSlot, WeaponSlot, UAnimSequenceBase*, WeaponAnimation, UAnimMontage*, CharacterAnimation);
 
@@ -198,13 +200,17 @@ class RESTARTTHIRDPERSON_API UWeaponsComponent : public UActorComponent
 public:	
 	UWeaponsComponent();
 
-	// Delegates
-
+	/** On Weapon Added Delegate */
 	UPROPERTY(BlueprintAssignable)
 	FOnWeaponAdded OnWeaponAdded;
 
+	/** On Weapon Equipped Delegate */
 	UPROPERTY(BlueprintAssignable)
 	FOnWeaponEquipped OnWeaponEquipped;
+
+	/** Weapon Unequipped Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FOnWeaponUnequipped OnWeaponUnequipped;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnWeaponAnimationRequested OnWeaponAnimationRequested;
@@ -224,25 +230,25 @@ protected:
 public:	
 
 	UFUNCTION(BlueprintCallable)
-	void AddWeapon(const FWeaponConfig& WeaponConfig);
+	void AddWeapon(const UWeaponDataAsset* WeaponData);
 
 	UFUNCTION(BlueprintCallable)
-	bool HasWeaponEquipped() const { return EquippedWeaponSlot != EWeaponSlot::Unarmed; }
+	bool HasWeaponEquipped() const { return EquippedWeaponSlot != EWeaponSlot::None; }
 
 	UFUNCTION(BlueprintCallable)
-	bool CanEquipWeaponSlot(EWeaponSlot WeaponSlot) const;
+	void TryUnequipWeapon();
 
 	UFUNCTION(BlueprintCallable)
-	void EquipWeaponSlot(EWeaponSlot WeaponSlot);
+	void TryEquipPrimaryWeapon();
 
 	UFUNCTION(BlueprintCallable)
-	bool CanReloadEquippedWeapon() const;
+	void TryEquipSecondaryWeapon();
 
 	UFUNCTION(BlueprintCallable)
-	void ReloadEquippedWeapon();
+	void TryReloadEquippedWeapon();
 
 	UFUNCTION(BlueprintCallable)
-	void FireWeapon();
+	void TryFireWeapon();
 
 	UFUNCTION(BlueprintCallable)
 	void TryPickupWeapon();
@@ -263,15 +269,34 @@ public:
 	void RemoveWeaponPickupInRange(AWeaponPickup* WeaponPickup);
 
 protected:
+	/** Returns whether the primary weapon (if it exists) can be equipped */
+	bool CanEquipPrimaryWeapon() const;
+
+	/** Returns whether the secondary weapon (if it exists) can be equipped */
+	bool CanEquipSecondaryWeapon() const;
+
+	/** Helper function that performs basic checks for whether swapping is blocked */
+	bool IsSwappingBlocked() const;
+
+	/** Equips new weapon (and unequips old if relevant). Called by public TryEquip functions */
+	void EquipWeaponSlot(EWeaponSlot WeaponSlot);
+
 	/** Only setter for equipped weapon slot. Called on server */
 	void SetEquipWeaponSlot(EWeaponSlot WeaponSlot);
 
-	void UnequipCurrentWeapon();
+	/** Plays the unequip animation on the current weapon */
+	void PlayUnequipAnimation();
 
 	void EquipWeapon(EWeaponSlot WeaponSlot);
 
-protected:
+	/** Returns whether we can reload the currently equipped weapon. False if nothing is equipped */
+	bool CanReloadEquippedWeapon() const;
 
+	/** Reloads the currently equipped weapon */
+	void ReloadEquippedWeapon();
+
+protected:
+	/** VFX Begin */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
 	TObjectPtr<UMetaSoundSource> PlasterImpactSound;
 
@@ -301,7 +326,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "VFX")
 	TObjectPtr<UNiagaraSystem> BulletTracerVFX;
-
+	/** VFX End */
 private:
 
 	bool CanPickupWeapon() const;
@@ -313,11 +338,11 @@ private:
 protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	EWeaponSlot EquippedWeaponSlot;
+	EWeaponSlot EquippedWeaponSlot = EWeaponSlot::None;
 
 	/** Weapon type requested. Cached while we unequip the current weapon */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	EWeaponSlot PendingWeaponSlot = EWeaponSlot::Unarmed;
+	EWeaponSlot PendingWeaponSlot = EWeaponSlot::None;
 
 	/** Swap state of unequipping/equipping weapons. None when not */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -325,8 +350,6 @@ protected:
 
 private:
 	TMap<EWeaponSlot, FWeapon> WeaponInventory;
-
-	FWeapon UnarmedWeapon;
 
 	TScriptInterface<IWeaponAimSource> WeaponAimSource; // Interface for retrieving weapon's aim ray (character, enemy, etc)
 
