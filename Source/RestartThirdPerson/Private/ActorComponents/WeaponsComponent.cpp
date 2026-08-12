@@ -7,12 +7,23 @@
 #include "ActorComponents/AttributesComponent.h"
 #include "Actors/WeaponPickup.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
 UWeaponsComponent::UWeaponsComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	SetIsReplicatedByDefault(true);
+}
 
+void UWeaponsComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, EquippedWeaponSlot);
+	DOREPLIFETIME(ThisClass, WeaponInventory);
+	DOREPLIFETIME(ThisClass, PendingWeaponSlot);
+	DOREPLIFETIME(ThisClass, WeaponSwapPhase);
 }
 
 void UWeaponsComponent::BeginPlay()
@@ -28,28 +39,74 @@ void UWeaponsComponent::BeginPlay()
 	}
 }
 
+void UWeaponsComponent::TryAddWeapon(const UWeaponDataAsset* WeaponData)
+{
+	if (GetOwner()->HasAuthority())
+	{
+		// If we are on the server
+		AddWeapon(WeaponData);
+		return;
+	}
+
+	// Request the server to add the weapon
+	Server_AddWeapon(WeaponData);
+}
+
 void UWeaponsComponent::TryUnequipWeapon()
 {
-	if (!IsSwappingBlocked())
+	// Local early out. We still perform checks on the server
+	if (IsSwappingBlocked())
 	{
-		EquipWeaponSlot(EWeaponSlot::None);
+		return;
 	}
+
+	if (GetOwner()->HasAuthority())
+	{
+		// Call the authoritative function
+		UnequipWeapon();
+		return;
+	}
+
+	// Request the server to unequip the weapon
+	Server_UnequipWeapon();
 }
 
 void UWeaponsComponent::TryEquipPrimaryWeapon()
 {
-	if (CanEquipPrimaryWeapon())
+	// Local early out. We still perform checks on the server
+	if (!CanEquipPrimaryWeapon())
 	{
-		EquipWeaponSlot(EWeaponSlot::Primary);
+		return;
 	}
+
+	if (GetOwner()->HasAuthority())
+	{
+		// Call the authoritative function
+		EquipPrimaryWeapon();
+		return;
+	}
+
+	// Request the server to equip the primary weapon
+	Server_EquipPrimaryWeapon();
 }
 
 void UWeaponsComponent::TryEquipSecondaryWeapon()
 {
-	if (CanEquipSecondaryWeapon())
+	// Local early out. We still perform checks on the server
+	if (!CanEquipSecondaryWeapon())
 	{
-		EquipWeaponSlot(EWeaponSlot::Secondary);
+		return;
 	}
+
+	if (GetOwner()->HasAuthority())
+	{
+		// Call the authoritative function
+		EquipSecondaryWeapon();
+		return;
+	}
+
+	// Request the server to equip the secondary weapon
+	Server_EquipSecondaryWeapon();
 }
 
 void UWeaponsComponent::TryReloadEquippedWeapon()
@@ -62,10 +119,24 @@ void UWeaponsComponent::TryReloadEquippedWeapon()
 
 void UWeaponsComponent::EquipWeaponSlot(EWeaponSlot WeaponSlot)
 {
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// Must be on the server
 	// Check if we need to unequip first
 	if (HasWeaponEquipped())
 	{
-		PlayUnequipAnimation();
+		// Set phase to unequipping
+		WeaponSwapPhase = EWeaponSwapPhase::Unequipping;
+
+		const FWeaponConfig& PreviousEquippedWeaponConfig = WeaponCache[EquippedWeaponSlot].Data->Config;
+
+		GetOwner()->GetWorldTimerManager().SetTimer(TimerHandle_Unequip, this, &UWeaponsComponent::OnUnequipComplete, PreviousEquippedWeaponConfig.UnequipDuration);
+
+		// Request unequip animation on old gun
+		Multicast_RequestAnimations(EquippedWeaponSlot, nullptr, PreviousEquippedWeaponConfig.CharacterUnequipAnimMontage);
 
 		// Set pending weapon to equip
 		PendingWeaponSlot = WeaponSlot;
@@ -87,7 +158,7 @@ bool UWeaponsComponent::CanReloadEquippedWeapon() const
 		return false;
 	}
 
-	const FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponSlot];
+	const FWeapon& EquippedWeapon = WeaponCache[EquippedWeaponSlot];
 	if (EquippedWeapon.bIsReloading)
 	{
 		return false;
@@ -99,7 +170,7 @@ bool UWeaponsComponent::CanReloadEquippedWeapon() const
 
 void UWeaponsComponent::ReloadEquippedWeapon()
 {
-	FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponSlot];
+	FWeapon& EquippedWeapon = WeaponCache[EquippedWeaponSlot];
 	const FWeaponConfig& WeaponConfig = EquippedWeapon.Data->Config;
 	const EWeaponSlot WeaponSlot = WeaponConfig.WeaponSlot;
 
@@ -108,7 +179,7 @@ void UWeaponsComponent::ReloadEquippedWeapon()
 	FTimerDelegate Delegate;
 	Delegate.BindLambda([this, WeaponSlot]()
 		{
-			if (FWeapon* Weapon = WeaponInventory.Find(WeaponSlot))
+			if (FWeapon* Weapon = WeaponCache.Find(WeaponSlot))
 			{
 				Weapon->bIsReloading = false;
 				// Take as much ammo from remaining bullets as possible (up to clip amount)
@@ -123,6 +194,31 @@ void UWeaponsComponent::ReloadEquippedWeapon()
 	GetOwner()->GetWorldTimerManager().SetTimer(EquippedWeapon.TimerHandle_Reload, Delegate, WeaponConfig.ReloadDuration, false);
 
 	OnWeaponAnimationRequested.Broadcast(EquippedWeaponSlot, WeaponConfig.ReloadAnim, WeaponConfig.CharacterReloadAnimMontage);
+}
+
+void UWeaponsComponent::OnEquipComplete()
+{
+	WeaponSwapPhase = EWeaponSwapPhase::None;
+}
+
+void UWeaponsComponent::OnUnequipComplete()
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// Must be on server
+	if (PendingWeaponSlot == EWeaponSlot::None)
+	{
+		WeaponSwapPhase = EWeaponSwapPhase::None;
+	}
+
+	// Equip pending swap weapon
+	EquipWeapon(PendingWeaponSlot);
+
+	// Clear flag
+	PendingWeaponSlot = EWeaponSlot::None;
 }
 
 void UWeaponsComponent::TryFireWeapon()
@@ -143,7 +239,7 @@ void UWeaponsComponent::TryFireWeapon()
 		return;
 	}
 
-	FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponSlot];
+	FWeapon& EquippedWeapon = WeaponCache[EquippedWeaponSlot];
 	const FWeaponConfig& WeaponConfig = EquippedWeapon.Data->Config;
 	const EWeaponSlot WeaponSlot = WeaponConfig.WeaponSlot;
 
@@ -152,7 +248,7 @@ void UWeaponsComponent::TryFireWeapon()
 	FTimerDelegate Delegate;
 	Delegate.BindLambda([this, WeaponSlot]()
 		{
-			if (FWeapon* Weapon = WeaponInventory.Find(WeaponSlot))
+			if (FWeapon* Weapon = WeaponCache.Find(WeaponSlot))
 			{
 				Weapon->bFireIntervalElapsed = true;
 			}
@@ -268,6 +364,7 @@ void UWeaponsComponent::TryPickupWeapon()
 		return;
 	}
 
+	// TODO: Run on server
 	AWeaponPickup* PickupWeapon = WeaponPickupsInRange[0];
 
 	AddWeapon(PickupWeapon->GetWeaponData());
@@ -278,31 +375,12 @@ void UWeaponsComponent::TryPickupWeapon()
 
 void UWeaponsComponent::AN_NotifyWeaponUnequipped()
 {
-	if (PendingWeaponSlot == EWeaponSlot::None)
-	{
-		WeaponSwapPhase = EWeaponSwapPhase::None;
-	}
-
-	// Equip pending swap weapon
-	EquipWeapon(PendingWeaponSlot);
-
-	// Clear flag
-	PendingWeaponSlot = EWeaponSlot::None;
+	// TODO: Can perform weapon detachment logic here
 }
 
 void UWeaponsComponent::AN_NotifyWeaponEquipped()
 {
-	WeaponSwapPhase = EWeaponSwapPhase::None;
-}
-
-void UWeaponsComponent::PlayUnequipAnimation()
-{
-	// Set phase to unequipping
-	WeaponSwapPhase = EWeaponSwapPhase::Unequipping;
-
-	// Play unequip animation on old gun
-	const FWeaponConfig& PreviousEquippedWeaponConfig = WeaponInventory[EquippedWeaponSlot].Data->Config;
-	OnWeaponAnimationRequested.Broadcast(EquippedWeaponSlot, nullptr, PreviousEquippedWeaponConfig.CharacterUnequipAnimMontage);
+	// TODO: Can perform weapon attachment logic here
 }
 
 void UWeaponsComponent::EquipWeapon(EWeaponSlot WeaponSlot)
@@ -312,17 +390,46 @@ void UWeaponsComponent::EquipWeapon(EWeaponSlot WeaponSlot)
 		// Set phase to equipping
 		WeaponSwapPhase = EWeaponSwapPhase::Equipping;
 
-		// Play equip animation
-		const FWeaponConfig& NewEquippedWeaponConfig = WeaponInventory[WeaponSlot].Data->Config;
-		OnWeaponAnimationRequested.Broadcast(WeaponSlot, nullptr, NewEquippedWeaponConfig.CharacterEquipAnimMontage);
+		const FWeaponConfig& NewEquippedWeaponConfig = WeaponCache[WeaponSlot].Data->Config;
+
+		GetOwner()->GetWorldTimerManager().SetTimer(TimerHandle_Equip, this, &UWeaponsComponent::OnEquipComplete, NewEquippedWeaponConfig.EquipDuration);
+
+		// Request equip animation
+		Multicast_RequestAnimations(WeaponSlot, nullptr, NewEquippedWeaponConfig.CharacterEquipAnimMontage);
 	}
 
 	// Set new equipped weapon
 	SetEquipWeaponSlot(WeaponSlot);
 }
 
+void UWeaponsComponent::Multicast_RequestAnimations_Implementation(EWeaponSlot WeaponSlot, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation)
+{
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+
+	OnWeaponAnimationRequested.Broadcast(WeaponSlot, WeaponAnimation, CharacterAnimation);
+}
+
+void UWeaponsComponent::Server_EquipPrimaryWeapon_Implementation()
+{
+	EquipPrimaryWeapon();
+}
+
+void UWeaponsComponent::Server_EquipSecondaryWeapon_Implementation()
+{
+	EquipSecondaryWeapon();
+}
+
 void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData)
 {
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// Only called on server
 	FWeapon Weapon;
 	Weapon.Data = WeaponData;
 
@@ -333,8 +440,73 @@ void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData)
 	const int32 StartingAmmoClip = FMath::Min(WeaponConfig.StartingAmmoCount, WeaponConfig.BulletsPerClip);
 	Weapon.CurrentBulletsInClip = StartingAmmoClip;
 
-	WeaponInventory.Add(WeaponConfig.WeaponSlot, Weapon);
-	OnWeaponAdded.Broadcast(Weapon);
+	// Capture old weapon inventory
+	TArray<FWeaponSlotEntry> OldWeaponInventory = WeaponInventory;
+
+	WeaponInventory.Add(FWeaponSlotEntry{ .Weapon = Weapon, .Slot = WeaponConfig.WeaponSlot });
+
+	HandleWeaponInventoryChanged(OldWeaponInventory);
+}
+
+void UWeaponsComponent::UnequipWeapon()
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// Must be on the server
+	if (IsSwappingBlocked())
+	{
+		return;
+	}
+
+	EquipWeaponSlot(EWeaponSlot::None);
+}
+
+void UWeaponsComponent::EquipPrimaryWeapon()
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// Must be on the server
+	if (!CanEquipPrimaryWeapon())
+	{
+		return;
+	}
+
+	EquipWeaponSlot(EWeaponSlot::Primary);
+}
+
+void UWeaponsComponent::EquipSecondaryWeapon()
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// Must be on the server
+	if (!CanEquipSecondaryWeapon())
+	{
+		return;
+	}
+
+	EquipWeaponSlot(EWeaponSlot::Secondary);
+}
+
+void UWeaponsComponent::HandleEquippedWeaponSlotChanged()
+{
+	if (HasWeaponEquipped())
+	{
+		const FWeapon& EquippedWeapon = WeaponCache[EquippedWeaponSlot];
+		OnWeaponEquipped.Broadcast(EquippedWeapon);
+	}
+	else
+	{
+		OnWeaponUnequipped.Broadcast();
+	}
 }
 
 bool UWeaponsComponent::CanPickupWeapon() const
@@ -345,7 +517,7 @@ bool UWeaponsComponent::CanPickupWeapon() const
 EWeaponFireState UWeaponsComponent::GetWeaponFireState() const
 {
 	check(EquippedWeaponSlot != EWeaponSlot::None);
-	const FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponSlot];
+	const FWeapon& EquippedWeapon = WeaponCache[EquippedWeaponSlot];
 
 	if (EquippedWeapon.bIsReloading)
 	{
@@ -386,6 +558,45 @@ USkeletalMeshComponent* UWeaponsComponent::FindWeaponMesh(const FWeaponConfig& C
 	return nullptr;
 }
 
+void UWeaponsComponent::OnRep_EquippedWeaponSlot()
+{
+	HandleEquippedWeaponSlotChanged();
+}
+
+void UWeaponsComponent::OnRep_WeaponInventory(const TArray<FWeaponSlotEntry>& OldWeaponInventory)
+{
+	HandleWeaponInventoryChanged(OldWeaponInventory);
+}
+
+void UWeaponsComponent::HandleWeaponInventoryChanged(const TArray<FWeaponSlotEntry>& OldWeaponInventory)
+{
+	// Rebuild the cache
+	WeaponCache.Reset();
+	for (const auto& WeaponEntry : WeaponInventory)
+	{
+		WeaponCache.Add(WeaponEntry.Slot, WeaponEntry.Weapon);
+	}
+
+	// Determine what weapons were added/removed
+	TArray<FWeaponSlotEntry> Added = WeaponInventory.FilterByPredicate(
+		[&OldWeaponInventory](const FWeaponSlotEntry& Entry)
+		{
+			return !OldWeaponInventory.Contains(Entry);
+		});
+	TArray<FWeaponSlotEntry> Removed = OldWeaponInventory.FilterByPredicate(
+		[this](const FWeaponSlotEntry& Entry)
+		{
+			return !WeaponInventory.Contains(Entry);
+		});
+
+	for (const auto& WeaponEntry : Added)
+	{
+		OnWeaponAdded.Broadcast(WeaponEntry.Weapon);
+	}
+
+	// TODO: Broadcast weapons removed
+}
+
 void UWeaponsComponent::AddWeaponPickupInRange(AWeaponPickup* WeaponPickup)
 {
 	WeaponPickupsInRange.Add(WeaponPickup);
@@ -411,6 +622,17 @@ void UWeaponsComponent::RemoveWeaponPickupInRange(AWeaponPickup* WeaponPickup)
 		CurrentClosestWeaponPickup = nullptr;
 	}
 }
+
+void UWeaponsComponent::Server_UnequipWeapon_Implementation()
+{
+	UnequipWeapon();
+}
+
+void UWeaponsComponent::Server_AddWeapon_Implementation(const UWeaponDataAsset* WeaponData)
+{
+	AddWeapon(WeaponData);
+}
+
 bool UWeaponsComponent::CanEquipPrimaryWeapon() const
 {
 	if (IsSwappingBlocked())
@@ -418,7 +640,7 @@ bool UWeaponsComponent::CanEquipPrimaryWeapon() const
 		return false;
 	}
 
-	if (EquippedWeaponSlot == EWeaponSlot::Primary || !WeaponInventory.Contains(EWeaponSlot::Primary))
+	if (EquippedWeaponSlot == EWeaponSlot::Primary || !WeaponCache.Contains(EWeaponSlot::Primary))
 	{
 		return false;
 	}
@@ -433,7 +655,7 @@ bool UWeaponsComponent::CanEquipSecondaryWeapon() const
 		return false;
 	}
 
-	if (EquippedWeaponSlot == EWeaponSlot::Secondary || !WeaponInventory.Contains(EWeaponSlot::Secondary))
+	if (EquippedWeaponSlot == EWeaponSlot::Secondary || !WeaponCache.Contains(EWeaponSlot::Secondary))
 	{
 		return false;
 	}
@@ -443,7 +665,7 @@ bool UWeaponsComponent::CanEquipSecondaryWeapon() const
 
 bool UWeaponsComponent::IsSwappingBlocked() const
 {
-	if (WeaponInventory.Contains(EquippedWeaponSlot) && WeaponInventory[EquippedWeaponSlot].bIsReloading)
+	if (WeaponCache.Contains(EquippedWeaponSlot) && WeaponCache[EquippedWeaponSlot].bIsReloading)
 	{
 		// We are currently reloading
 		return true;
@@ -460,16 +682,13 @@ bool UWeaponsComponent::IsSwappingBlocked() const
 
 void UWeaponsComponent::SetEquipWeaponSlot(EWeaponSlot WeaponSlot)
 {
-	// TODO: Add check for authority 
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// Must be on the server
 	EquippedWeaponSlot = WeaponSlot;
 
-	if (HasWeaponEquipped())
-	{
-		const FWeapon& EquippedWeapon = WeaponInventory[EquippedWeaponSlot];
-		OnWeaponEquipped.Broadcast(EquippedWeapon);
-	}
-	else
-	{
-		OnWeaponUnequipped.Broadcast();
-	}
+	HandleEquippedWeaponSlotChanged();
 }

@@ -95,6 +95,14 @@ struct FWeaponConfig
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	float DamagePerBullet;
 
+	// Equip Duration
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float EquipDuration;
+
+	// Unequip Duration
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float UnequipDuration;
+
 	// Reload Duration
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	float ReloadDuration;
@@ -153,6 +161,29 @@ struct FWeapon
 	FTimerHandle TimerHandle_FireInterval; // Timer responsible for using the current weapon's fire interval to determine when bFireIntervalElapsed is set back to true
 
 	FTimerHandle TimerHandle_Reload; // Timer responsible for using the current weapon's reload duration to determine when bIsReloading is set back to false
+
+	bool operator==(const FWeapon& Other) const
+	{
+		// Shouldn't need more than this
+		return Data == Other.Data;
+	}
+};
+
+USTRUCT()
+struct FWeaponSlotEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FWeapon Weapon;
+	
+	UPROPERTY()
+	EWeaponSlot Slot = EWeaponSlot::None;
+
+	bool operator==(const FWeaponSlotEntry& Other) const
+	{
+		return Weapon == Other.Weapon;
+	}
 };
 
 UENUM(BlueprintType)

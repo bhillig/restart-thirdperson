@@ -69,7 +69,7 @@ void AALSCharacter::BeginPlay()
 	if (WeaponsComponent && StartingWeaponData)
 	{
 		// Add starter weapon
-		WeaponsComponent->AddWeapon(StartingWeaponData);
+		WeaponsComponent->TryAddWeapon(StartingWeaponData);
 	}
 }
 

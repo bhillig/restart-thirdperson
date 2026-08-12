@@ -39,39 +39,19 @@ public:
 	/** Constructor */
 	UWeaponsComponent();
 
-	/** On Weapon Added Delegate */
-	UPROPERTY(BlueprintAssignable)
-	FOnWeaponAdded OnWeaponAdded;
-
-	/** On Weapon Equipped Delegate */
-	UPROPERTY(BlueprintAssignable)
-	FOnWeaponEquipped OnWeaponEquipped;
-
-	/** Weapon Unequipped Delegate */
-	UPROPERTY(BlueprintAssignable)
-	FOnWeaponUnequipped OnWeaponUnequipped;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnWeaponAnimationRequested OnWeaponAnimationRequested;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnWeaponAmmoChanged OnWeaponAmmoChanged;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnWeaponPickupChanged OnWeaponPickupChanged;
-
-	UPROPERTY(BlueprintAssignable)
-	FOnHitMarkerRequested OnHitMarkerRequested;
+	/** Register replicated variables */
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
+	/** Called when the game begins */
 	virtual void BeginPlay() override;
 
 public:	
 
 	UFUNCTION(BlueprintCallable)
-	void AddWeapon(const UWeaponDataAsset* WeaponData);
+	void TryAddWeapon(const UWeaponDataAsset* WeaponData);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	bool HasWeaponEquipped() const { return EquippedWeaponSlot != EWeaponSlot::None; }
 
 	UFUNCTION(BlueprintCallable)
@@ -108,6 +88,45 @@ public:
 	void RemoveWeaponPickupInRange(AWeaponPickup* WeaponPickup);
 
 protected:
+	/** Client -> Server request to add a weapon to WeaponInventory */
+	UFUNCTION(Server, Reliable)
+	void Server_AddWeapon(const UWeaponDataAsset* WeaponData);
+
+	/** Client -> Server request to unequip a weapon */
+	UFUNCTION(Server, Reliable)
+	void Server_UnequipWeapon();
+
+	/** Client -> Server request to equip a primary weapon */
+	UFUNCTION(Server, Reliable)
+	void Server_EquipPrimaryWeapon();
+
+	/** Client -> Server request to equip a secondary weapon */
+	UFUNCTION(Server, Reliable)
+	void Server_EquipSecondaryWeapon();
+
+	/** Server -> All: notify clients to request animations */
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_RequestAnimations(EWeaponSlot WeaponSlot, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation);
+
+protected:
+	/** Only modifier to WeaponInventory. Called on server */
+	void AddWeapon(const UWeaponDataAsset* WeaponData);
+
+	/** Only modifier to actually unequip a weapon. Called on server */
+	void UnequipWeapon();
+
+	/** Only modifier to actually equip the primary weapon. Called on server */
+	void EquipPrimaryWeapon();
+
+	/** Only modifier to actually equip the secondary weapon. Called on server */
+	void EquipSecondaryWeapon();
+
+	/** Handles broadcasting delegates when EquippedWeaponSlot changes. Called by rep notify and server */
+	void HandleEquippedWeaponSlotChanged();
+
+	/** Handles rebuilding the cache and broadcasting delegates when WeaponInventory changes. Called by rep notify and server */
+	void HandleWeaponInventoryChanged(const TArray<FWeaponSlotEntry>& OldInventory);
+
 	/** Returns whether the primary weapon (if it exists) can be equipped */
 	bool CanEquipPrimaryWeapon() const;
 
@@ -123,9 +142,6 @@ protected:
 	/** Only setter for equipped weapon slot. Called on server */
 	void SetEquipWeaponSlot(EWeaponSlot WeaponSlot);
 
-	/** Plays the unequip animation on the current weapon */
-	void PlayUnequipAnimation();
-
 	void EquipWeapon(EWeaponSlot WeaponSlot);
 
 	/** Returns whether we can reload the currently equipped weapon. False if nothing is equipped */
@@ -133,6 +149,41 @@ protected:
 
 	/** Reloads the currently equipped weapon */
 	void ReloadEquippedWeapon();
+
+	/** Callback for when the equip timer completes */
+	void OnEquipComplete();
+
+	/** Callback for when the unequip timer completes */
+	void OnUnequipComplete();
+
+public:
+	/** On Weapon Added Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FOnWeaponAdded OnWeaponAdded;
+
+	/** On Weapon Equipped Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FOnWeaponEquipped OnWeaponEquipped;
+
+	/** Weapon Unequipped Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FOnWeaponUnequipped OnWeaponUnequipped;
+
+	/** Weapon Animation Requested Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FOnWeaponAnimationRequested OnWeaponAnimationRequested;
+
+	/** Weapon Ammo Changed Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FOnWeaponAmmoChanged OnWeaponAmmoChanged;
+
+	/** Weapon Pickup Changed Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FOnWeaponPickupChanged OnWeaponPickupChanged;
+
+	/** Hit Marker Requested Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FOnHitMarkerRequested OnHitMarkerRequested;
 
 protected:
 	/** VFX Begin */
@@ -175,24 +226,47 @@ private:
 	USkeletalMeshComponent* FindWeaponMesh(const FWeaponConfig& Config) const;
 
 protected:
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	/** Weapon slot currently equipped */
+	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeaponSlot)
 	EWeaponSlot EquippedWeaponSlot = EWeaponSlot::None;
 
+	/** Weapon inventory. Should have a maximum of one of each weapon slot type */
+	UPROPERTY(ReplicatedUsing = OnRep_WeaponInventory)
+	TArray<FWeaponSlotEntry> WeaponInventory;
+
 	/** Weapon type requested. Cached while we unequip the current weapon */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Replicated)
 	EWeaponSlot PendingWeaponSlot = EWeaponSlot::None;
 
 	/** Swap state of unequipping/equipping weapons. None when not */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Replicated)
 	EWeaponSwapPhase WeaponSwapPhase = EWeaponSwapPhase::None;
 
 private:
-	TMap<EWeaponSlot, FWeapon> WeaponInventory;
+	/** Rep notify for EquippedWeaponSlot */
+	UFUNCTION()
+	void OnRep_EquippedWeaponSlot();
 
-	TScriptInterface<IWeaponAimSource> WeaponAimSource; // Interface for retrieving weapon's aim ray (character, enemy, etc)
+	/** Rep notify for WeaponInventory */
+	UFUNCTION()
+	void OnRep_WeaponInventory(const TArray<FWeaponSlotEntry>& OldWeaponInventory);
 
-	TArray<TObjectPtr<AWeaponPickup>> WeaponPickupsInRange; // Weapons in range to be picked up
+	/** Cache for WeaponInventory. Represents the same state, but is recreated when WeaponInventory changes since TMaps can't be replicated */
+	UPROPERTY(Transient)
+	TMap<EWeaponSlot, FWeapon> WeaponCache;
 
-	TObjectPtr<AWeaponPickup> CurrentClosestWeaponPickup; // Closest weapon pickup in range
+	/** Interface for retrieving weapon's aim ray (character, enemy, etc) */
+	TScriptInterface<IWeaponAimSource> WeaponAimSource;
+
+	/** Weapons in range to be picked up */
+	TArray<TObjectPtr<AWeaponPickup>> WeaponPickupsInRange;
+
+	/** Closest weapon pickup in range */
+	TObjectPtr<AWeaponPickup> CurrentClosestWeaponPickup;
+
+	/** Timer handle for managing when we equip a weapon */
+	FTimerHandle TimerHandle_Equip;
+
+	/** Timer handle for managing when we unequip a weapon */
+	FTimerHandle TimerHandle_Unequip;
 };
