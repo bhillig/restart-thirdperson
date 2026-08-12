@@ -359,18 +359,21 @@ void UWeaponsComponent::TryFireWeapon()
 
 void UWeaponsComponent::TryPickupWeapon()
 {
+	// Local early out
 	if (!CanPickupWeapon())
 	{
 		return;
 	}
 
-	// TODO: Run on server
-	AWeaponPickup* PickupWeapon = WeaponPickupsInRange[0];
+	if (GetOwner()->HasAuthority())
+	{
+		// Call authoritative function
+		PickupWeapon();
+		return;
+	}
 
-	AddWeapon(PickupWeapon->GetWeaponData());
-
-	WeaponPickupsInRange.Remove(PickupWeapon);
-	PickupWeapon->Destroy();
+	// Request server to try pickup weapon
+	Server_PickupWeapon();
 }
 
 void UWeaponsComponent::AN_NotifyWeaponUnequipped()
@@ -420,6 +423,11 @@ void UWeaponsComponent::Server_EquipPrimaryWeapon_Implementation()
 void UWeaponsComponent::Server_EquipSecondaryWeapon_Implementation()
 {
 	EquipSecondaryWeapon();
+}
+
+void UWeaponsComponent::Server_PickupWeapon_Implementation()
+{
+	PickupWeapon();
 }
 
 void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData)
@@ -494,6 +502,22 @@ void UWeaponsComponent::EquipSecondaryWeapon()
 	}
 
 	EquipWeaponSlot(EWeaponSlot::Secondary);
+}
+
+void UWeaponsComponent::PickupWeapon()
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// Must be on the server
+	AWeaponPickup* PickupWeapon = WeaponPickupsInRange[0];
+
+	AddWeapon(PickupWeapon->GetWeaponData());
+
+	WeaponPickupsInRange.Remove(PickupWeapon);
+	PickupWeapon->Destroy();
 }
 
 void UWeaponsComponent::HandleEquippedWeaponSlotChanged()

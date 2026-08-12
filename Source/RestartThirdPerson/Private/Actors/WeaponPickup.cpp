@@ -10,6 +10,9 @@ AWeaponPickup::AWeaponPickup()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	bNetLoadOnClient = true;
+	bReplicates = true;
+
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>("WeaponMesh");
 	SetRootComponent(WeaponMesh);
 	WeaponMesh->SetCollisionProfileName(TEXT("PhysicsActor"));

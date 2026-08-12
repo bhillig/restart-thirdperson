@@ -16,6 +16,7 @@ class RESTARTTHIRDPERSON_API AWeaponPickup : public AActor
 	GENERATED_BODY()
 	
 public:	
+	/** Constructor */
 	AWeaponPickup();
 
 	const UWeaponDataAsset* GetWeaponData() const;

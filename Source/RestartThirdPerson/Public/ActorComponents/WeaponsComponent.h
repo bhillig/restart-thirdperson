@@ -104,6 +104,10 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_EquipSecondaryWeapon();
 
+	/** Client -> Server request to try and pickup a weapon */
+	UFUNCTION(Server, Reliable)
+	void Server_PickupWeapon();
+
 	/** Server -> All: notify clients to request animations */
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_RequestAnimations(EWeaponSlot WeaponSlot, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation);
@@ -112,14 +116,17 @@ protected:
 	/** Only modifier to WeaponInventory. Called on server */
 	void AddWeapon(const UWeaponDataAsset* WeaponData);
 
-	/** Only modifier to actually unequip a weapon. Called on server */
+	/** Only modifier to unequip a weapon. Called on server */
 	void UnequipWeapon();
 
-	/** Only modifier to actually equip the primary weapon. Called on server */
+	/** Only modifier to equip the primary weapon. Called on server */
 	void EquipPrimaryWeapon();
 
-	/** Only modifier to actually equip the secondary weapon. Called on server */
+	/** Only modifier to equip the secondary weapon. Called on server */
 	void EquipSecondaryWeapon();
+
+	/** Only seam to try and pickup a weapon. Called on server */
+	void PickupWeapon();
 
 	/** Handles broadcasting delegates when EquippedWeaponSlot changes. Called by rep notify and server */
 	void HandleEquippedWeaponSlotChanged();
