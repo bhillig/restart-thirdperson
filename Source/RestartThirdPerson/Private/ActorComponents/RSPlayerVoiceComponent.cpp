@@ -8,6 +8,7 @@
 
 URSPlayerVoiceComponent::URSPlayerVoiceComponent()
 {
+	SetIsReplicatedByDefault(true);
 	bWantsInitializeComponent = true;
 	PrimaryComponentTick.bCanEverTick = false;
 }
@@ -26,6 +27,12 @@ void URSPlayerVoiceComponent::InitializeComponent()
 
 void URSPlayerVoiceComponent::OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser)
 {
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// Must be on the server
 	if (FMath::IsNearlyZero(NewHealth))
 	{
 		// Let OnDeath handle this state
@@ -34,14 +41,24 @@ void URSPlayerVoiceComponent::OnHealthChanged(float NewHealth, float MaxHealth, 
 
 	if (HitReactSound)
 	{
-		UGameplayStatics::SpawnSoundAttached(HitReactSound, this);
+		Multicast_SpawnSoundAttached(HitReactSound);
 	}
 }
 
 void URSPlayerVoiceComponent::OnDeath(AController* EventInstigator, AActor* DamageCauser)
 {
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
 	if (DeathSound)
 	{
-		UGameplayStatics::SpawnSoundAttached(DeathSound, this);
+		Multicast_SpawnSoundAttached(DeathSound);
 	}
+}
+
+void URSPlayerVoiceComponent::Multicast_SpawnSoundAttached_Implementation(USoundBase* Sound)
+{
+	UGameplayStatics::SpawnSoundAttached(Sound, this);
 }

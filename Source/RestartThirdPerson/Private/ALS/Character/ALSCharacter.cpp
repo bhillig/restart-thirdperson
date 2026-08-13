@@ -16,6 +16,7 @@
 #include "ActorComponents/RSPlayerVoiceComponent.h"
 #include "ActorComponents/WeaponsComponent.h"
 #include "Interact/RSInteractComponent.h"
+#include "Net/UnrealNetwork.h"
 
 static TAutoConsoleVariable CVar_DebugGateSettings(TEXT("Debug.GateSettings"), false, TEXT("Debug gate setting movement variables"));
 
@@ -41,6 +42,13 @@ AALSCharacter::AALSCharacter()
 	// Set capsule and mesh to ignore the Ground Trace Channel. Used for IK Traces and should ignore pawns
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
+}
+
+void AALSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, bIsDead);
 }
 
 void AALSCharacter::PostInitializeComponents()
@@ -466,6 +474,21 @@ void AALSCharacter::OnHealthChanged(float NewHealth, float MaxHealth, float Delt
 
 void AALSCharacter::OnDeath(AController* EventInstigator, AActor* DamageCauser)
 {
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// Set dead
+	bIsDead = true;
+
+	SetLifeSpan(1.5f);
+	
+	HandleDeath();
+}
+
+void AALSCharacter::HandleDeath()
+{
 	// Disable collision
 	if (UCapsuleComponent* CapsuleComp = GetCapsuleComponent())
 	{
@@ -497,11 +520,6 @@ void AALSCharacter::OnDeath(AController* EventInstigator, AActor* DamageCauser)
 
 	// Zoom camera out
 	SpringArm->TargetArmLength = 600.f;
-
-	// Set dead
-	bIsDead = true;
-
-	SetLifeSpan(1.5f);
 }
 
 void AALSCharacter::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -511,4 +529,9 @@ void AALSCharacter::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted
 	{
 		CharacterMeshComp->SetComponentTickEnabled(false);
 	}
+}
+
+void AALSCharacter::OnRep_IsDead()
+{
+	HandleDeath();
 }

@@ -50,6 +50,11 @@ protected:
 	UFUNCTION()
 	void OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser);
 
+protected:
+	/** Server -> Owner: Notify owning client that they are receiving damage */
+	UFUNCTION(Client, Unreliable)
+	void Client_NotifyDamageTaken(float DamageTaken);
+
 public:
 	/** Damage feedback delegate */
 	UPROPERTY(BlueprintAssignable)

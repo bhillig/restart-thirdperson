@@ -34,12 +34,22 @@ void URSDamageFeedbackComponent::OnTakePointDamage(AActor* DamagedActor, float D
 
 void URSDamageFeedbackComponent::OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser)
 {
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
 	// If we were healed
 	if (Delta >= 0.f)
 	{
 		return;
 	}
 
+	Client_NotifyDamageTaken(-Delta);
+}
+
+void URSDamageFeedbackComponent::Client_NotifyDamageTaken_Implementation(float DamageTaken)
+{
 	// Get owning pawn
 	APawn* OwningPawn = Cast<APawn>(GetOwner());
 	if (!OwningPawn)
@@ -72,7 +82,7 @@ void URSDamageFeedbackComponent::OnHealthChanged(float NewHealth, float MaxHealt
 
 	// Broadcast damage
 	FRSDamageFeedbackEvent Event;
-	Event.Damage = -Delta;
+	Event.Damage = DamageTaken;
 	OnDamageFeedback.Broadcast(Event);
 }
 

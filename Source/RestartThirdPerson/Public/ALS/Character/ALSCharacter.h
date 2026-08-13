@@ -80,7 +80,11 @@ class RESTARTTHIRDPERSON_API AALSCharacter : public ACharacter, public IWeaponAi
 	GENERATED_BODY()
 
 public:
+	/** Constructor */
 	AALSCharacter();
+
+	/** Register replicated variables */
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnGateSwitched OnGateSwitched;
@@ -277,6 +281,9 @@ private:
 	UFUNCTION()
 	void OnDeath(AController* EventInstigator, AActor* DamageCauser);
 
+	/** Handles death logic for all machines. Called on server and clients */
+	void HandleDeath();
+
 	UFUNCTION()
 	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
@@ -287,7 +294,14 @@ protected:
 
 	float CurrentSpringArmLength;
 
+	/** State of whether the player is dead */
+	UPROPERTY(ReplicatedUsing=OnRep_IsDead)
 	bool bIsDead = false;
+
+protected:
+	/** Rep notify for bIsDead */
+	UFUNCTION()
+	void OnRep_IsDead();
 
 private:
 	TMap<EWeaponSlot, TObjectPtr<USkeletalMeshComponent>> WeaponMeshes;

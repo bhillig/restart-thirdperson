@@ -35,4 +35,9 @@ protected:
 	/** Death sound */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
 	TObjectPtr<USoundBase> DeathSound;
+
+protected:
+	/** Server -> All: Notify clients to spawn a sound attached to this */
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_SpawnSoundAttached(USoundBase* Sound);
 };
