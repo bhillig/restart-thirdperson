@@ -111,10 +111,21 @@ void UWeaponsComponent::TryEquipSecondaryWeapon()
 
 void UWeaponsComponent::TryReloadEquippedWeapon()
 {
-	if (CanReloadEquippedWeapon())
+	// Local early out
+	if (!CanReloadEquippedWeapon())
 	{
-		ReloadEquippedWeapon();
+		return;
 	}
+
+	if (GetOwner()->HasAuthority())
+	{
+		// Call authoritative function
+		ReloadEquippedWeapon();
+		return;
+	}
+
+	// Request server to reload equipped weapon
+	Server_ReloadEquippedWeapon();
 }
 
 void UWeaponsComponent::EquipWeaponSlot(EWeaponSlot WeaponSlot)
@@ -131,7 +142,10 @@ void UWeaponsComponent::EquipWeaponSlot(EWeaponSlot WeaponSlot)
 		// Set phase to unequipping
 		WeaponSwapPhase = EWeaponSwapPhase::Unequipping;
 
-		const FWeaponConfig& PreviousEquippedWeaponConfig = WeaponCache[EquippedWeaponSlot].Data->Config;
+		const FWeaponSlotEntry* PreviousEquippedEntry = FindEntry(EquippedWeaponSlot);
+		ensure(PreviousEquippedEntry);
+
+		const FWeaponConfig& PreviousEquippedWeaponConfig = PreviousEquippedEntry->Weapon.Data->Config;
 
 		GetOwner()->GetWorldTimerManager().SetTimer(TimerHandle_Unequip, this, &UWeaponsComponent::OnUnequipComplete, PreviousEquippedWeaponConfig.UnequipDuration);
 
@@ -158,7 +172,10 @@ bool UWeaponsComponent::CanReloadEquippedWeapon() const
 		return false;
 	}
 
-	const FWeapon& EquippedWeapon = WeaponCache[EquippedWeaponSlot];
+	const FWeaponSlotEntry* EquippedEntry = FindEntry(EquippedWeaponSlot);
+	ensure(EquippedEntry);
+
+	const FWeapon& EquippedWeapon = EquippedEntry->Weapon;
 	if (EquippedWeapon.bIsReloading)
 	{
 		return false;
@@ -170,7 +187,19 @@ bool UWeaponsComponent::CanReloadEquippedWeapon() const
 
 void UWeaponsComponent::ReloadEquippedWeapon()
 {
-	FWeapon& EquippedWeapon = WeaponCache[EquippedWeaponSlot];
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// Must be on the server
+	FWeaponSlotEntry* WeaponSlotEntry = FindMutableEntry(EquippedWeaponSlot);
+	if (!WeaponSlotEntry)
+	{
+		return;
+	}
+
+	FWeapon& EquippedWeapon = WeaponSlotEntry->Weapon;
 	const FWeaponConfig& WeaponConfig = EquippedWeapon.Data->Config;
 	const EWeaponSlot WeaponSlot = WeaponConfig.WeaponSlot;
 
@@ -179,21 +208,22 @@ void UWeaponsComponent::ReloadEquippedWeapon()
 	FTimerDelegate Delegate;
 	Delegate.BindLambda([this, WeaponSlot]()
 		{
-			if (FWeapon* Weapon = WeaponCache.Find(WeaponSlot))
+			if (FWeaponSlotEntry* WeaponSlotEntry = FindMutableEntry(EquippedWeaponSlot))
 			{
-				Weapon->bIsReloading = false;
+				FWeapon& Weapon = WeaponSlotEntry->Weapon;
+
+				Weapon.bIsReloading = false;
 				// Take as much ammo from remaining bullets as possible (up to clip amount)
-				const int32 BulletsOutsideClip = Weapon->TotalBullets - Weapon->CurrentBulletsInClip;
-				const int32 BulletsInNewClip = FMath::Min(Weapon->Data->Config.BulletsPerClip - Weapon->CurrentBulletsInClip, BulletsOutsideClip);
-				Weapon->CurrentBulletsInClip += BulletsInNewClip;
-				OnWeaponAmmoChanged.Broadcast(Weapon->CurrentBulletsInClip, Weapon->TotalBullets);
+				const int32 BulletsOutsideClip = Weapon.TotalBullets - Weapon.CurrentBulletsInClip;
+				const int32 BulletsInNewClip = FMath::Min(Weapon.Data->Config.BulletsPerClip - Weapon.CurrentBulletsInClip, BulletsOutsideClip);
+				Weapon.CurrentBulletsInClip += BulletsInNewClip;
 			}
 		});
 
 
 	GetOwner()->GetWorldTimerManager().SetTimer(EquippedWeapon.TimerHandle_Reload, Delegate, WeaponConfig.ReloadDuration, false);
 
-	OnWeaponAnimationRequested.Broadcast(EquippedWeaponSlot, WeaponConfig.ReloadAnim, WeaponConfig.CharacterReloadAnimMontage);
+	Multicast_RequestAnimations(EquippedWeaponSlot, WeaponConfig.ReloadAnim, WeaponConfig.CharacterReloadAnimMontage);
 }
 
 void UWeaponsComponent::OnEquipComplete()
@@ -223,138 +253,21 @@ void UWeaponsComponent::OnUnequipComplete()
 
 void UWeaponsComponent::TryFireWeapon()
 {
+	// Local early out
 	if (!HasWeaponEquipped())
 	{
 		return;
 	}
 
-	const EWeaponFireState WeaponFireState = GetWeaponFireState();
-	if (WeaponFireState == EWeaponFireState::NoAmmoInClip && CanReloadEquippedWeapon())
+	if (GetOwner()->HasAuthority())
 	{
-		ReloadEquippedWeapon();
-		return;
-	}
-	if (WeaponFireState != EWeaponFireState::CanFire || WeaponSwapPhase != EWeaponSwapPhase::None)
-	{
+		// Call authoritative function
+		FireWeapon();
 		return;
 	}
 
-	FWeapon& EquippedWeapon = WeaponCache[EquippedWeaponSlot];
-	const FWeaponConfig& WeaponConfig = EquippedWeapon.Data->Config;
-	const EWeaponSlot WeaponSlot = WeaponConfig.WeaponSlot;
-
-	EquippedWeapon.bFireIntervalElapsed = false;
-
-	FTimerDelegate Delegate;
-	Delegate.BindLambda([this, WeaponSlot]()
-		{
-			if (FWeapon* Weapon = WeaponCache.Find(WeaponSlot))
-			{
-				Weapon->bFireIntervalElapsed = true;
-			}
-		});
-
-	const USkeletalMeshComponent* WeaponMesh = FindWeaponMesh(WeaponConfig);
-	check(WeaponMesh);
-
-	const FVector WeaponBarrelLocation = WeaponMesh->GetBoneLocation(WeaponConfig.MuzzleSocketName);
-
-	GetOwner()->GetWorldTimerManager().SetTimer(EquippedWeapon.TimerHandle_FireInterval, Delegate, WeaponConfig.FireInterval, false);
-
-	OnWeaponAnimationRequested.Broadcast(EquippedWeaponSlot, WeaponConfig.FireAnim, WeaponConfig.CharacterFireAnimMontage);
-
-	// Play Fire Sound
-	UGameplayStatics::PlaySoundAtLocation(this, WeaponConfig.FireSound, WeaponBarrelLocation);
-
-	EquippedWeapon.CurrentBulletsInClip--;
-	EquippedWeapon.TotalBullets--;
-	OnWeaponAmmoChanged.Broadcast(EquippedWeapon.CurrentBulletsInClip, EquippedWeapon.TotalBullets);
-
-	FVector WeaponOrigin;
-	FVector WeaponDirection;
-	if (WeaponAimSource)
-	{
-		WeaponAimSource->GetWeaponAimRay(WeaponOrigin, WeaponDirection);
-	}
-
-	// Perform a raycast to see if we hit something
-	const FVector Start = WeaponOrigin;
-	const FVector End = Start + WeaponDirection * 10'000;
-	FCollisionQueryParams QueryParams;
-	QueryParams.bReturnPhysicalMaterial = true;
-	QueryParams.AddIgnoredActor(GetOwner());
-
-	FHitResult CameraHitResult;
-	GetWorld()->LineTraceSingleByChannel(CameraHitResult, Start, End, ECC_Visibility, QueryParams);
-
-	const FVector PotentialImpactPoint = CameraHitResult.bBlockingHit ? CameraHitResult.ImpactPoint : End;
-
-	FHitResult GunBarrelToImpactPointHitResult;
-	GetWorld()->LineTraceSingleByChannel(GunBarrelToImpactPointHitResult, WeaponBarrelLocation, PotentialImpactPoint, ECC_Visibility, QueryParams);
-
-	const FVector ImpactPoint = GunBarrelToImpactPointHitResult.bBlockingHit ? GunBarrelToImpactPointHitResult.ImpactPoint : PotentialImpactPoint;
-
-	// If we hit any object
-	if (CameraHitResult.bBlockingHit || GunBarrelToImpactPointHitResult.bBlockingHit)
-	{
-		const FHitResult& HitResultToUse = GunBarrelToImpactPointHitResult.bBlockingHit ? GunBarrelToImpactPointHitResult : CameraHitResult;
-		AActor* HitActor = HitResultToUse.GetActor();
-
-		APawn* InstigatorPawn = Cast<APawn>(GetOwner());
-		AController* EventInstigator = InstigatorPawn ? InstigatorPawn->GetController() : nullptr;
-
-		TArray<UAttributesComponent*> AttributeComponents;
-		HitActor->GetComponents(UAttributesComponent::StaticClass(), AttributeComponents);
-		UAttributesComponent* AttributeComp = !AttributeComponents.IsEmpty() ? AttributeComponents[0] : nullptr;
-
-		const float OldHealth = AttributeComp ? AttributeComp->GetHealth() : 0.f;
-
-		// Apply damage
-		// TODO: Allow weapons to specify their damage type class
-		UGameplayStatics::ApplyPointDamage(HitActor, WeaponConfig.DamagePerBullet, WeaponDirection, HitResultToUse, EventInstigator, GetOwner(), UDamageType::StaticClass());
-
-		const float NewHealth = AttributeComp ? AttributeComp->GetHealth() : 0.f;
-
-		const float DamageDealt = OldHealth - NewHealth;
-
-		if (AttributeComp && DamageDealt > 0.f)
-		{
-			// We hit an object with an attributes component so broadcast a hitmarker
-			const EHitMarkerType HitMarkerType = FMath::IsNearlyZero(NewHealth) ? EHitMarkerType::Kill : EHitMarkerType::Base;
-			OnHitMarkerRequested.Broadcast(HitMarkerType);
-		}
-
-		UNiagaraSystem* ImpactParticles = PlasterImpactParticles;
-		UMetaSoundSource* ImpactSound = PlasterImpactSound;
-		UMetaSoundSource* DebrisImpactSound = PlasterDebrisImpactSound;
-
-		switch (const EPhysicalSurface SurfaceHit = UGameplayStatics::GetSurfaceType(HitResultToUse))
-		{
-		case SurfaceType_Glass:
-			ImpactParticles = GlassImpactParticles;
-			ImpactSound = GlassImpactSound;
-			DebrisImpactSound = GlassDebrisImpactSound;
-			break;
-		case SurfaceType_Human:
-			ImpactParticles = HumanImpactParticles;
-			ImpactSound = HumanImpactSound;
-			DebrisImpactSound = HumanDebrisImpactSound;
-			break;
-		case SurfaceType_Plaster: // Default, already assigned
-		default:
-			break;
-		}
-
-		// Play impact sounds
-		UGameplayStatics::PlaySoundAtLocation(this, ImpactSound, ImpactPoint);
-		UGameplayStatics::PlaySoundAtLocation(this, DebrisImpactSound, ImpactPoint);
-
-		// Spawn particle effects
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ImpactParticles, ImpactPoint);
-	}
-
-	// Spawn smoke trail
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, BulletTracerVFX, WeaponBarrelLocation, FRotator::ZeroRotator);
+	// Request server to fire the weapon
+	Server_FireWeapon();
 }
 
 void UWeaponsComponent::TryPickupWeapon()
@@ -393,8 +306,10 @@ void UWeaponsComponent::EquipWeapon(EWeaponSlot WeaponSlot)
 		// Set phase to equipping
 		WeaponSwapPhase = EWeaponSwapPhase::Equipping;
 
-		const FWeaponConfig& NewEquippedWeaponConfig = WeaponCache[WeaponSlot].Data->Config;
+		const FWeaponSlotEntry* WeaponEntry = FindEntry(WeaponSlot);
+		ensure(WeaponEntry);
 
+		const FWeaponConfig& NewEquippedWeaponConfig = WeaponEntry->Weapon.Data->Config;
 		GetOwner()->GetWorldTimerManager().SetTimer(TimerHandle_Equip, this, &UWeaponsComponent::OnEquipComplete, NewEquippedWeaponConfig.EquipDuration);
 
 		// Request equip animation
@@ -428,6 +343,31 @@ void UWeaponsComponent::Server_EquipSecondaryWeapon_Implementation()
 void UWeaponsComponent::Server_PickupWeapon_Implementation()
 {
 	PickupWeapon();
+}
+
+void UWeaponsComponent::Server_ReloadEquippedWeapon_Implementation()
+{
+	ReloadEquippedWeapon();
+}
+
+void UWeaponsComponent::Server_FireWeapon_Implementation()
+{
+	FireWeapon();
+}
+
+void UWeaponsComponent::Multicast_PlaySoundAtLocation_Implementation(UMetaSoundSource* Sound, FVector Location)
+{
+	UGameplayStatics::PlaySoundAtLocation(this, Sound, Location);
+}
+
+void UWeaponsComponent::Multicast_SpawnSystemAtLocation_Implementation(UNiagaraSystem* System, FVector Location)
+{
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, System, Location);
+}
+
+void UWeaponsComponent::Client_NotifyHitType_Implementation(EHitMarkerType HitMarkerType)
+{
+	OnHitMarkerRequested.Broadcast(HitMarkerType);
 }
 
 void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData)
@@ -504,6 +444,149 @@ void UWeaponsComponent::EquipSecondaryWeapon()
 	EquipWeaponSlot(EWeaponSlot::Secondary);
 }
 
+void UWeaponsComponent::FireWeapon()
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// Must be on the server
+	const EWeaponFireState WeaponFireState = GetWeaponFireState();
+	if (WeaponFireState == EWeaponFireState::NoAmmoInClip && CanReloadEquippedWeapon())
+	{
+		ReloadEquippedWeapon();
+		return;
+	}
+	if (WeaponFireState != EWeaponFireState::CanFire || WeaponSwapPhase != EWeaponSwapPhase::None)
+	{
+		return;
+	}
+
+	FWeaponSlotEntry* WeaponSlotEntry = FindMutableEntry(EquippedWeaponSlot);
+	if (!WeaponSlotEntry)
+	{
+		return;
+	}
+
+	FWeapon& EquippedWeapon = WeaponSlotEntry->Weapon;
+	const FWeaponConfig& WeaponConfig = EquippedWeapon.Data->Config;
+	const EWeaponSlot WeaponSlot = WeaponConfig.WeaponSlot;
+
+	EquippedWeapon.bFireIntervalElapsed = false;
+
+	FTimerDelegate Delegate;
+	Delegate.BindLambda([this, WeaponSlot]()
+		{
+			if (FWeaponSlotEntry* WeaponSlotEntry = FindMutableEntry(WeaponSlot))
+			{
+				WeaponSlotEntry->Weapon.bFireIntervalElapsed = true;
+			}
+		});
+
+	const USkeletalMeshComponent* WeaponMesh = FindWeaponMesh(WeaponConfig);
+	check(WeaponMesh);
+
+	const FVector WeaponBarrelLocation = WeaponMesh->GetBoneLocation(WeaponConfig.MuzzleSocketName);
+
+	GetOwner()->GetWorldTimerManager().SetTimer(EquippedWeapon.TimerHandle_FireInterval, Delegate, WeaponConfig.FireInterval, false);
+
+	// Play Fire Animation
+	Multicast_RequestAnimations(EquippedWeaponSlot, WeaponConfig.FireAnim, WeaponConfig.CharacterFireAnimMontage);
+
+	// Play Fire Sound
+	Multicast_PlaySoundAtLocation(WeaponConfig.FireSound, WeaponBarrelLocation);
+
+	EquippedWeapon.CurrentBulletsInClip--;
+	EquippedWeapon.TotalBullets--;
+
+	FVector WeaponOrigin;
+	FVector WeaponDirection;
+	if (WeaponAimSource)
+	{
+		WeaponAimSource->GetWeaponAimRay(WeaponOrigin, WeaponDirection);
+	}
+
+	// Perform a raycast to see if we hit something
+	const FVector Start = WeaponOrigin;
+	const FVector End = Start + WeaponDirection * 10'000;
+	FCollisionQueryParams QueryParams;
+	QueryParams.bReturnPhysicalMaterial = true;
+	QueryParams.AddIgnoredActor(GetOwner());
+
+	FHitResult CameraHitResult;
+	GetWorld()->LineTraceSingleByChannel(CameraHitResult, Start, End, ECC_Visibility, QueryParams);
+
+	const FVector PotentialImpactPoint = CameraHitResult.bBlockingHit ? CameraHitResult.ImpactPoint : End;
+
+	FHitResult GunBarrelToImpactPointHitResult;
+	GetWorld()->LineTraceSingleByChannel(GunBarrelToImpactPointHitResult, WeaponBarrelLocation, PotentialImpactPoint, ECC_Visibility, QueryParams);
+
+	const FVector ImpactPoint = GunBarrelToImpactPointHitResult.bBlockingHit ? GunBarrelToImpactPointHitResult.ImpactPoint : PotentialImpactPoint;
+
+	// If we hit any object
+	if (CameraHitResult.bBlockingHit || GunBarrelToImpactPointHitResult.bBlockingHit)
+	{
+		const FHitResult& HitResultToUse = GunBarrelToImpactPointHitResult.bBlockingHit ? GunBarrelToImpactPointHitResult : CameraHitResult;
+		AActor* HitActor = HitResultToUse.GetActor();
+
+		APawn* InstigatorPawn = Cast<APawn>(GetOwner());
+		AController* EventInstigator = InstigatorPawn ? InstigatorPawn->GetController() : nullptr;
+
+		TArray<UAttributesComponent*> AttributeComponents;
+		HitActor->GetComponents(UAttributesComponent::StaticClass(), AttributeComponents);
+		UAttributesComponent* AttributeComp = !AttributeComponents.IsEmpty() ? AttributeComponents[0] : nullptr;
+
+		const float OldHealth = AttributeComp ? AttributeComp->GetHealth() : 0.f;
+
+		// Apply damage
+		// TODO: Allow weapons to specify their damage type class
+		UGameplayStatics::ApplyPointDamage(HitActor, WeaponConfig.DamagePerBullet, WeaponDirection, HitResultToUse, EventInstigator, GetOwner(), UDamageType::StaticClass());
+
+		const float NewHealth = AttributeComp ? AttributeComp->GetHealth() : 0.f;
+
+		const float DamageDealt = OldHealth - NewHealth;
+
+		if (AttributeComp && DamageDealt > 0.f)
+		{
+			// We hit an object with an attributes component so broadcast a hitmarker
+			const EHitMarkerType HitMarkerType = FMath::IsNearlyZero(NewHealth) ? EHitMarkerType::Kill : EHitMarkerType::Base;
+			Client_NotifyHitType(HitMarkerType);
+		}
+
+		UNiagaraSystem* ImpactParticles = PlasterImpactParticles;
+		UMetaSoundSource* ImpactSound = PlasterImpactSound;
+		UMetaSoundSource* DebrisImpactSound = PlasterDebrisImpactSound;
+
+		switch (const EPhysicalSurface SurfaceHit = UGameplayStatics::GetSurfaceType(HitResultToUse))
+		{
+		case SurfaceType_Glass:
+			ImpactParticles = GlassImpactParticles;
+			ImpactSound = GlassImpactSound;
+			DebrisImpactSound = GlassDebrisImpactSound;
+			break;
+		case SurfaceType_Human:
+			ImpactParticles = HumanImpactParticles;
+			ImpactSound = HumanImpactSound;
+			DebrisImpactSound = HumanDebrisImpactSound;
+			break;
+		case SurfaceType_Plaster: // Default, already assigned
+		default:
+			break;
+		}
+
+		// Play impact sounds
+		Multicast_PlaySoundAtLocation(ImpactSound, ImpactPoint);
+		Multicast_PlaySoundAtLocation(DebrisImpactSound, ImpactPoint);
+
+		// Spawn particle effects
+		Multicast_SpawnSystemAtLocation(ImpactParticles, ImpactPoint);
+	}
+
+	// Spawn smoke trail
+	Multicast_SpawnSystemAtLocation(BulletTracerVFX, WeaponBarrelLocation);
+}
+
 void UWeaponsComponent::PickupWeapon()
 {
 	if (!GetOwner()->HasAuthority())
@@ -524,7 +607,7 @@ void UWeaponsComponent::HandleEquippedWeaponSlotChanged()
 {
 	if (HasWeaponEquipped())
 	{
-		const FWeapon& EquippedWeapon = WeaponCache[EquippedWeaponSlot];
+		const FWeapon& EquippedWeapon = FindEntry(EquippedWeaponSlot)->Weapon;
 		OnWeaponEquipped.Broadcast(EquippedWeapon);
 	}
 	else
@@ -541,7 +624,7 @@ bool UWeaponsComponent::CanPickupWeapon() const
 EWeaponFireState UWeaponsComponent::GetWeaponFireState() const
 {
 	check(EquippedWeaponSlot != EWeaponSlot::None);
-	const FWeapon& EquippedWeapon = WeaponCache[EquippedWeaponSlot];
+	const FWeapon& EquippedWeapon = FindEntry(EquippedWeaponSlot)->Weapon;
 
 	if (EquippedWeapon.bIsReloading)
 	{
@@ -582,6 +665,17 @@ USkeletalMeshComponent* UWeaponsComponent::FindWeaponMesh(const FWeaponConfig& C
 	return nullptr;
 }
 
+FWeaponSlotEntry* UWeaponsComponent::FindMutableEntry(EWeaponSlot WeaponSlot)
+{
+	check(GetOwner()->HasAuthority());
+	return WeaponInventory.FindByPredicate([WeaponSlot](const FWeaponSlotEntry& SlotEntry) { return WeaponSlot == SlotEntry.Slot; });
+}
+
+const FWeaponSlotEntry* UWeaponsComponent::FindEntry(EWeaponSlot WeaponSlot) const
+{
+	return WeaponInventory.FindByPredicate([WeaponSlot](const FWeaponSlotEntry& SlotEntry) { return WeaponSlot == SlotEntry.Slot; });
+}
+
 void UWeaponsComponent::OnRep_EquippedWeaponSlot()
 {
 	HandleEquippedWeaponSlotChanged();
@@ -594,13 +688,6 @@ void UWeaponsComponent::OnRep_WeaponInventory(const TArray<FWeaponSlotEntry>& Ol
 
 void UWeaponsComponent::HandleWeaponInventoryChanged(const TArray<FWeaponSlotEntry>& OldWeaponInventory)
 {
-	// Rebuild the cache
-	WeaponCache.Reset();
-	for (const auto& WeaponEntry : WeaponInventory)
-	{
-		WeaponCache.Add(WeaponEntry.Slot, WeaponEntry.Weapon);
-	}
-
 	// Determine what weapons were added/removed
 	TArray<FWeaponSlotEntry> Added = WeaponInventory.FilterByPredicate(
 		[&OldWeaponInventory](const FWeaponSlotEntry& Entry)
@@ -617,8 +704,14 @@ void UWeaponsComponent::HandleWeaponInventoryChanged(const TArray<FWeaponSlotEnt
 	{
 		OnWeaponAdded.Broadcast(WeaponEntry.Weapon);
 	}
-
 	// TODO: Broadcast weapons removed
+
+	// If we are currently equipped with a weapon
+	if (const FWeaponSlotEntry* WeaponSlotEntry = FindEntry(EquippedWeaponSlot))
+	{
+		const FWeapon& Weapon = WeaponSlotEntry->Weapon;
+		OnWeaponAmmoChanged.Broadcast(Weapon.CurrentBulletsInClip, Weapon.TotalBullets);
+	}
 }
 
 void UWeaponsComponent::AddWeaponPickupInRange(AWeaponPickup* WeaponPickup)
@@ -664,8 +757,9 @@ bool UWeaponsComponent::CanEquipPrimaryWeapon() const
 		return false;
 	}
 
-	if (EquippedWeaponSlot == EWeaponSlot::Primary || !WeaponCache.Contains(EWeaponSlot::Primary))
+	if (EquippedWeaponSlot == EWeaponSlot::Primary || !FindEntry(EWeaponSlot::Primary))
 	{
+		// Already equipped or doesn't exist in our inventory
 		return false;
 	}
 
@@ -679,8 +773,9 @@ bool UWeaponsComponent::CanEquipSecondaryWeapon() const
 		return false;
 	}
 
-	if (EquippedWeaponSlot == EWeaponSlot::Secondary || !WeaponCache.Contains(EWeaponSlot::Secondary))
+	if (EquippedWeaponSlot == EWeaponSlot::Secondary || !FindEntry(EWeaponSlot::Secondary))
 	{
+		// Already equipped or doesn't exist in our inventory
 		return false;
 	}
 
@@ -689,7 +784,7 @@ bool UWeaponsComponent::CanEquipSecondaryWeapon() const
 
 bool UWeaponsComponent::IsSwappingBlocked() const
 {
-	if (WeaponCache.Contains(EquippedWeaponSlot) && WeaponCache[EquippedWeaponSlot].bIsReloading)
+	if (const FWeaponSlotEntry* EquippedEntry = FindEntry(EquippedWeaponSlot); EquippedEntry && EquippedEntry->Weapon.bIsReloading)
 	{
 		// We are currently reloading
 		return true;

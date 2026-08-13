@@ -104,13 +104,33 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_EquipSecondaryWeapon();
 
+	/** Client -> Server request to reload the equipped weapon */
+	UFUNCTION(Server, Reliable)
+	void Server_ReloadEquippedWeapon();
+
+	/** Client -> Server request to fire the equipped weapon */
+	UFUNCTION(Server, Reliable)
+	void Server_FireWeapon();
+
 	/** Client -> Server request to try and pickup a weapon */
 	UFUNCTION(Server, Reliable)
 	void Server_PickupWeapon();
 
+	/** Server -> Owner notify a hit marker type to propagate */
+	UFUNCTION(Client, Unreliable)
+	void Client_NotifyHitType(EHitMarkerType HitMarkerType);
+
 	/** Server -> All: notify clients to request animations */
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_RequestAnimations(EWeaponSlot WeaponSlot, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation);
+
+	/** Server -> All: notify clients to play a sound at a location */
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_PlaySoundAtLocation(UMetaSoundSource* Sound, FVector Location);
+
+	/** Server -> All: notify clients to spawn a niagara system at a location */
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_SpawnSystemAtLocation(UNiagaraSystem* System, FVector Location);
 
 protected:
 	/** Only modifier to WeaponInventory. Called on server */
@@ -124,6 +144,9 @@ protected:
 
 	/** Only modifier to equip the secondary weapon. Called on server */
 	void EquipSecondaryWeapon();
+
+	/** Only seam to fire a weapon. Called on server */
+	void FireWeapon();
 
 	/** Only seam to try and pickup a weapon. Called on server */
 	void PickupWeapon();
@@ -232,6 +255,10 @@ private:
 
 	USkeletalMeshComponent* FindWeaponMesh(const FWeaponConfig& Config) const;
 
+	FWeaponSlotEntry* FindMutableEntry(EWeaponSlot WeaponSlot);
+
+	const FWeaponSlotEntry* FindEntry(EWeaponSlot WeaponSlot) const;
+
 protected:
 	/** Weapon slot currently equipped */
 	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeaponSlot)
@@ -257,10 +284,6 @@ private:
 	/** Rep notify for WeaponInventory */
 	UFUNCTION()
 	void OnRep_WeaponInventory(const TArray<FWeaponSlotEntry>& OldWeaponInventory);
-
-	/** Cache for WeaponInventory. Represents the same state, but is recreated when WeaponInventory changes since TMaps can't be replicated */
-	UPROPERTY(Transient)
-	TMap<EWeaponSlot, FWeapon> WeaponCache;
 
 	/** Interface for retrieving weapon's aim ray (character, enemy, etc) */
 	TScriptInterface<IWeaponAimSource> WeaponAimSource;
