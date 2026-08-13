@@ -13,6 +13,11 @@
 
 AZombieCharacter::AZombieCharacter()
 {
+	// Setup replication
+	bNetLoadOnClient = true;
+	bReplicates = true;
+	SetReplicatingMovement(true);
+
 	// Set default values
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
@@ -89,8 +94,44 @@ bool AZombieCharacter::PerformHitCheck()
 	return bHitVictim;
 }
 
+void AZombieCharacter::Multicast_HitReact_Implementation()
+{
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		// Make a multicast animation play 
+		const float Duration = AnimInstance->Montage_Play(FireReactMontage);
+		if (Duration > 0.f)
+		{
+			FOnMontageEnded EndDelegate;
+			EndDelegate.BindUObject(this, &AZombieCharacter::OnFireReactMontageEnded);
+			AnimInstance->Montage_SetEndDelegate(EndDelegate);
+		}
+	}
+}
+
+void AZombieCharacter::Multicast_Death_Implementation()
+{
+	// Play death montage
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		const float Duration = AnimInstance->Montage_Play(DeathMontage);
+		if (Duration > 0.f)
+		{
+			FOnMontageEnded EndDelegate;
+			EndDelegate.BindUObject(this, &AZombieCharacter::OnDeathMontageEnded);
+			AnimInstance->Montage_SetEndDelegate(EndDelegate);
+		}
+	}
+}
+
 void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser)
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	// Must be on the server
 	// Cache whether this damage hit the head. Used in OnZombieDeath to broadcast headshot kill.
 	bLastShotWasAHeadshot = BoneName == HeadBoneName;
 
@@ -107,17 +148,7 @@ void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damag
 		CharacterMovementComp->SetMovementMode(MOVE_None);
 	}
 
-	// Play fire react montage
-	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-	{
-		const float Duration = AnimInstance->Montage_Play(FireReactMontage);
-		if (Duration > 0.f)
-		{
-			FOnMontageEnded EndDelegate;
-			EndDelegate.BindUObject(this, &AZombieCharacter::OnFireReactMontageEnded);
-			AnimInstance->Montage_SetEndDelegate(EndDelegate);
-		}
-	}
+	Multicast_HitReact();
 
 	// Broadcast hit
 	OnPawnHit.Broadcast(InstigatedBy);
@@ -144,6 +175,11 @@ void AZombieCharacter::OnFireReactMontageEnded(UAnimMontage* Montage, bool bInte
 
 void AZombieCharacter::OnZombieDeath(AController* EventInstigator, AActor* DamageCauser)
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+
 	// Disable collision
 	if (UCapsuleComponent* CapsuleComp = GetCapsuleComponent())
 	{
@@ -161,17 +197,7 @@ void AZombieCharacter::OnZombieDeath(AController* EventInstigator, AActor* Damag
 		CharacterMovementComp->SetMovementMode(MOVE_None);
 	}
 
-	// Play death montage
-	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-	{
-		const float Duration = AnimInstance->Montage_Play(DeathMontage);
-		if (Duration > 0.f)
-		{
-			FOnMontageEnded EndDelegate;
-			EndDelegate.BindUObject(this, &AZombieCharacter::OnDeathMontageEnded);
-			AnimInstance->Montage_SetEndDelegate(EndDelegate);
-		}
-	}
+	Multicast_Death();
 
 	// Destroy zombie character after duration
 	SetLifeSpan(CorpseLifeSpanAfterDeath);

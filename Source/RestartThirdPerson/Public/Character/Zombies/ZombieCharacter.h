@@ -80,6 +80,16 @@ public:
 	FPawnNoLongerStunnedDelegate OnPawnNoLongerStunned;
 
 protected:
+
+	// TODO: Clean this up but just getting it to work for now
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_HitReact();
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_Death();
+
+protected:
 	/** Actor the zombie is attacking, null when not attacking */
 	UPROPERTY()
 	TObjectPtr<AActor> VictimActor;
