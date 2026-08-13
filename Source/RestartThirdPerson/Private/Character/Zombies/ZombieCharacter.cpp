@@ -9,6 +9,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Net/UnrealNetwork.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
 AZombieCharacter::AZombieCharacter()
@@ -32,12 +33,21 @@ AZombieCharacter::AZombieCharacter()
 	GetMesh()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
 }
 
+void AZombieCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, bIsDead);
+}
+
 void AZombieCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
 	OnTakePointDamage.AddDynamic(this, &AZombieCharacter::OnZombieTakePointDamage);
 	AttributesComponent->OnDeath.AddDynamic(this, &AZombieCharacter::OnZombieDeath);
+
+	ZombieVoiceComponent->Enable();
 }
 
 bool AZombieCharacter::Attack(AActor* TargetActor)
@@ -94,34 +104,17 @@ bool AZombieCharacter::PerformHitCheck()
 	return bHitVictim;
 }
 
-void AZombieCharacter::Multicast_HitReact_Implementation()
+void AZombieCharacter::Multicast_PlayAnimMontage_Implementation(UAnimMontage* Montage)
 {
 	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
 	{
-		// Make a multicast animation play 
-		const float Duration = AnimInstance->Montage_Play(FireReactMontage);
-		if (Duration > 0.f)
-		{
-			FOnMontageEnded EndDelegate;
-			EndDelegate.BindUObject(this, &AZombieCharacter::OnFireReactMontageEnded);
-			AnimInstance->Montage_SetEndDelegate(EndDelegate);
-		}
+		AnimInstance->Montage_Play(Montage);
 	}
 }
 
-void AZombieCharacter::Multicast_Death_Implementation()
+void AZombieCharacter::OnRep_IsDead()
 {
-	// Play death montage
-	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-	{
-		const float Duration = AnimInstance->Montage_Play(DeathMontage);
-		if (Duration > 0.f)
-		{
-			FOnMontageEnded EndDelegate;
-			EndDelegate.BindUObject(this, &AZombieCharacter::OnDeathMontageEnded);
-			AnimInstance->Montage_SetEndDelegate(EndDelegate);
-		}
-	}
+	HandleZombieDeath();
 }
 
 void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser)
@@ -148,21 +141,15 @@ void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damag
 		CharacterMovementComp->SetMovementMode(MOVE_None);
 	}
 
-	Multicast_HitReact();
+	GetWorldTimerManager().SetTimer(TimerHandle_FireReactMontageElapsed, this, &AZombieCharacter::OnFireReactMontageEnded, HitReactMontageDuration);
+	Multicast_PlayAnimMontage(FireReactMontage);
 
 	// Broadcast hit
 	OnPawnHit.Broadcast(InstigatedBy);
 }
 
-void AZombieCharacter::OnFireReactMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+void AZombieCharacter::OnFireReactMontageEnded()
 {
-	// Something else took over the montage slot (another react, or death) - whatever
-	// interrupted us owns the movement mode now, so leave it alone
-	if (bInterrupted)
-	{
-		return;
-	}
-
 	// Resume movement
 	if (UCharacterMovementComponent* CharacterMovementComp = GetCharacterMovement())
 	{
@@ -180,6 +167,20 @@ void AZombieCharacter::OnZombieDeath(AController* EventInstigator, AActor* Damag
 		return;
 	}
 
+	// Must be on the server
+	bIsDead = true;
+
+	// Destroy zombie character after duration
+	SetLifeSpan(CorpseLifeSpanAfterDeath);
+
+	// Emit a signal we died for AIController (Server-Only)
+	OnPawnDeath.Broadcast(EventInstigator, bLastShotWasAHeadshot);
+
+	HandleZombieDeath();
+}
+
+void AZombieCharacter::HandleZombieDeath()
+{
 	// Disable collision
 	if (UCapsuleComponent* CapsuleComp = GetCapsuleComponent())
 	{
@@ -197,16 +198,21 @@ void AZombieCharacter::OnZombieDeath(AController* EventInstigator, AActor* Damag
 		CharacterMovementComp->SetMovementMode(MOVE_None);
 	}
 
-	Multicast_Death();
+	// Stop audio
+	if (ZombieVoiceComponent)
+	{
+		ZombieVoiceComponent->Disable();
+	}
 
-	// Destroy zombie character after duration
-	SetLifeSpan(CorpseLifeSpanAfterDeath);
-
-	// Emit a signal we died
-	OnPawnDeath.Broadcast(EventInstigator, bLastShotWasAHeadshot);
+	// Play Death Montage
+	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+	{
+		AnimInstance->Montage_Play(DeathMontage);
+		GetWorldTimerManager().SetTimer(TimerHandle_DeathMontageElapsed, this, &AZombieCharacter::OnDeathMontageEnded, DeathMontageDuration);
+	}
 }
 
-void AZombieCharacter::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+void AZombieCharacter::OnDeathMontageEnded()
 {
 	// Lock corpse in death pose
 	if (USkeletalMeshComponent* ZombieMeshComp = GetMesh())

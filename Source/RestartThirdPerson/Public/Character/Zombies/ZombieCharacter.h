@@ -27,7 +27,11 @@ class RESTARTTHIRDPERSON_API AZombieCharacter : public ACharacter
 	TObjectPtr<URSZombieVoiceComponent> ZombieVoiceComponent;
 
 public:
+	/** Constructor */
 	AZombieCharacter();
+
+	/** Register replicated variables */
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void PostInitializeComponents() override;
@@ -64,6 +68,12 @@ protected:
 	float CorpseLifeSpanAfterDeath = 60.f;
 
 	UPROPERTY(EditAnywhere, Category = "Config")
+	float HitReactMontageDuration = 5.f;
+
+	UPROPERTY(EditAnywhere, Category = "Config")
+	float DeathMontageDuration = 2.f;
+
+	UPROPERTY(EditAnywhere, Category = "Config")
 	FName HeadBoneName = "head";
 
 public:
@@ -80,15 +90,9 @@ public:
 	FPawnNoLongerStunnedDelegate OnPawnNoLongerStunned;
 
 protected:
-
-	// TODO: Clean this up but just getting it to work for now
-
+	/** Server -> All: notify clients to play an animation */
 	UFUNCTION(NetMulticast, Unreliable)
-	void Multicast_HitReact();
-
-	UFUNCTION(NetMulticast, Unreliable)
-	void Multicast_Death();
-
+	void Multicast_PlayAnimMontage(UAnimMontage* Montage);
 protected:
 	/** Actor the zombie is attacking, null when not attacking */
 	UPROPERTY()
@@ -98,16 +102,33 @@ protected:
 	UPROPERTY()
 	bool bLastShotWasAHeadshot;
 
+	/** State of whether the zombie is dead */
+	UPROPERTY(ReplicatedUsing=OnRep_IsDead)
+	bool bIsDead;
+
+protected:
+	/** Rep notify for bIsDead */
+	UFUNCTION()
+	void OnRep_IsDead();
+
 protected:
 	UFUNCTION()
 	void OnZombieTakePointDamage(AActor* DamagedActor, float Damage, AController* InstigatedBy, FVector HitLocation, UPrimitiveComponent* FHitComponent, FName BoneName, FVector ShotFromDirection, const UDamageType* DamageType, AActor* DamageCauser);
 
 	UFUNCTION()
-	void OnFireReactMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	void OnFireReactMontageEnded();
 
 	UFUNCTION()
 	void OnZombieDeath(AController* EventInstigator, AActor* DamageCauser);
 
+	void HandleZombieDeath();
+
 	UFUNCTION()
-	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	void OnDeathMontageEnded();
+
+	/** Timer handle responsible for triggering when the fire react montage elapsed */
+	FTimerHandle TimerHandle_FireReactMontageElapsed;
+
+	/** Timer handle responsible for triggering when the death montage elapsed */
+	FTimerHandle TimerHandle_DeathMontageElapsed;
 };

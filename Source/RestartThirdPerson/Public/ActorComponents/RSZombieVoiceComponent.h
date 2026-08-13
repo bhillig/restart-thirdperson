@@ -18,17 +18,11 @@ public:
 	/** Constructor */
 	URSZombieVoiceComponent();
 
-protected:
-	/** Initialize the component and bind delegates */
-	virtual void InitializeComponent() override;
+	/** Enables all audio */
+	void Enable();
 
-	/** Called when the game begins */
-	virtual void BeginPlay() override;
-
-protected:
-	/** Callback for when the owning zombie dies */
-	UFUNCTION()
-	void OnDeath(AController* EventInstigator, AActor* DamageCauser);
+	/** Disables all audio from playing */
+	void Disable();
 
 protected:
 	/** Plays a chase sound. Called every ChaseInterval */

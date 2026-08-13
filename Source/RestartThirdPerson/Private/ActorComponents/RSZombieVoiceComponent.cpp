@@ -3,35 +3,19 @@
 
 #include "ActorComponents/RSZombieVoiceComponent.h"
 
-#include "ActorComponents/AttributesComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 URSZombieVoiceComponent::URSZombieVoiceComponent()
 {
-	bWantsInitializeComponent = true;
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void URSZombieVoiceComponent::InitializeComponent()
+void URSZombieVoiceComponent::Enable()
 {
-	Super::InitializeComponent();
-
-	if (UAttributesComponent* AttributesComponent = GetOwner()->FindComponentByClass<UAttributesComponent>())
-	{
-		// Listen for on death to stop the timer
-		AttributesComponent->OnDeath.AddDynamic(this, &URSZombieVoiceComponent::OnDeath);
-	}
+	GetOwner()->GetWorldTimerManager().SetTimer(TimerHandle_ChaseSound, this, &URSZombieVoiceComponent::PlayChaseSound, ChaseInterval, true, 0.2f);
 }
 
-
-void URSZombieVoiceComponent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	GetOwner()->GetWorldTimerManager().SetTimer(TimerHandle_ChaseSound, this, &URSZombieVoiceComponent::PlayChaseSound, ChaseInterval, true);
-}
-
-void URSZombieVoiceComponent::OnDeath(AController* EventInstigator, AActor* DamageCauser)
+void URSZombieVoiceComponent::Disable()
 {
 	GetOwner()->GetWorldTimerManager().ClearAllTimersForObject(this);
 }
