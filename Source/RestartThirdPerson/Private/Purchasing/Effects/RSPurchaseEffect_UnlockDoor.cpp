@@ -3,11 +3,12 @@
 
 #include "Purchasing/Effects/RSPurchaseEffect_UnlockDoor.h"
 
-#include "RestartThirdPerson/RestartThirdPerson.h"
+#include "Actors/RSPurchasableDoor.h"
 
 void FRSPurchaseEffect_UnlockDoor::Apply(AActor* Owner, ARSPlayerState* Buyer) const
 {
-	rs::LogOnce("Unlocked a door!");
+	ARSPurchasableDoor* PurchasableDoor = CastChecked<ARSPurchasableDoor>(Owner);
+	PurchasableDoor->UnlockDoor();
 }
 
 FString FRSPurchaseEffect_UnlockDoor::GetPromptText() const

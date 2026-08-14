@@ -5,15 +5,34 @@
 
 #include "Interact/RSInteractableComponent.h"
 #include "Interact/RSInteractionRegistry.h"
+#include "Net/UnrealNetwork.h"
 #include "PlayerStates/RSPlayerState.h"
 
 URSInteractComponent::URSInteractComponent()
 {
+	SetIsReplicatedByDefault(true);
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
 
+void URSInteractComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+}
+
 void URSInteractComponent::TryInteract()
+{
+	// Local early out
+	if (!FocusedInteractable)
+	{
+		return;
+	}
+
+	Server_Interact(FocusedInteractable);
+}
+
+
+void URSInteractComponent::Server_Interact_Implementation(URSInteractableComponent* Interactable)
 {
 	AController* OwningController = GetOwner()->GetInstigatorController();
 	ensure(OwningController);
@@ -21,12 +40,16 @@ void URSInteractComponent::TryInteract()
 	ARSPlayerState* PlayerState = OwningController->GetPlayerState<ARSPlayerState>();
 	ensure(PlayerState);
 
-	if (FocusedInteractable && FocusedInteractable->CanInteract(PlayerState))
+	if (Interactable && Interactable->CanInteract(PlayerState))
 	{
-		FocusedInteractable->Interact(PlayerState);
+		Interactable->Interact(PlayerState);
 	}
 }
 
+void URSInteractComponent::Client_NotifyFocusChanged_Implementation(const FRSInteractionPrompt& Prompt)
+{
+	OnFocusedChanged.Broadcast(Prompt);
+}
 
 void URSInteractComponent::BeginPlay()
 {

@@ -21,6 +21,9 @@ public:
 	/** Constructor */
 	URSInteractComponent();
 
+	/** Register replicated variables */
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
 public:
 	/** Attempts to interact. Called from player class */
 	void TryInteract();
@@ -33,6 +36,15 @@ protected:
 	/** Interval in which the focused interactable is updated */
 	UPROPERTY(EditAnywhere, Category = "Interact")
 	float InteractInterval = 0.1f;
+
+protected:
+	/** Client -> Server RPC to interact */
+	UFUNCTION(Server, Reliable)
+	void Server_Interact(URSInteractableComponent* Interactable);
+
+	/** Server -> Owner RPC to notify focus changed */
+	UFUNCTION(Client, Unreliable)
+	void Client_NotifyFocusChanged(const FRSInteractionPrompt& Prompt);
 
 protected:
 	/** Called when the game begins */
@@ -63,7 +75,7 @@ protected:
 
 protected:
 	/** The focused interactable to interact with. Can be nullptr */
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	TObjectPtr<URSInteractableComponent> FocusedInteractable = nullptr;
 		
 };

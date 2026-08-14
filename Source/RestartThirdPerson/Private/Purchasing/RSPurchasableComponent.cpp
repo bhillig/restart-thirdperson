@@ -8,6 +8,7 @@
 
 URSPurchasableComponent::URSPurchasableComponent()
 {
+	SetIsReplicatedByDefault(true);
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
@@ -57,6 +58,11 @@ FRSInteractionPrompt URSPurchasableComponent::GetInteractionPrompt(ARSPlayerStat
 
 void URSPurchasableComponent::Interact(ARSPlayerState* PlayerState)
 {
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
 	ensure(PlayerState);
 
 	if (!PlayerState->TrySpendCredits(CreditsCost))
