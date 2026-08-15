@@ -4,11 +4,12 @@
 #include "Purchasing/Effects/RSPurchaseEffect_GrantWeapon.h"
 
 #include "ActorComponents/WeaponsComponent.h"
-#include "RestartThirdPerson/RestartThirdPerson.h"
+#include "Actors/RSWallBuy.h"
 
 void FRSPurchaseEffect_GrantWeapon::Apply(AActor* Owner, ARSPlayerState* Buyer) const
 {
-	rs::LogOnce("Granted a weapon!");
+	ARSWallBuy* WallBuy = CastChecked<ARSWallBuy>(Owner);
+	WallBuy->GrantWeapon(WeaponData, Buyer);
 }
 
 FString FRSPurchaseEffect_GrantWeapon::GetPromptText() const

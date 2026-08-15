@@ -16,10 +16,12 @@ struct FRSPurchaseEffect_GrantWeapon : public FRSPurchaseEffect
 {
 	GENERATED_BODY()
 
+public:
 	/** The weapon this effect grants */
 	UPROPERTY(EditAnywhere, Category = "Input")
-	TObjectPtr<UWeaponDataAsset> WeaponData;
+	TObjectPtr<const UWeaponDataAsset> WeaponData;
 
+private:
 	virtual void Apply(AActor* Owner, ARSPlayerState* Buyer) const override;
 
 	virtual FString GetPromptText() const override;

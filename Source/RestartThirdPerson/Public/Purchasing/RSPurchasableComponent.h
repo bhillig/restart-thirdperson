@@ -30,6 +30,8 @@ public:
 	virtual void Interact(ARSPlayerState* PlayerState) override;
 	/** URSInteractableComponent End */
 
+	const TInstancedStruct<FRSPurchaseEffect>& GetPurchaseEffect() const { return Effect; }
+
 protected:
 	/** Purchase Effect */
 	UPROPERTY(EditAnywhere, Category = "Config")
