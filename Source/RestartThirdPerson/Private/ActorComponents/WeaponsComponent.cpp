@@ -52,6 +52,15 @@ void UWeaponsComponent::TryAddWeapon(const UWeaponDataAsset* WeaponData)
 	Server_AddWeapon(WeaponData);
 }
 
+bool UWeaponsComponent::HasWeaponInInventory(const UWeaponDataAsset* WeaponData) const
+{
+	const FString WeaponName = WeaponData->Config.WeaponName.ToString();
+	return WeaponInventory.ContainsByPredicate([this, WeaponName](const FWeaponSlotEntry& SlotEntry)
+		{
+			return SlotEntry.Weapon.Data->Config.WeaponName.ToString() == WeaponName;
+		});
+}
+
 void UWeaponsComponent::TryUnequipWeapon()
 {
 	// Local early out. We still perform checks on the server
@@ -289,6 +298,17 @@ void UWeaponsComponent::TryPickupWeapon()
 	Server_PickupWeapon();
 }
 
+void UWeaponsComponent::TryRefillAmmoForWeapon(const UWeaponDataAsset* WeaponData)
+{
+	if (!HasWeaponInInventory(WeaponData))
+	{
+		return;
+	}
+
+	// Request server to refill ammo
+	Server_RefillAmmoForWeapon(WeaponData);
+}
+
 void UWeaponsComponent::AN_NotifyWeaponUnequipped()
 {
 	// TODO: Can perform weapon detachment logic here
@@ -368,6 +388,19 @@ void UWeaponsComponent::Multicast_SpawnSystemAtLocation_Implementation(UNiagaraS
 void UWeaponsComponent::Client_NotifyHitType_Implementation(EHitMarkerType HitMarkerType)
 {
 	OnHitMarkerRequested.Broadcast(HitMarkerType);
+}
+
+void UWeaponsComponent::Server_RefillAmmoForWeapon_Implementation(const UWeaponDataAsset* WeaponData)
+{
+	if (!HasWeaponInInventory(WeaponData))
+	{
+		return;
+	}
+
+	if (FWeaponSlotEntry* WeaponSlotEntry = FindMutableEntry(WeaponData->Config.WeaponSlot))
+	{
+		WeaponSlotEntry->Weapon.TotalBullets = WeaponData->Config.StartingAmmoCount;
+	}
 }
 
 void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData)

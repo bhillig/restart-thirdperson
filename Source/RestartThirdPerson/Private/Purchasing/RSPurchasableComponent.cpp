@@ -51,7 +51,7 @@ FRSInteractionPrompt URSPurchasableComponent::GetInteractionPrompt(ARSPlayerStat
 	FRSInteractionPrompt Prompt;
 	const FString HoldString = FString::Printf(TEXT("Press E to "));
 	const FString CreditsMsg = FString::Printf(TEXT(" for %d credits"), CreditsCost);
-	Prompt.Text = FText::FromString(HoldString + PurchaseEffect->GetPromptText() + CreditsMsg);
+	Prompt.Text = FText::FromString(HoldString + PurchaseEffect->GetPromptText(PlayerState) + CreditsMsg);
 	Prompt.bEnabled = PlayerState->GetAvailableCredits() >= CreditsCost;
 	return Prompt;
 }

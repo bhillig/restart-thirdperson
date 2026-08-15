@@ -27,6 +27,8 @@ public:
 
 	void GrantWeapon(const UWeaponDataAsset* WeaponData, ARSPlayerState* PlayerState);
 
+	void RefillAmmo(const UWeaponDataAsset* WeaponData, ARSPlayerState* PlayerState);
+
 protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
 

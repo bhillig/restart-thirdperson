@@ -16,7 +16,7 @@ struct FRSPurchaseEffect_UnlockDoor : public FRSPurchaseEffect
 
 	virtual void Apply(AActor* Owner, ARSPlayerState* Buyer) const override;
 
-	virtual FString GetPromptText() const override;
+	virtual FString GetPromptText(ARSPlayerState* PlayerState) const override;
 
 	virtual ERSPurchaseRepeatPolicy GetRepeatPolicy() const override;
 };

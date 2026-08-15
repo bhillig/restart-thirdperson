@@ -11,7 +11,7 @@ void FRSPurchaseEffect_UnlockDoor::Apply(AActor* Owner, ARSPlayerState* Buyer) c
 	PurchasableDoor->UnlockDoor();
 }
 
-FString FRSPurchaseEffect_UnlockDoor::GetPromptText() const
+FString FRSPurchaseEffect_UnlockDoor::GetPromptText(ARSPlayerState* PlayerState) const
 {
 	return "Unlock Door";
 }

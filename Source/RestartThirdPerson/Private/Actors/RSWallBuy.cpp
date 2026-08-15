@@ -32,6 +32,14 @@ void ARSWallBuy::GrantWeapon(const UWeaponDataAsset* WeaponData, ARSPlayerState*
 	}
 }
 
+void ARSWallBuy::RefillAmmo(const UWeaponDataAsset* WeaponData, ARSPlayerState* PlayerState)
+{
+	if (IWeaponAimSource* WeaponAimSource = Cast<IWeaponAimSource>(PlayerState->GetPawn()))
+	{
+		WeaponAimSource->GetWeaponsComponent()->TryRefillAmmoForWeapon(WeaponData);
+	}
+}
+
 void ARSWallBuy::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);

@@ -54,6 +54,12 @@ public:
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	bool HasWeaponEquipped() const { return EquippedWeaponSlot != EWeaponSlot::None; }
 
+	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
+	bool HasWeaponInSlot(EWeaponSlot WeaponSlot) const { return FindEntry(WeaponSlot) != nullptr; }
+
+	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
+	bool HasWeaponInInventory(const UWeaponDataAsset* WeaponData) const;
+
 	UFUNCTION(BlueprintCallable)
 	void TryUnequipWeapon();
 
@@ -71,6 +77,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void TryPickupWeapon();
+
+	UFUNCTION(BlueprintCallable)
+	void TryRefillAmmoForWeapon(const UWeaponDataAsset* WeaponData);
 
 	/** Called when the weapon has been unequipped in its unequip animation. Called by an Anim Notify */
 	UFUNCTION(BlueprintCallable)
@@ -115,6 +124,10 @@ protected:
 	/** Client -> Server request to try and pickup a weapon */
 	UFUNCTION(Server, Reliable)
 	void Server_PickupWeapon();
+
+	/** Client -> Server request to refill ammo for weapon */
+	UFUNCTION(Server, Reliable)
+	void Server_RefillAmmoForWeapon(const UWeaponDataAsset* WeaponData);
 
 	/** Server -> Owner notify a hit marker type to propagate */
 	UFUNCTION(Client, Unreliable)

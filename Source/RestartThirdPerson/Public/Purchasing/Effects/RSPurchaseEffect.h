@@ -32,7 +32,7 @@ struct FRSPurchaseEffect
 	/** Server-only. Runs once the credits have been spent */
 	virtual void Apply(AActor* Owner, ARSPlayerState* Buyer) const {}
 
-	virtual FString GetPromptText() const { return ""; }
+	virtual FString GetPromptText(ARSPlayerState* PlayerState = nullptr) const { return ""; }
 
 	virtual ERSPurchaseRepeatPolicy GetRepeatPolicy() const { return ERSPurchaseRepeatPolicy::Once; }
 };
