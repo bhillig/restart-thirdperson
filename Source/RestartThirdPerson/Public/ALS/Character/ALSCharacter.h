@@ -263,6 +263,8 @@ private:
 	UFUNCTION()
 	void OnWeaponAnimationsRequested(EWeaponSlot WeaponSlot, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation);
 
+	void RefreshWeaponVisuals();
+
 	void UpdateMeshLocationForWeapon(EWeaponSlot WeaponSlot);
 
 	void DetachAllWeaponMeshes();

@@ -153,7 +153,7 @@ void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSecon
 	UpdateRootYawOffset(DeltaSeconds);
 
 	// Get Aim Pitch
-	AimPitch = ALSCharacter->GetBaseAimRotation().Pitch;
+	AimPitch = FRotator::NormalizeAxis(ALSCharacter->GetBaseAimRotation().Pitch);
 
 	// Get Lean Angle
 	LeanAngle = DeltaActorYaw / DeltaSeconds / 6.0f;

@@ -61,6 +61,16 @@ bool UWeaponsComponent::HasWeaponInInventory(const UWeaponDataAsset* WeaponData)
 		});
 }
 
+const FWeapon* UWeaponsComponent::GetEquippedWeapon() const
+{
+	if (const FWeaponSlotEntry* EquippedSlotEntry = FindEntry(EquippedWeaponSlot))
+	{
+		return &EquippedSlotEntry->Weapon;
+	}
+
+	return nullptr;
+}
+
 void UWeaponsComponent::TryUnequipWeapon()
 {
 	// Local early out. We still perform checks on the server

@@ -71,8 +71,7 @@ void AALSCharacter::BeginPlay()
 	SwitchGate(EGate::Jogging);
 	CurrentSpringArmLength = JoggingSpringArmLength;
 
-	// Start with no weapon
-	UpdateAnimInstanceForUnarmed();
+	RefreshWeaponVisuals();
 
 	if (WeaponsComponent && StartingWeaponData)
 	{
@@ -372,6 +371,22 @@ void AALSCharacter::OnWeaponAnimationsRequested(EWeaponSlot WeaponSlot, UAnimSeq
 	}
 }
 
+void AALSCharacter::RefreshWeaponVisuals()
+{
+	if (!GetMesh() || !GetMesh()->GetAnimInstance()) return;
+
+	if (const FWeapon* EquippedWeapon = WeaponsComponent->GetEquippedWeapon())
+	{
+		UpdateAnimInstanceForWeapon(EquippedWeapon->Data->Config.WeaponSlot);
+		DetachAllWeaponMeshes();
+		UpdateMeshLocationForWeapon(EquippedWeapon->Data->Config.WeaponSlot);
+	}
+	else
+	{
+		UpdateAnimInstanceForUnarmed();
+	}
+}
+
 void AALSCharacter::UpdateMeshLocationForWeapon(EWeaponSlot WeaponSlot)
 {
 	const FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, false);
@@ -388,16 +403,12 @@ void AALSCharacter::UpdateMeshLocationForWeapon(EWeaponSlot WeaponSlot)
 
 void AALSCharacter::OnWeaponEquipped(const FWeapon& Weapon)
 {
-	const FWeaponConfig& WeaponConfig = Weapon.Data->Config;
-	UpdateAnimInstanceForWeapon(WeaponConfig.WeaponSlot);
-	DetachAllWeaponMeshes();
-	UpdateMeshLocationForWeapon(WeaponConfig.WeaponSlot);
+	RefreshWeaponVisuals();
 }
 
 void AALSCharacter::OnWeaponUnequipped()
 {
-	UpdateAnimInstanceForUnarmed();
-	DetachAllWeaponMeshes();
+	RefreshWeaponVisuals();
 }
 
 void AALSCharacter::DetachAllWeaponMeshes()

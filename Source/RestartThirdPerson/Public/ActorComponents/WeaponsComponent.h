@@ -60,6 +60,8 @@ public:
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	bool HasWeaponInInventory(const UWeaponDataAsset* WeaponData) const;
 
+	const FWeapon* GetEquippedWeapon() const;
+
 	UFUNCTION(BlueprintCallable)
 	void TryUnequipWeapon();
 
