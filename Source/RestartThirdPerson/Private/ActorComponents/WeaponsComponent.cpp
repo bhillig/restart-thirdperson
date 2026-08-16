@@ -236,6 +236,7 @@ void UWeaponsComponent::ReloadEquippedWeapon()
 				const int32 BulletsOutsideClip = Weapon.TotalBullets - Weapon.CurrentBulletsInClip;
 				const int32 BulletsInNewClip = FMath::Min(Weapon.Data->Config.BulletsPerClip - Weapon.CurrentBulletsInClip, BulletsOutsideClip);
 				Weapon.CurrentBulletsInClip += BulletsInNewClip;
+				OnWeaponAmmoChanged.Broadcast(Weapon.CurrentBulletsInClip, Weapon.TotalBullets);
 			}
 		});
 
@@ -409,7 +410,9 @@ void UWeaponsComponent::Server_RefillAmmoForWeapon_Implementation(const UWeaponD
 
 	if (FWeaponSlotEntry* WeaponSlotEntry = FindMutableEntry(WeaponData->Config.WeaponSlot))
 	{
-		WeaponSlotEntry->Weapon.TotalBullets = WeaponData->Config.StartingAmmoCount;
+		FWeapon& Weapon = WeaponSlotEntry->Weapon;
+		Weapon.TotalBullets = WeaponData->Config.StartingAmmoCount;
+		OnWeaponAmmoChanged.Broadcast(Weapon.CurrentBulletsInClip, Weapon.TotalBullets);
 	}
 }
 
@@ -542,6 +545,7 @@ void UWeaponsComponent::FireWeapon()
 
 	EquippedWeapon.CurrentBulletsInClip--;
 	EquippedWeapon.TotalBullets--;
+	OnWeaponAmmoChanged.Broadcast(EquippedWeapon.CurrentBulletsInClip, EquippedWeapon.TotalBullets);
 
 	FVector WeaponOrigin;
 	FVector WeaponDirection;

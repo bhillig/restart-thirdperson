@@ -32,4 +32,7 @@ public:
 protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Material")
+	TObjectPtr<UMaterialInterface> MeshMaterial;
+
 };

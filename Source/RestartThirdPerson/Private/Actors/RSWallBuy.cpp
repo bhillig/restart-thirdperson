@@ -54,5 +54,6 @@ void ARSWallBuy::OnConstruction(const FTransform& Transform)
 	if (GrantWeaponEffect->WeaponData)
 	{
 		WeaponMesh->SetSkeletalMesh(GrantWeaponEffect->WeaponData->Config.Mesh);
+		WeaponMesh->SetMaterial(0, MeshMaterial);
 	}
 }
