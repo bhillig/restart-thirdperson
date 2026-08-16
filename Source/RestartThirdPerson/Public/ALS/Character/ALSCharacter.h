@@ -94,6 +94,10 @@ public:
 	// Returns Distance From Ground, 0.f if on ground, -1.f if not above ground.
 	float GetDistanceFromGround() const { return DistanceFromGround; }
 
+	/** Returns whether this player is dead */
+	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
+	bool IsDead() const { return bIsDead; }
+
 protected:
 	virtual void PostInitializeComponents() override;
 
