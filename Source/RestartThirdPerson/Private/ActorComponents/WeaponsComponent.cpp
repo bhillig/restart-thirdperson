@@ -413,7 +413,13 @@ void UWeaponsComponent::Server_RefillAmmoForWeapon_Implementation(const UWeaponD
 		FWeapon& Weapon = WeaponSlotEntry->Weapon;
 		Weapon.TotalBullets = WeaponData->Config.StartingAmmoCount;
 		OnWeaponAmmoChanged.Broadcast(Weapon.CurrentBulletsInClip, Weapon.TotalBullets);
+		Client_NotifyAmmoGranted();
 	}
+}
+
+void UWeaponsComponent::Client_NotifyAmmoGranted_Implementation()
+{
+	UGameplayStatics::PlaySoundAtLocation(this, PickupAmmoSound, GetOwner()->GetActorLocation());
 }
 
 void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData)

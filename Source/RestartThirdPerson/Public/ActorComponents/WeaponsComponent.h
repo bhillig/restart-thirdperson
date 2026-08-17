@@ -131,6 +131,10 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_RefillAmmoForWeapon(const UWeaponDataAsset* WeaponData);
 
+	/** Server -> Owner notify ammo has been granted */
+	UFUNCTION(Client, Reliable)
+	void Client_NotifyAmmoGranted();
+
 	/** Server -> Owner notify a hit marker type to propagate */
 	UFUNCTION(Client, Unreliable)
 	void Client_NotifyHitType(EHitMarkerType HitMarkerType);
@@ -229,6 +233,11 @@ public:
 	/** Hit Marker Requested Delegate */
 	UPROPERTY(BlueprintAssignable)
 	FOnHitMarkerRequested OnHitMarkerRequested;
+
+protected:
+	/** Sound when ammo is picked up */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> PickupAmmoSound;
 
 protected:
 	/** VFX Begin */
