@@ -3,6 +3,7 @@
 
 #include "Interact/RSInteractComponent.h"
 
+#include "GameFramework/Character.h"
 #include "Interact/RSInteractableComponent.h"
 #include "Interact/RSInteractionRegistry.h"
 #include "Net/UnrealNetwork.h"
@@ -43,6 +44,7 @@ void URSInteractComponent::Server_Interact_Implementation(URSInteractableCompone
 	if (Interactable && Interactable->CanInteract(PlayerState))
 	{
 		Interactable->Interact(PlayerState);
+		Multicast_PlayMontage(InteractMontage);
 	}
 }
 
@@ -131,6 +133,23 @@ void URSInteractComponent::SetFocus(URSInteractableComponent* InteractableComp)
 void URSInteractComponent::OnPawnControllerChanged(APawn* Pawn, AController* OldController, AController* NewController)
 {
 	RefreshTickState();
+}
+
+void URSInteractComponent::Multicast_PlayMontage_Implementation(UAnimMontage* Montage)
+{
+	ACharacter* OwningCharacter = Cast<ACharacter>(GetOwner());
+	if (!OwningCharacter)
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInstance = OwningCharacter->GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+	{
+		return;
+	}
+
+	AnimInstance->Montage_Play(InteractMontage);
 }
 
 void URSInteractComponent::RefreshTickState()

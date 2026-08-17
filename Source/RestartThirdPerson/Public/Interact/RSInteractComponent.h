@@ -64,6 +64,16 @@ public:
 	FRSOnFocusedChangedDelegate OnFocusedChanged;
 
 protected:
+	/** Server -> All: Notify clients to play a montage */
+	UFUNCTION(NetMulticast, Unreliable)
+	void Multicast_PlayMontage(UAnimMontage* Montage);
+
+protected:
+	/** Anim montage to play when interacting */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage> InteractMontage;
+
+protected:
 	/** Checks if the owning pawn is locally controlled and enables tick if so. Called on BeginPlay and when pawn controller changes */
 	void RefreshTickState();
 
