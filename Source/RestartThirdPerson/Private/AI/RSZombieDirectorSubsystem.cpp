@@ -60,25 +60,74 @@ APawn* URSZombieDirectorSubsystem::GetPlayerTarget(APawn* Zombie)
 
 APlayerState* URSZombieDirectorSubsystem::DetermineTarget() const
 {
-	// Get number of players
-	const int32 NumberOfPlayers = GetWorld()->GetNumPlayerControllers();
+	TArray<APlayerState*> Candidates;
+	TArray<float> Weights;
+	float TotalWeight = 0.f;
 
-	// If solo
-	if (NumberOfPlayers == 1)
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
-		return GetWorld()->GetFirstPlayerController()->GetPlayerState<APlayerState>();
+		APlayerController* PC = It->Get();
+		if (!PC)
+		{
+			continue;
+		}
+
+		APawn* PlayerPawn = PC->GetPawn();
+		if (!IsValid(PlayerPawn))
+		{
+			continue;
+		}
+
+		APlayerState* PS = PlayerPawn->GetPlayerState();
+		if (!PS)
+		{
+			continue;
+		}
+
+		const int32 AssignedCount = GetAssignedCountForPlayer(PS);
+
+		const float Weight = 1.f / (1.f + AssignedCount);
+
+		Candidates.Add(PS);
+		Weights.Add(Weight);
+		TotalWeight += Weight;
 	}
 
-	return nullptr;
+	if (Candidates.Num() == 0)
+	{
+		return nullptr;
+	}
+
+	float Roll = FMath::FRand() * TotalWeight;
+	for (int32 i = 0; i < Candidates.Num(); ++i)
+	{
+		Roll -= Weights[i];
+		if (Roll <= 0.f)
+		{
+			return Candidates[i];
+		}
+	}
+
+	return Candidates.Last();
 }
 
-void URSZombieDirectorSubsystem::AssignTarget(APawn* Zombie, APlayerState* Target)
+void URSZombieDirectorSubsystem::AssignTarget(APawn* Zombie, APlayerState* Player)
 {
-	ensure(Target);
+	ensure(Player);
 
-	if (!ZombiesByPlayer.Contains(Target))
+	if (!ZombiesByPlayer.Contains(Player))
 	{
-		ZombiesByPlayer.Add(Target);
+		ZombiesByPlayer.Add(Player);
 	}
-	ZombiesByPlayer[Target].Add(Zombie);
+	ZombiesByPlayer[Player].Add(Zombie);
+}
+
+int32 URSZombieDirectorSubsystem::GetAssignedCountForPlayer(APlayerState* Player) const
+{
+	if (!ZombiesByPlayer.Contains(Player))
+	{
+		return 0;
+	}
+
+	return ZombiesByPlayer[Player].Num();
 }

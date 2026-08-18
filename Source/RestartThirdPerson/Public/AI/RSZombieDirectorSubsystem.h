@@ -32,7 +32,10 @@ protected:
 	APlayerState* DetermineTarget() const;
 
 	/** Assigns a target to the zombie */
-	void AssignTarget(APawn* Zombie, APlayerState* Target);
+	void AssignTarget(APawn* Zombie, APlayerState* Player);
+
+	/** Returns the number of assigned zombies on the player */
+	int32 GetAssignedCountForPlayer(APlayerState* Player) const;
 
 protected:
 	/** Map of players and the zombies currently targeting them */
