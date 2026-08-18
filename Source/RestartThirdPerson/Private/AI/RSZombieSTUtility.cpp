@@ -6,6 +6,7 @@
 #include "Character/Zombies/ZombieCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "AIController.h"
+#include "AI/RSZombieDirectorSubsystem.h"
 #include "ALS/Character/ALSCharacter.h"
 
 EStateTreeRunStatus FRSStateTreeAttackTargetTask::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
@@ -56,41 +57,10 @@ EStateTreeRunStatus FRSStateTreeGetPlayerTask::EnterState(FStateTreeExecutionCon
 		return EStateTreeRunStatus::Failed;
 	}
 
-	const FVector ZombieLocation = ZombiePawn->GetActorLocation();
+	URSZombieDirectorSubsystem* ZombieDirectorSubsystem = ZombiePawn->GetWorld()->GetSubsystem<URSZombieDirectorSubsystem>();
+	ensure(ZombieDirectorSubsystem);
 
-	APawn* ClosestPlayer = nullptr;
-	float ClosestDistSqr = TNumericLimits<float>::Max();
+	InstanceData.PlayerActor = ZombieDirectorSubsystem->GetPlayerTarget(ZombiePawn);
 
-	const UWorld* World = ZombiePawn->GetWorld();
-	for (FConstPlayerControllerIterator ControllerIt = World->GetPlayerControllerIterator(); ControllerIt; ++ControllerIt)
-	{
-		AController* PC = ControllerIt->Get();	
-		if (!PC)
-		{
-			continue;
-		}
-
-		APawn* PlayerPawn = PC->GetPawn();
-		if (!CanTargetPlayer(PlayerPawn))
-		{
-			continue;
-		}
-
-		const float DistSqr = FVector::DistSquared(ZombieLocation, PlayerPawn->GetActorLocation());
-		if (DistSqr < ClosestDistSqr)
-		{
-			ClosestPlayer = PlayerPawn;
-			ClosestDistSqr = DistSqr;
-		}
-	}
-
-	if (ClosestPlayer)
-	{
-		// Set the player actor
-		InstanceData.PlayerActor = ClosestPlayer;
-
-		return EStateTreeRunStatus::Running;
-	}
-
-	return EStateTreeRunStatus::Failed;
+	return EStateTreeRunStatus::Running;
 }

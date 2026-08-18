@@ -2,9 +2,10 @@
 
 
 #include "GameMode/RSZombiesGameMode.h"
+
+#include "AI/RSZombieDirectorSubsystem.h"
 #include "Character/Zombies/ZombieCharacter.h"
 #include "GameStates/RSZombiesGameState.h"
-#include "Kismet/GameplayStatics.h"
 #include "PlayerStates/RSPlayerState.h"
 
 ARSZombiesGameMode::ARSZombiesGameMode()
@@ -15,9 +16,6 @@ ARSZombiesGameMode::ARSZombiesGameMode()
 void ARSZombiesGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	// Grab all the spawn positions
-	UGameplayStatics::GetAllActorsWithTag(this, FName("ZombieSpawnPoint"), SpawnPoints);
 
 	// Start round 1 after a few seconds
 	FTimerDelegate Delegate;
@@ -63,7 +61,7 @@ void ARSZombiesGameMode::CompleteRound()
 	ZombiesGameState->SetRoundState(CurrentRoundNumber, ERSRoundPhase::Intermission);
 }
 
-int32 ARSZombiesGameMode::GetZombieCountForRound(int32 RoundNumber, int32 PlayerCount)
+int32 ARSZombiesGameMode::GetZombieCountForRound(int32 RoundNumber, int32 PlayerCount) const
 {
 	ensureMsgf(RoundNumber > 0, TEXT("Round number must be at least 1"));
 	ensureMsgf(PlayerCount > 0, TEXT("Player count must be at least 1"));
@@ -105,10 +103,10 @@ int32 ARSZombiesGameMode::GetZombieCountForRound(int32 RoundNumber, int32 Player
 	}
 
 	// Round 10 And Above
-	return FMath::Floor(24 + (ScaleFactor * 6 * (RoundNumber/5.f) * RoundNumber * 0.15f));
+	return FMath::Floor(24 + (ScaleFactor * 6 * (RoundNumber / 5.f) * RoundNumber * 0.15f));
 }
 
-int32 ARSZombiesGameMode::GetConcurrentZombieCap(int32 PlayerCount)
+int32 ARSZombiesGameMode::GetConcurrentZombieCap(int32 PlayerCount) const
 {
 	ensureMsgf(PlayerCount > 0, TEXT("Player count must be at least 1"));
 	return 24 + 6 * (PlayerCount - 1);
@@ -118,17 +116,11 @@ void ARSZombiesGameMode::TrySpawnZombie()
 {
 	if (ZombiesLeftToSpawnThisRound > 0 && ZombiesAlive < GetConcurrentZombieCap(1))
 	{
-		ensureMsgf(!SpawnPoints.IsEmpty(), TEXT("Spawn points is empty"));
-
-		// Pick a random spawn position
-		const int32 RandomIndex = FMath::RandRange(0, SpawnPoints.Num() - 1);
-		const FVector SpawnPosition = SpawnPoints[RandomIndex]->GetActorLocation();
-
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		URSZombieDirectorSubsystem* ZombieDirectorSubsystem = GetWorld()->GetSubsystem<URSZombieDirectorSubsystem>();
+		ensure(ZombieDirectorSubsystem);
 
 		// Spawn a zombie
-		if (AZombieCharacter* ZombieCharacter = GetWorld()->SpawnActor<AZombieCharacter>(ZombieClass.Get(), SpawnPosition, FRotator::ZeroRotator, SpawnParams))
+		if (AZombieCharacter* ZombieCharacter = ZombieDirectorSubsystem->SpawnZombie(ZombieClass))
 		{
 			ZombieCharacter->OnPawnHit.AddDynamic(this, &ARSZombiesGameMode::OnZombieHit);
 			ZombieCharacter->OnPawnDeath.AddDynamic(this, &ARSZombiesGameMode::OnZombieDeath);

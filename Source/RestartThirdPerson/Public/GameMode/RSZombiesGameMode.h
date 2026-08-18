@@ -32,11 +32,12 @@ protected:
 	void CompleteRound();
 
 	/** Returns the number of zombies to spawn for a given round number and player count */
-	int32 GetZombieCountForRound(int32 RoundNumber, int32 PlayerCount);
+	int32 GetZombieCountForRound(int32 RoundNumber, int32 PlayerCount) const;
 
 	/** Returns the max number of concurrent zombies active for a given player count */
-	int32 GetConcurrentZombieCap(int32 PlayerCount);
+	int32 GetConcurrentZombieCap(int32 PlayerCount) const;
 
+protected:
 	/** Tries to spawn a zombie if conditions are met */
 	void TrySpawnZombie();
 
@@ -74,10 +75,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Rules|Credits")
 	int32 CreditsAwardedPerHeadshotKill = 100;
-
-	/** Array of target spawn points. Filled in on BeginPlay */
-	UPROPERTY()
-	TArray<AActor*> SpawnPoints;
 
 protected:
 	UPROPERTY()
