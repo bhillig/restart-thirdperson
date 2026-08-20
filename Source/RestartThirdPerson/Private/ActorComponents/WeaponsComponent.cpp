@@ -422,6 +422,11 @@ void UWeaponsComponent::Client_NotifyAmmoGranted_Implementation()
 	UGameplayStatics::PlaySoundAtLocation(this, PickupAmmoSound, GetOwner()->GetActorLocation());
 }
 
+void UWeaponsComponent::Client_NotifyOutOfAmmo_Implementation()
+{
+	UGameplayStatics::PlaySoundAtLocation(this, OutOfAmmoSound, GetOwner()->GetActorLocation());
+}
+
 void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData)
 {
 	if (!GetOwner()->HasAuthority())
@@ -505,9 +510,14 @@ void UWeaponsComponent::FireWeapon()
 
 	// Must be on the server
 	const EWeaponFireState WeaponFireState = GetWeaponFireState();
-	if (WeaponFireState == EWeaponFireState::NoAmmoInClip && CanReloadEquippedWeapon())
+	if (WeaponFireState == EWeaponFireState::NoAmmoInClip)
 	{
-		ReloadEquippedWeapon();
+		if (CanReloadEquippedWeapon())
+		{
+			ReloadEquippedWeapon();
+			return;
+		}
+		Client_NotifyOutOfAmmo();
 		return;
 	}
 	if (WeaponFireState != EWeaponFireState::CanFire || WeaponSwapPhase != EWeaponSwapPhase::None)

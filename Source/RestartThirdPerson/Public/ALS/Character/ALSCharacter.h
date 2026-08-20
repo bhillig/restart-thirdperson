@@ -177,6 +177,9 @@ protected:
 	TObjectPtr<UInputAction> EquipSecondaryWeaponAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> EquipScrollAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> ToggleSlowMotionAction;
 
 	// Character Movement
@@ -252,6 +255,8 @@ private:
 	void OnPrimaryWeaponEquippedPressed();
 
 	void OnSecondaryWeaponEquippedPressed();
+
+	void OnEquipScrollTriggered(const FInputActionValue& Value);
 
 	void ToggleSlowMotion();
 

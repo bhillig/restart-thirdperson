@@ -179,6 +179,7 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComp->BindAction(UnequipWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnUnequipWeaponPressed);
 		EnhancedInputComp->BindAction(EquipPrimaryWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnPrimaryWeaponEquippedPressed);
 		EnhancedInputComp->BindAction(EquipSecondaryWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnSecondaryWeaponEquippedPressed);
+		EnhancedInputComp->BindAction(EquipScrollAction, ETriggerEvent::Triggered, this, &AALSCharacter::OnEquipScrollTriggered);
 
 		// Toggle slow motion
 		EnhancedInputComp->BindAction(ToggleSlowMotionAction, ETriggerEvent::Started, this, &AALSCharacter::ToggleSlowMotion);
@@ -323,6 +324,24 @@ void AALSCharacter::OnPrimaryWeaponEquippedPressed()
 void AALSCharacter::OnSecondaryWeaponEquippedPressed()
 {
 	if (WeaponsComponent)
+	{
+		WeaponsComponent->TryEquipSecondaryWeapon();
+	}
+}
+
+void AALSCharacter::OnEquipScrollTriggered(const FInputActionValue& Value)
+{
+	if (FMath::IsNearlyZero(Value.Get<float>()))
+	{
+		return;
+	}
+
+	const EWeaponSlot WeaponSlot = WeaponsComponent->GetEquippedWeaponSlot();
+	if (WeaponSlot == EWeaponSlot::Secondary)
+	{
+		WeaponsComponent->TryEquipPrimaryWeapon();
+	}
+	else if (WeaponSlot == EWeaponSlot::Primary)
 	{
 		WeaponsComponent->TryEquipSecondaryWeapon();
 	}

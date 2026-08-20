@@ -55,6 +55,9 @@ public:
 	bool HasWeaponEquipped() const { return EquippedWeaponSlot != EWeaponSlot::None; }
 
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
+	EWeaponSlot GetEquippedWeaponSlot() const { return EquippedWeaponSlot; }
+
+	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	bool HasWeaponInSlot(EWeaponSlot WeaponSlot) const { return FindEntry(WeaponSlot) != nullptr; }
 
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
@@ -131,6 +134,10 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_RefillAmmoForWeapon(const UWeaponDataAsset* WeaponData);
 
+	/** Server -> Owner notify out of ammo */
+	UFUNCTION(Client, Reliable)
+	void Client_NotifyOutOfAmmo();
+
 	/** Server -> Owner notify ammo has been granted */
 	UFUNCTION(Client, Reliable)
 	void Client_NotifyAmmoGranted();
@@ -182,9 +189,6 @@ protected:
 	/** Returns whether the secondary weapon (if it exists) can be equipped */
 	bool CanEquipSecondaryWeapon() const;
 
-	/** Helper function that performs basic checks for whether swapping is blocked */
-	bool IsSwappingBlocked() const;
-
 	/** Equips new weapon (and unequips old if relevant). Called by public TryEquip functions */
 	void EquipWeaponSlot(EWeaponSlot WeaponSlot);
 
@@ -235,6 +239,10 @@ public:
 	FOnHitMarkerRequested OnHitMarkerRequested;
 
 protected:
+	/** Sound when attempting to fire but out of ammo */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
+	TObjectPtr<USoundBase> OutOfAmmoSound;
+
 	/** Sound when ammo is picked up */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Audio")
 	TObjectPtr<USoundBase> PickupAmmoSound;
