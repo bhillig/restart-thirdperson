@@ -25,17 +25,24 @@ public:
 UENUM(BlueprintType)
 enum class EWeaponSlot : uint8
 {
-	None = 0,
-	Primary = 1,
-	Secondary = 2,
+	None,
+	Primary,
+	Secondary
+};
+
+UENUM(BlueprintType)
+enum class EWeaponArchetype : uint8
+{
+	SingleShot,
+	AutomaticRifle
 };
 
 UENUM(BlueprintType)
 enum class EWeaponSwapPhase : uint8
 {
-	None = 0,
-	Unequipping = 1,
-	Equipping = 2
+	None,
+	Unequipping,
+	Equipping
 };
 
 USTRUCT(BlueprintType)
@@ -50,6 +57,10 @@ struct FWeaponConfig
 	// Weapon Slot
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	EWeaponSlot WeaponSlot = EWeaponSlot::None;
+
+	// Weapon Archetype
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	EWeaponArchetype WeaponArchetype = EWeaponArchetype::SingleShot;
 
 	// Mesh
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
