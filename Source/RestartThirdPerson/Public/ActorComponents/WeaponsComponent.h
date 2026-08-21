@@ -48,6 +48,7 @@ protected:
 
 public:	
 
+	/** Adds a weapon to the player's inventory, does nothing if already exists */
 	UFUNCTION(BlueprintCallable)
 	void TryAddWeapon(const UWeaponDataAsset* WeaponData);
 
@@ -79,6 +80,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void TryFireWeapon();
+
+	UFUNCTION(BlueprintCallable)
+	void TryStopFireWeapon();
 
 	UFUNCTION(BlueprintCallable)
 	void TryPickupWeapon();
@@ -125,6 +129,10 @@ protected:
 	/** Client -> Server request to fire the equipped weapon */
 	UFUNCTION(Server, Reliable)
 	void Server_FireWeapon();
+
+	/** Client -> Server request to stop firing the equipped weapon */
+	UFUNCTION(Server, Reliable)
+	void Server_StopFireWeapon();
 
 	/** Client -> Server request to try and pickup a weapon */
 	UFUNCTION(Server, Reliable)
@@ -280,6 +288,8 @@ protected:
 	TObjectPtr<UNiagaraSystem> BulletTracerVFX;
 	/** VFX End */
 private:
+	UFUNCTION()
+	void AutomaticFireTimeIntervalElapsed();
 
 	bool CanPickupWeapon() const;
 
@@ -307,6 +317,10 @@ protected:
 	/** Swap state of unequipping/equipping weapons. None when not */
 	UPROPERTY(Replicated)
 	EWeaponSwapPhase WeaponSwapPhase = EWeaponSwapPhase::None;
+
+	/** State of whether the fire trigger (left mouse button / right trigger) is held for playable characters or in state of firing for enemy AI */
+	UPROPERTY(Replicated)
+	bool bWantsToFire = false;
 
 private:
 	/** Rep notify for EquippedWeaponSlot */

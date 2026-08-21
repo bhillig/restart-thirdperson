@@ -170,7 +170,8 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComp->BindAction(ToggleCrouchAction, ETriggerEvent::Started, this, &AALSCharacter::OnCrouchToggled);
 
 		// Fire Weapon
-		EnhancedInputComp->BindAction(FireWeaponAction, ETriggerEvent::Triggered, this, &AALSCharacter::OnFireTriggered);
+		EnhancedInputComp->BindAction(FireWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnFireStarted);
+		EnhancedInputComp->BindAction(FireWeaponAction, ETriggerEvent::Completed, this, &AALSCharacter::OnFireCompleted);
 
 		// Reload Weapon
 		EnhancedInputComp->BindAction(ReloadWeaponAction, ETriggerEvent::Started, this, &AALSCharacter::OnWeaponReloadStarted);
@@ -265,7 +266,7 @@ void AALSCharacter::OnCrouchToggled()
 	Crouch();
 }
 
-void AALSCharacter::OnFireTriggered()
+void AALSCharacter::OnFireStarted()
 {
 	// Make sure we are aiming a weapon
 	if (CurrentGate != EGate::Walking)
@@ -276,6 +277,14 @@ void AALSCharacter::OnFireTriggered()
 	if (WeaponsComponent)
 	{
 		WeaponsComponent->TryFireWeapon();
+	}
+}
+
+void AALSCharacter::OnFireCompleted()
+{
+	if (WeaponsComponent)
+	{
+		WeaponsComponent->TryStopFireWeapon();
 	}
 }
 

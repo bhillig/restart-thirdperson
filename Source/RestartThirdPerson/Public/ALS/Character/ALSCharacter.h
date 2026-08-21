@@ -244,7 +244,9 @@ private:
 
 	void OnCrouchToggled();
 
-	void OnFireTriggered();
+	void OnFireStarted();
+
+	void OnFireCompleted();
 
 	void OnWeaponReloadStarted();
 

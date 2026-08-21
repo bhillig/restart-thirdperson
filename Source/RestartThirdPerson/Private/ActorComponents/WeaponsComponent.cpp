@@ -24,6 +24,7 @@ void UWeaponsComponent::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 	DOREPLIFETIME(ThisClass, WeaponInventory);
 	DOREPLIFETIME(ThisClass, PendingWeaponSlot);
 	DOREPLIFETIME(ThisClass, WeaponSwapPhase);
+	DOREPLIFETIME(ThisClass, bWantsToFire);
 }
 
 void UWeaponsComponent::BeginPlay()
@@ -284,6 +285,18 @@ void UWeaponsComponent::TryFireWeapon()
 	Server_FireWeapon();
 }
 
+void UWeaponsComponent::TryStopFireWeapon()
+{
+	// Local early out
+	if (!HasWeaponEquipped())
+	{
+		return;
+	}
+
+	// Request server to stop firing the weapon
+	Server_StopFireWeapon();
+}
+
 void UWeaponsComponent::TryPickupWeapon()
 {
 	// Local early out
@@ -377,6 +390,7 @@ void UWeaponsComponent::Server_ReloadEquippedWeapon_Implementation()
 
 void UWeaponsComponent::Server_FireWeapon_Implementation()
 {
+	bWantsToFire = true;
 	FireWeapon();
 }
 
@@ -522,25 +536,11 @@ void UWeaponsComponent::FireWeapon()
 
 	FWeapon& EquippedWeapon = WeaponSlotEntry->Weapon;
 	const FWeaponConfig& WeaponConfig = EquippedWeapon.Data->Config;
-	const EWeaponSlot WeaponSlot = WeaponConfig.WeaponSlot;
-
-	EquippedWeapon.bFireIntervalElapsed = false;
-
-	FTimerDelegate Delegate;
-	Delegate.BindLambda([this, WeaponSlot]()
-		{
-			if (FWeaponSlotEntry* WeaponSlotEntry = FindMutableEntry(WeaponSlot))
-			{
-				WeaponSlotEntry->Weapon.bFireIntervalElapsed = true;
-			}
-		});
 
 	const USkeletalMeshComponent* WeaponMesh = FindWeaponMesh(WeaponConfig);
 	check(WeaponMesh);
 
 	const FVector WeaponBarrelLocation = WeaponMesh->GetBoneLocation(WeaponConfig.MuzzleSocketName);
-
-	GetOwner()->GetWorldTimerManager().SetTimer(EquippedWeapon.TimerHandle_FireInterval, Delegate, WeaponConfig.FireInterval, false);
 
 	// Play Fire Animation
 	Multicast_RequestAnimations(EquippedWeaponSlot, WeaponConfig.FireAnim, WeaponConfig.CharacterFireAnimMontage);
@@ -637,6 +637,14 @@ void UWeaponsComponent::FireWeapon()
 
 	// Spawn smoke trail
 	Multicast_SpawnSystemAtLocation(BulletTracerVFX, WeaponBarrelLocation);
+
+	// If we have ammo left, and we are using an automatic fire 
+	if (EquippedWeapon.CurrentBulletsInClip > 0 && EquippedWeapon.Data->Config.WeaponArchetype == EWeaponArchetype::AutomaticRifle)
+	{
+		FTimerDelegate Delegate;
+		Delegate.BindUObject(this, &UWeaponsComponent::AutomaticFireTimeIntervalElapsed);
+		GetOwner()->GetWorldTimerManager().SetTimer(EquippedWeapon.TimerHandle_FireInterval, Delegate, WeaponConfig.FireInterval, false);
+	}
 }
 
 void UWeaponsComponent::PickupWeapon()
@@ -668,6 +676,15 @@ void UWeaponsComponent::HandleEquippedWeaponSlotChanged()
 	}
 }
 
+void UWeaponsComponent::AutomaticFireTimeIntervalElapsed()
+{
+	// If input is still held or enemy AI still intends to fire
+	if (bWantsToFire)
+	{
+		FireWeapon();
+	}
+}
+
 bool UWeaponsComponent::CanPickupWeapon() const
 {
 	return !WeaponPickupsInRange.IsEmpty();
@@ -681,11 +698,6 @@ EWeaponFireState UWeaponsComponent::GetWeaponFireState() const
 	if (EquippedWeapon.bIsReloading)
 	{
 		return EWeaponFireState::Reloading;
-	}
-
-	if (!EquippedWeapon.bFireIntervalElapsed)
-	{
-		return EWeaponFireState::FireIntervalElapsed;
 	}
 
 	const bool bHasAmmoInClip = EquippedWeapon.CurrentBulletsInClip > 0;
@@ -790,6 +802,16 @@ void UWeaponsComponent::RemoveWeaponPickupInRange(AWeaponPickup* WeaponPickup)
 		OnWeaponPickupChanged.Broadcast(CurrentClosestWeaponPickup, nullptr);
 		CurrentClosestWeaponPickup = nullptr;
 	}
+}
+
+void UWeaponsComponent::Server_StopFireWeapon_Implementation()
+{
+	if (!HasWeaponEquipped())
+	{
+		return;
+	}
+
+	bWantsToFire = false;
 }
 
 void UWeaponsComponent::Server_UnequipWeapon_Implementation()
