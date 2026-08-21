@@ -73,12 +73,6 @@ const FWeapon* UWeaponsComponent::GetEquippedWeapon() const
 
 void UWeaponsComponent::TryUnequipWeapon()
 {
-	// Local early out. We still perform checks on the server
-	if (IsSwappingBlocked())
-	{
-		return;
-	}
-
 	if (GetOwner()->HasAuthority())
 	{
 		// Call the authoritative function
@@ -461,11 +455,6 @@ void UWeaponsComponent::UnequipWeapon()
 	}
 
 	// Must be on the server
-	if (IsSwappingBlocked())
-	{
-		return;
-	}
-
 	EquipWeaponSlot(EWeaponSlot::None);
 }
 
@@ -815,11 +804,6 @@ void UWeaponsComponent::Server_AddWeapon_Implementation(const UWeaponDataAsset* 
 
 bool UWeaponsComponent::CanEquipPrimaryWeapon() const
 {
-	if (IsSwappingBlocked())
-	{
-		return false;
-	}
-
 	if (EquippedWeaponSlot == EWeaponSlot::Primary || !FindEntry(EWeaponSlot::Primary))
 	{
 		// Already equipped or doesn't exist in our inventory
@@ -831,11 +815,6 @@ bool UWeaponsComponent::CanEquipPrimaryWeapon() const
 
 bool UWeaponsComponent::CanEquipSecondaryWeapon() const
 {
-	if (IsSwappingBlocked())
-	{
-		return false;
-	}
-
 	if (EquippedWeaponSlot == EWeaponSlot::Secondary || !FindEntry(EWeaponSlot::Secondary))
 	{
 		// Already equipped or doesn't exist in our inventory
@@ -843,23 +822,6 @@ bool UWeaponsComponent::CanEquipSecondaryWeapon() const
 	}
 
 	return true;
-}
-
-bool UWeaponsComponent::IsSwappingBlocked() const
-{
-	if (const FWeaponSlotEntry* EquippedEntry = FindEntry(EquippedWeaponSlot); EquippedEntry && EquippedEntry->Weapon.bIsReloading)
-	{
-		// We are currently reloading
-		return true;
-	}
-
-	if (WeaponSwapPhase != EWeaponSwapPhase::None)
-	{
-		// We are currently swapping
-		return true;
-	}
-
-	return false;
 }
 
 void UWeaponsComponent::SetEquipWeaponSlot(EWeaponSlot WeaponSlot)

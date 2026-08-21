@@ -123,6 +123,30 @@ struct FWeaponConfig
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<UMaterialInstance> BulletIcon;
 
+	// Recoil Scale Standing
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float RecoilScaleStanding = 0.15f;
+
+	// Recoil Scale Walking
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float RecoilScaleWalking = 0.57f;
+
+	// Recoil Scale Running
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float RecoilScaleRunning = 0.84f;
+
+	// Recoil Scale Standing (Crosshair)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float RecoilScaleStandingCrosshair = 0.05f;
+
+	// Recoil Scale Walking (Crosshair)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float RecoilScaleWalkingCrosshair = 0.1f;
+
+	// Recoil Scale Running (Crosshair)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float RecoilScaleRunningCrosshair = 0.18f;
+
 	// Starting Ammo Count
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	int32 StartingAmmoCount;
