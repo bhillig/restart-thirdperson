@@ -52,41 +52,54 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void TryAddWeapon(const UWeaponDataAsset* WeaponData);
 
+	/** Returns true if a weapon is equipped */
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	bool HasWeaponEquipped() const { return EquippedWeaponSlot != EWeaponSlot::None; }
 
+	/** Returns the equipped weapon slot, EWeaponSlot::None if no weapon is equipped */
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	EWeaponSlot GetEquippedWeaponSlot() const { return EquippedWeaponSlot; }
 
+	/** Returns whether a weapon is in the weapon slot specified */
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	bool HasWeaponInSlot(EWeaponSlot WeaponSlot) const { return FindEntry(WeaponSlot) != nullptr; }
 
+	/** Returns whether this weapon is in the inventory */
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
 	bool HasWeaponInInventory(const UWeaponDataAsset* WeaponData) const;
 
+	/** Returns the equipped weapon, nullptr if no weapon is equipped */
 	const FWeapon* GetEquippedWeapon() const;
 
+	/** Unequips the current weapon */
 	UFUNCTION(BlueprintCallable)
 	void TryUnequipWeapon();
 
+	/** Equips the primary weapon, does nothing if it can't */
 	UFUNCTION(BlueprintCallable)
 	void TryEquipPrimaryWeapon();
 
+	/** Equips the secondary weapon, does nothing if it can't */
 	UFUNCTION(BlueprintCallable)
 	void TryEquipSecondaryWeapon();
 
+	/** Reloads the equipped weapon, does nothing if it can't */
 	UFUNCTION(BlueprintCallable)
 	void TryReloadEquippedWeapon();
 
+	/** Starts firing the equipped weapon, does nothing if it can't */
 	UFUNCTION(BlueprintCallable)
 	void TryFireWeapon();
 
+	/** Stops firing the equipped weapon, does nothing if it can't */
 	UFUNCTION(BlueprintCallable)
 	void TryStopFireWeapon();
 
+	/** Pickups the weapon focused on, does nothing if no weapon is focused on */
 	UFUNCTION(BlueprintCallable)
 	void TryPickupWeapon();
 
+	/** Refills the ammo for the weapon specified, does nothing if the weapon isn't in the inventory */
 	UFUNCTION(BlueprintCallable)
 	void TryRefillAmmoForWeapon(const UWeaponDataAsset* WeaponData);
 
