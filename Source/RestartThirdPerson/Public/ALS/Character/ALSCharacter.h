@@ -232,22 +232,31 @@ protected:
 
 private:
 
+	/** Input callback for movement ( WASD / Left Analog Stick) */
 	void OnMoveTriggered(const FInputActionValue& Value);
 
+	/** Input callback for rotating the camera (Mouse / Right Analog Stick) */
 	void OnLookTriggered(const FInputActionValue& Value);
 
+	/** Input callback for interaction */
 	void OnInteractStarted();
 
+	/** Input callback for starting to aim */
 	void OnAimStarted();
 
+	/** Input callback for ending aim */
 	void OnAimCompleted();
 
+	/** Input callback for toggling crouch */
 	void OnCrouchToggled();
 
+	/** Input callback for starting to fire */
 	void OnFireStarted();
 
+	/** Input callback for ending fire */
 	void OnFireCompleted();
 
+	/** Input callback for starting a weapon reload */
 	void OnWeaponReloadStarted();
 
 	void SwitchGate(EGate Gate);
