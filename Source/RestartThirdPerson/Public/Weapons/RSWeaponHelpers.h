@@ -15,8 +15,8 @@ class RESTARTTHIRDPERSON_API IWeaponAimSource
 {
 	GENERATED_BODY()
 public:
-	// Returns world-space origin + unit direction for the next shot.
-	virtual void GetWeaponAimRay(FVector& OutOrigin, FVector& OutDirection) const = 0;
+	// Returns world-space location and rotation for the next shot.
+	virtual bool CalculateShotLocationAndRotation(FVector& ShotLocation, FRotator& ShotRotation) = 0;
 
 	// Returns the weapons component
 	virtual UWeaponsComponent* GetWeaponsComponent() const = 0;
@@ -64,7 +64,7 @@ struct FWeaponConfig
 
 	// Mesh
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	TObjectPtr<USkeletalMesh> Mesh;
+	TObjectPtr<USkeletalMesh> Mesh = nullptr;
 
 	// Mesh Tag
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
@@ -157,6 +157,20 @@ struct FWeaponConfig
 	// Recoil Scale Running (Crosshair)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	float RecoilScaleRunningCrosshair = 0.18f;
+
+	// Per Shot Recoil Scale
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float PerShotRecoilScale = 0.3f;
+
+	// Per Shot Recoil Scale Max
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float PerShotRecoilScaleMax = 1.3f;
+
+	// Per Shot Recoil Decrease Scale
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	float PerShotRecoilDecreaseScale = 0.023f;
+
+	// TODO: Procedural and aim focus recoil curves?
 
 	// Starting Ammo Count
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")

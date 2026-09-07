@@ -110,7 +110,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	/** IWeaponAimSource Begin */
-	virtual void GetWeaponAimRay(FVector& OutOrigin, FVector& OutDirection) const override;
+	virtual bool CalculateShotLocationAndRotation(FVector& ShotLocation, FRotator& ShotRotation) override;
 
 	virtual UWeaponsComponent* GetWeaponsComponent() const override;
 	/** IWeaponAimSource End */
@@ -295,6 +295,11 @@ private:
 
 	FName GetUnequippedSocketName(EWeaponSlot WeaponSlot) const;
 
+	float CalculateRecoilScale() const;
+
+	/** Decreases the per shot recoil over time. Called on tick */
+	void DecreasePerShotRecoil();
+
 	/** Called when the health attribute changes */
 	UFUNCTION()
 	void OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser);
@@ -319,6 +324,10 @@ protected:
 	/** State of whether the player is dead */
 	UPROPERTY(ReplicatedUsing=OnRep_IsDead)
 	bool bIsDead = false;
+
+	/** Current per shot recoil scale (increased when weapon is fired, decreased on Tick) */
+	UPROPERTY()
+	float PerShotRecoilScale = 0.f;
 
 protected:
 	/** Rep notify for bIsDead */

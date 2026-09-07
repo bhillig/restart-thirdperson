@@ -540,47 +540,40 @@ void UWeaponsComponent::FireWeapon()
 	const USkeletalMeshComponent* WeaponMesh = FindWeaponMesh(WeaponConfig);
 	check(WeaponMesh);
 
-	const FVector WeaponBarrelLocation = WeaponMesh->GetBoneLocation(WeaponConfig.MuzzleSocketName);
-
-	// Play Fire Animation
-	Multicast_RequestAnimations(EquippedWeaponSlot, WeaponConfig.FireAnim, WeaponConfig.CharacterFireAnimMontage);
+	const FVector WeaponBarrelLocation = WeaponMesh->GetSocketLocation(WeaponConfig.MuzzleSocketName);
 
 	// Play Fire Sound
 	Multicast_PlaySoundAtLocation(WeaponConfig.FireSound, WeaponBarrelLocation);
+
+	// Play Fire Animation
+	Multicast_RequestAnimations(EquippedWeaponSlot, WeaponConfig.FireAnim, WeaponConfig.CharacterFireAnimMontage);
 
 	EquippedWeapon.CurrentBulletsInClip--;
 	EquippedWeapon.TotalBullets--;
 	OnWeaponAmmoChanged.Broadcast(EquippedWeapon.CurrentBulletsInClip, EquippedWeapon.TotalBullets);
 
-	FVector WeaponOrigin;
-	FVector WeaponDirection;
-	if (WeaponAimSource)
+	FVector ShotLocation = FVector::ZeroVector;
+	FRotator ShotRotation = FRotator::ZeroRotator;
+	if (!WeaponAimSource || !WeaponAimSource->CalculateShotLocationAndRotation(ShotLocation, ShotRotation))
 	{
-		WeaponAimSource->GetWeaponAimRay(WeaponOrigin, WeaponDirection);
+		rs::LogOnce("Shooting failed!");
+		return;
 	}
 
 	// Perform a raycast to see if we hit something
-	const FVector Start = WeaponOrigin;
-	const FVector End = Start + WeaponDirection * 10'000;
+	const FVector Start = ShotLocation;
+	const FVector End = Start + ShotRotation.Vector() * 10'000;
 	FCollisionQueryParams QueryParams;
 	QueryParams.bReturnPhysicalMaterial = true;
 	QueryParams.AddIgnoredActor(GetOwner());
 
-	FHitResult CameraHitResult;
-	GetWorld()->LineTraceSingleByChannel(CameraHitResult, Start, End, ECC_Visibility, QueryParams);
-
-	const FVector PotentialImpactPoint = CameraHitResult.bBlockingHit ? CameraHitResult.ImpactPoint : End;
-
-	FHitResult GunBarrelToImpactPointHitResult;
-	GetWorld()->LineTraceSingleByChannel(GunBarrelToImpactPointHitResult, WeaponBarrelLocation, PotentialImpactPoint, ECC_Visibility, QueryParams);
-
-	const FVector ImpactPoint = GunBarrelToImpactPointHitResult.bBlockingHit ? GunBarrelToImpactPointHitResult.ImpactPoint : PotentialImpactPoint;
+	FHitResult HitResult;
 
 	// If we hit any object
-	if (CameraHitResult.bBlockingHit || GunBarrelToImpactPointHitResult.bBlockingHit)
+	if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, QueryParams))
 	{
-		const FHitResult& HitResultToUse = GunBarrelToImpactPointHitResult.bBlockingHit ? GunBarrelToImpactPointHitResult : CameraHitResult;
-		AActor* HitActor = HitResultToUse.GetActor();
+		const FVector ImpactPoint = HitResult.ImpactPoint;
+		AActor* HitActor = HitResult.GetActor();
 
 		APawn* InstigatorPawn = Cast<APawn>(GetOwner());
 		AController* EventInstigator = InstigatorPawn ? InstigatorPawn->GetController() : nullptr;
@@ -593,7 +586,7 @@ void UWeaponsComponent::FireWeapon()
 
 		// Apply damage
 		// TODO: Allow weapons to specify their damage type class
-		UGameplayStatics::ApplyPointDamage(HitActor, WeaponConfig.DamagePerBullet, WeaponDirection, HitResultToUse, EventInstigator, GetOwner(), UDamageType::StaticClass());
+		UGameplayStatics::ApplyPointDamage(HitActor, WeaponConfig.DamagePerBullet, ShotRotation.Vector(), HitResult, EventInstigator, GetOwner(), UDamageType::StaticClass());
 
 		const float NewHealth = AttributeComp ? AttributeComp->GetHealth() : 0.f;
 
@@ -610,7 +603,7 @@ void UWeaponsComponent::FireWeapon()
 		UMetaSoundSource* ImpactSound = PlasterImpactSound;
 		UMetaSoundSource* DebrisImpactSound = PlasterDebrisImpactSound;
 
-		switch (const EPhysicalSurface SurfaceHit = UGameplayStatics::GetSurfaceType(HitResultToUse))
+		switch (const EPhysicalSurface SurfaceHit = UGameplayStatics::GetSurfaceType(HitResult))
 		{
 		case SurfaceType_Glass:
 			ImpactParticles = GlassImpactParticles;

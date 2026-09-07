@@ -42,6 +42,7 @@ AALSCharacter::AALSCharacter()
 	// Set capsule and mesh to ignore the Ground Trace Channel. Used for IK Traces and should ignore pawns
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
+	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 }
 
 void AALSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -98,6 +99,8 @@ void AALSCharacter::Tick(float DeltaSeconds)
 		rs::LogTick(FString::Printf(TEXT("Braking Friction: %f"), GetCharacterMovement()->BrakingFriction), 5, FColor::White);
 		rs::LogTick(FString::Printf(TEXT("Use Separate Braking Friction: %s"), GetCharacterMovement()->bUseSeparateBrakingFriction ? TEXT("TRUE") : TEXT("FALSE")), 6, FColor::Red);
 	}
+
+	DecreasePerShotRecoil();
 
 	// Calculate Distance From Ground (if we are falling)
 	if (GetCharacterMovement()->MovementMode == MOVE_Falling)
@@ -188,10 +191,45 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 }
 
-void AALSCharacter::GetWeaponAimRay(FVector& OutOrigin, FVector& OutDirection) const
+bool AALSCharacter::CalculateShotLocationAndRotation(FVector& ShotLocation, FRotator& ShotRotation)
 {
-	OutOrigin = FollowCamera->GetComponentLocation();
-	OutDirection = FollowCamera->GetForwardVector();
+	ShotLocation = FVector::ZeroVector;
+	ShotRotation = FRotator::ZeroRotator;
+
+	if (!WeaponsComponent || !WeaponsComponent->HasWeaponEquipped())
+	{
+		return false;
+	}
+
+	const FWeapon* EquippedWeapon = WeaponsComponent->GetEquippedWeapon();
+	const FWeaponConfig& EquippedWeaponConfig = EquippedWeapon->Data->Config;
+
+	USkeletalMeshComponent* EquippedWeaponMesh = WeaponMeshes.FindRef(EquippedWeaponConfig.WeaponSlot);
+	if (!EquippedWeaponMesh)
+	{
+		return false;
+	}
+
+	const float AccumulativeRecoilScale = CalculateRecoilScale() + PerShotRecoilScale;
+	const float ShotRecoilAngle = FMath::Clamp(AccumulativeRecoilScale, 0.f, 100.f);
+
+	const float ShotRecoilAngleMin = -1.f * ShotRecoilAngle;
+	const float ShotRecoilAngleMax = ShotRecoilAngle;
+
+	// TODO: Consider moving this somewhere more appropriate (i.e listening for a fire shot)
+	// If we have ammo and will succeed with firing we want to increase the per shot recoil
+	if (EquippedWeapon->CurrentBulletsInClip > 0)
+	{
+		PerShotRecoilScale = FMath::Clamp(PerShotRecoilScale + EquippedWeaponConfig.PerShotRecoilScale, 0.f, EquippedWeaponConfig.PerShotRecoilScaleMax);
+	}
+
+	EquippedWeaponMesh->GetSocketWorldLocationAndRotation(EquippedWeaponConfig.MuzzleSocketName, ShotLocation, ShotRotation);
+
+	ShotRotation.Roll += FMath::RandRange(ShotRecoilAngleMin, ShotRecoilAngleMax);
+	ShotRotation.Pitch += FMath::RandRange(ShotRecoilAngleMin, ShotRecoilAngleMax);
+	ShotRotation.Yaw += FMath::RandRange(ShotRecoilAngleMin, ShotRecoilAngleMax);
+
+	return true;
 }
 
 UWeaponsComponent* AALSCharacter::GetWeaponsComponent() const
@@ -504,6 +542,25 @@ FName AALSCharacter::GetUnequippedSocketName(EWeaponSlot WeaponSlot) const
 	}
 
 	return "";
+}
+
+float AALSCharacter::CalculateRecoilScale() const
+{
+	// TODO: Implement this
+	return 0.15f;
+}
+
+void AALSCharacter::DecreasePerShotRecoil()
+{
+	if (!WeaponsComponent || !WeaponsComponent->HasWeaponEquipped())
+	{
+		PerShotRecoilScale = 0.f;
+		return;
+	}
+
+	const float DeltaTime = GetWorld()->GetDeltaSeconds();
+	const FWeaponConfig& EquippedWeaponConfig = WeaponsComponent->GetEquippedWeapon()->Data->Config;
+	PerShotRecoilScale = FMath::Clamp(PerShotRecoilScale - EquippedWeaponConfig.PerShotRecoilDecreaseScale * DeltaTime, 0.f, EquippedWeaponConfig.PerShotRecoilScaleMax);
 }
 
 void AALSCharacter::OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser)
