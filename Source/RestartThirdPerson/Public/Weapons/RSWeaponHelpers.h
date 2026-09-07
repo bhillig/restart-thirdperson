@@ -170,10 +170,30 @@ struct FWeaponConfig
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	float PerShotRecoilDecreaseScale = 0.023f;
 
+	// RECOIL /////////////////////////////////////////////////////////
+
+	// Recoil Pitch Per Shot
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Recoil")
+	float RecoilPitchPerShot = 0.35f;
+
+	// Recoil Yaw Per Shot
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Recoil")
+	float RecoilYawPerShot = 0.15f;
+
+	// Recoil Kick Speed (Higher is snappier)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Recoil")
+	float RecoilKickSpeed = 18.0f;
+
+	// Recoil Recovery Speed
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Recoil")
+	float RecoilRecoverySpeed = 6.0f;
+
 	// TODO: Procedural and aim focus recoil curves?
 
+	// AMMO ///////////////////////////////////////////////////////////
+
 	// Starting Ammo Count
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ammo")
 	int32 StartingAmmoCount;
 };
 

@@ -390,7 +390,6 @@ void UWeaponsComponent::Server_ReloadEquippedWeapon_Implementation()
 
 void UWeaponsComponent::Server_FireWeapon_Implementation()
 {
-	bWantsToFire = true;
 	FireWeapon();
 }
 
@@ -433,6 +432,11 @@ void UWeaponsComponent::Client_NotifyAmmoGranted_Implementation()
 void UWeaponsComponent::Client_NotifyOutOfAmmo_Implementation()
 {
 	UGameplayStatics::PlaySoundAtLocation(this, OutOfAmmoSound, GetOwner()->GetActorLocation());
+}
+
+void UWeaponsComponent::Client_NotifyWeaponFired_Implementation()
+{
+	OnWeaponFired.Broadcast();
 }
 
 void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData)
@@ -511,6 +515,8 @@ void UWeaponsComponent::FireWeapon()
 		return;
 	}
 
+	bWantsToFire = true;
+
 	// Must be on the server
 	const EWeaponFireState WeaponFireState = GetWeaponFireState();
 	if (WeaponFireState == EWeaponFireState::NoAmmoInClip)
@@ -542,6 +548,17 @@ void UWeaponsComponent::FireWeapon()
 
 	const FVector WeaponBarrelLocation = WeaponMesh->GetSocketLocation(WeaponConfig.MuzzleSocketName);
 
+	FVector ShotLocation = FVector::ZeroVector;
+	FRotator ShotRotation = FRotator::ZeroRotator;
+	if (!WeaponAimSource || !WeaponAimSource->CalculateShotLocationAndRotation(ShotLocation, ShotRotation))
+	{
+		rs::LogOnce("Shooting failed!");
+		return;
+	}
+
+	// Update view recoil
+	Client_NotifyWeaponFired();
+
 	// Play Fire Sound
 	Multicast_PlaySoundAtLocation(WeaponConfig.FireSound, WeaponBarrelLocation);
 
@@ -552,25 +569,17 @@ void UWeaponsComponent::FireWeapon()
 	EquippedWeapon.TotalBullets--;
 	OnWeaponAmmoChanged.Broadcast(EquippedWeapon.CurrentBulletsInClip, EquippedWeapon.TotalBullets);
 
-	FVector ShotLocation = FVector::ZeroVector;
-	FRotator ShotRotation = FRotator::ZeroRotator;
-	if (!WeaponAimSource || !WeaponAimSource->CalculateShotLocationAndRotation(ShotLocation, ShotRotation))
-	{
-		rs::LogOnce("Shooting failed!");
-		return;
-	}
-
 	// Perform a raycast to see if we hit something
-	const FVector Start = ShotLocation;
-	const FVector End = Start + ShotRotation.Vector() * 10'000;
+	const FVector End = ShotLocation + ShotRotation.Vector() * 30'000;
 	FCollisionQueryParams QueryParams;
 	QueryParams.bReturnPhysicalMaterial = true;
 	QueryParams.AddIgnoredActor(GetOwner());
 
 	FHitResult HitResult;
+	GetWorld()->LineTraceSingleByChannel(HitResult, ShotLocation, End, ECC_Visibility, QueryParams);
 
 	// If we hit any object
-	if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, QueryParams))
+	if (HitResult.bBlockingHit)
 	{
 		const FVector ImpactPoint = HitResult.ImpactPoint;
 		AActor* HitActor = HitResult.GetActor();
@@ -603,7 +612,7 @@ void UWeaponsComponent::FireWeapon()
 		UMetaSoundSource* ImpactSound = PlasterImpactSound;
 		UMetaSoundSource* DebrisImpactSound = PlasterDebrisImpactSound;
 
-		switch (const EPhysicalSurface SurfaceHit = UGameplayStatics::GetSurfaceType(HitResult))
+		switch (UGameplayStatics::GetSurfaceType(HitResult))
 		{
 		case SurfaceType_Glass:
 			ImpactParticles = GlassImpactParticles;

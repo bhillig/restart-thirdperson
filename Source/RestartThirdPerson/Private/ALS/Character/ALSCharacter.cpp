@@ -16,6 +16,7 @@
 #include "ActorComponents/RSPlayerVoiceComponent.h"
 #include "ActorComponents/WeaponsComponent.h"
 #include "Interact/RSInteractComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 static TAutoConsoleVariable CVar_DebugGateSettings(TEXT("Debug.GateSettings"), false, TEXT("Debug gate setting movement variables"));
@@ -63,6 +64,7 @@ void AALSCharacter::PostInitializeComponents()
 	WeaponsComponent->OnWeaponEquipped.AddDynamic(this, &AALSCharacter::OnWeaponEquipped);
 	WeaponsComponent->OnWeaponUnequipped.AddDynamic(this, &AALSCharacter::OnWeaponUnequipped);
 	WeaponsComponent->OnWeaponAnimationRequested.AddDynamic(this, &AALSCharacter::OnWeaponAnimationsRequested);
+	WeaponsComponent->OnWeaponFired.AddDynamic(this, &AALSCharacter::OnWeaponFired);
 }
 
 void AALSCharacter::BeginPlay()
@@ -101,6 +103,7 @@ void AALSCharacter::Tick(float DeltaSeconds)
 	}
 
 	DecreasePerShotRecoil();
+	ApplyRecoil(DeltaSeconds);
 
 	// Calculate Distance From Ground (if we are falling)
 	if (GetCharacterMovement()->MovementMode == MOVE_Falling)
@@ -196,6 +199,11 @@ bool AALSCharacter::CalculateShotLocationAndRotation(FVector& ShotLocation, FRot
 	ShotLocation = FVector::ZeroVector;
 	ShotRotation = FRotator::ZeroRotator;
 
+	if (!FollowCamera)
+	{
+		return false;
+	}
+
 	if (!WeaponsComponent || !WeaponsComponent->HasWeaponEquipped())
 	{
 		return false;
@@ -210,25 +218,32 @@ bool AALSCharacter::CalculateShotLocationAndRotation(FVector& ShotLocation, FRot
 		return false;
 	}
 
-	const float AccumulativeRecoilScale = CalculateRecoilScale() + PerShotRecoilScale;
-	const float ShotRecoilAngle = FMath::Clamp(AccumulativeRecoilScale, 0.f, 100.f);
+	// Perform a raycast from the camera to it's hit position
+	const FVector Start = FollowCamera->GetComponentLocation();
 
-	const float ShotRecoilAngleMin = -1.f * ShotRecoilAngle;
-	const float ShotRecoilAngleMax = ShotRecoilAngle;
+	const FRotator CameraRotation = FollowCamera->GetComponentRotation();
 
-	// TODO: Consider moving this somewhere more appropriate (i.e listening for a fire shot)
-	// If we have ammo and will succeed with firing we want to increase the per shot recoil
-	if (EquippedWeapon->CurrentBulletsInClip > 0)
-	{
-		PerShotRecoilScale = FMath::Clamp(PerShotRecoilScale + EquippedWeaponConfig.PerShotRecoilScale, 0.f, EquippedWeaponConfig.PerShotRecoilScaleMax);
-	}
+	const FVector End = Start + CameraRotation.Vector() * 30'000;
 
-	EquippedWeaponMesh->GetSocketWorldLocationAndRotation(EquippedWeaponConfig.MuzzleSocketName, ShotLocation, ShotRotation);
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
 
-	ShotRotation.Roll += FMath::RandRange(ShotRecoilAngleMin, ShotRecoilAngleMax);
-	ShotRotation.Pitch += FMath::RandRange(ShotRecoilAngleMin, ShotRecoilAngleMax);
-	ShotRotation.Yaw += FMath::RandRange(ShotRecoilAngleMin, ShotRecoilAngleMax);
+	FHitResult HitResult;
+	GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, QueryParams);
 
+	const FVector DesiredImpactPoint = HitResult.bBlockingHit ? HitResult.ImpactPoint : End;
+
+	// Get the shot location (muzzle location)
+	ShotLocation = EquippedWeaponMesh->GetSocketLocation(EquippedWeaponConfig.MuzzleSocketName);
+	
+	// Get the shot rotation (rotation from muzzle to desired impact point)
+	const FRotator CleanShotRotation = UKismetMathLibrary::FindLookAtRotation(ShotLocation, DesiredImpactPoint);
+
+	const float ShotRecoilAngle = CalculateRecoilScale() + PerShotRecoilScale;
+
+	// Apply spread to the clean shot rotation
+	const FVector ShotRotationVec = FMath::VRandCone(CleanShotRotation.Vector(), FMath::DegreesToRadians(ShotRecoilAngle));
+	ShotRotation = ShotRotationVec.Rotation();
 	return true;
 }
 
@@ -253,6 +268,9 @@ void AALSCharacter::OnLookTriggered(const FInputActionValue& Value)
 	const FVector2D Axis = Value.Get<FVector2D>();
 	AddControllerYawInput(Axis.X);
 	AddControllerPitchInput(Axis.Y);
+
+	// Used for offsetting recoil correcting
+	LookInputSinceRecoil += Axis;
 }
 
 void AALSCharacter::OnInteractStarted()
@@ -547,7 +565,7 @@ FName AALSCharacter::GetUnequippedSocketName(EWeaponSlot WeaponSlot) const
 float AALSCharacter::CalculateRecoilScale() const
 {
 	// TODO: Implement this
-	return 0.15f;
+	return 0.575f;
 }
 
 void AALSCharacter::DecreasePerShotRecoil()
@@ -558,9 +576,75 @@ void AALSCharacter::DecreasePerShotRecoil()
 		return;
 	}
 
-	const float DeltaTime = GetWorld()->GetDeltaSeconds();
 	const FWeaponConfig& EquippedWeaponConfig = WeaponsComponent->GetEquippedWeapon()->Data->Config;
-	PerShotRecoilScale = FMath::Clamp(PerShotRecoilScale - EquippedWeaponConfig.PerShotRecoilDecreaseScale * DeltaTime, 0.f, EquippedWeaponConfig.PerShotRecoilScaleMax);
+	PerShotRecoilScale = FMath::Clamp(PerShotRecoilScale - EquippedWeaponConfig.PerShotRecoilDecreaseScale, 0.f, EquippedWeaponConfig.PerShotRecoilScaleMax);
+}
+
+void AALSCharacter::AddRecoil()
+{
+	if (!IsLocallyControlled() || !WeaponsComponent || !WeaponsComponent->HasWeaponEquipped())
+	{
+		return;
+	}
+
+	// Add the recoil to pending recoil
+	const FWeaponConfig& EquippedWeaponConfig = WeaponsComponent->GetEquippedWeapon()->Data->Config;
+	RecoilPending.X += EquippedWeaponConfig.RecoilYawPerShot;
+	RecoilPending.Y += EquippedWeaponConfig.RecoilPitchPerShot;
+}
+
+void AALSCharacter::ApplyRecoil(float DeltaSeconds)
+{
+	if (!IsLocallyControlled() || !WeaponsComponent || !WeaponsComponent->HasWeaponEquipped())
+	{
+		RecoilPending = RecoilDebt = LookInputSinceRecoil = FVector2D::ZeroVector;
+		return;
+	}
+
+	const FWeaponConfig& EquippedWeaponConfig = WeaponsComponent->GetEquippedWeapon()->Data->Config;
+
+	// Get the kick speed and recovery speed
+	const float RecoilKickSpeed = EquippedWeaponConfig.RecoilKickSpeed;
+	const float RecoilRecoverySpeed = EquippedWeaponConfig.RecoilRecoverySpeed;
+
+	// Feed a fraction of the recoil kick into the view
+	const FVector2D RecoilKickedThisFrame = RecoilPending * FMath::Clamp(RecoilKickSpeed * DeltaSeconds, 0.f, 1.f);
+	AddControllerYawInput(RecoilKickedThisFrame.X);
+	AddControllerPitchInput(RecoilKickedThisFrame.Y);
+
+	// Keep track of the recoil applied
+	RecoilPending -= RecoilKickedThisFrame;
+	RecoilDebt += RecoilKickedThisFrame;
+
+	// Cancel out recoil debt based on player input
+	auto CancelDebt = [](double& Debt, double Input)
+		{
+			if (Debt > 0.f && Input < 0.f)
+			{
+				Debt = FMath::Max(0.f, Debt + Input);
+			}
+			else if (Debt < 0.f && Input > 0.f)
+			{
+				Debt = FMath::Min(0.f, Debt + Input);
+			}
+		};
+
+	CancelDebt(RecoilDebt.X, LookInputSinceRecoil.X);
+	CancelDebt(RecoilDebt.Y, LookInputSinceRecoil.Y);
+	LookInputSinceRecoil = FVector2D::ZeroVector;
+
+	// Feed a fraction of the recoil recovery into the view
+	const FVector2D RecoilDebtThisFrame = RecoilDebt * FMath::Clamp(RecoilRecoverySpeed * DeltaSeconds, 0.f, 1.f);
+	AddControllerYawInput(-RecoilDebtThisFrame.X);
+	AddControllerPitchInput(-RecoilDebtThisFrame.Y);
+
+	// Keep track of the recoil debt we recovered
+	RecoilDebt -= RecoilDebtThisFrame;
+}
+
+void AALSCharacter::OnWeaponFired()
+{
+	AddRecoil();
 }
 
 void AALSCharacter::OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser)

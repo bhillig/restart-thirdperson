@@ -297,8 +297,18 @@ private:
 
 	float CalculateRecoilScale() const;
 
-	/** Decreases the per shot recoil over time. Called on tick */
+	/** Decreases the per shot recoil over time. Called on Tick */
 	void DecreasePerShotRecoil();
+
+	/** Adds recoil to the recoil pending. Called when the current weapon is fired */
+	void AddRecoil();
+
+	/** Modifies the view depending on recoil pending and recoil debt. Called on Tick */
+	void ApplyRecoil(float DeltaSeconds);
+
+	/** Called when the current weapon fires */
+	UFUNCTION()
+	void OnWeaponFired();
 
 	/** Called when the health attribute changes */
 	UFUNCTION()
@@ -325,9 +335,19 @@ protected:
 	UPROPERTY(ReplicatedUsing=OnRep_IsDead)
 	bool bIsDead = false;
 
+	// RECOIL ///////////////////////////////////////////////////
+
 	/** Current per shot recoil scale (increased when weapon is fired, decreased on Tick) */
-	UPROPERTY()
 	float PerShotRecoilScale = 0.f;
+
+	/** Recoil still needed to go into the view */
+	FVector2D RecoilPending = FVector2D::ZeroVector;
+
+	/** Recoil fed into the view that we still owe back (e.g Positive Y (Pitch) means our recoil fired up, but we have to go down still) */
+	FVector2D RecoilDebt = FVector2D::ZeroVector;
+
+	/** Look input since recoil (used to offset debt) */
+	FVector2D LookInputSinceRecoil = FVector2D::ZeroVector;
 
 protected:
 	/** Rep notify for bIsDead */

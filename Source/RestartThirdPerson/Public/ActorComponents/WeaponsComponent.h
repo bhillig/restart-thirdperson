@@ -30,6 +30,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWeaponAmmoChanged, int32, Bullet
 // Used for hitmarker UI (only fire for locally controlled pawns)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHitMarkerRequested, EHitMarkerType, HitMarkerType);
 
+// Used for local view recoil
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWeaponFired);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class RESTARTTHIRDPERSON_API UWeaponsComponent : public UActorComponent
 {
@@ -167,6 +170,10 @@ protected:
 	UFUNCTION(Client, Unreliable)
 	void Client_NotifyHitType(EHitMarkerType HitMarkerType);
 
+	/** Server -> Owner notify the weapon was fired (used to drive local recoil) */
+	UFUNCTION(Client, Unreliable)
+	void Client_NotifyWeaponFired();
+
 	/** Server -> All: notify clients to request animations */
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_RequestAnimations(EWeaponSlot WeaponSlot, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation);
@@ -258,6 +265,10 @@ public:
 	/** Hit Marker Requested Delegate */
 	UPROPERTY(BlueprintAssignable)
 	FOnHitMarkerRequested OnHitMarkerRequested;
+
+	/** Weapon Fired Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FOnWeaponFired OnWeaponFired;
 
 protected:
 	/** Sound when attempting to fire but out of ammo */
