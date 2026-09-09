@@ -310,10 +310,6 @@ private:
 	UFUNCTION()
 	void OnWeaponFired();
 
-	/** Called when the health attribute changes */
-	UFUNCTION()
-	void OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser);
-
 	/** Called when the health attribute reaches zero */
 	UFUNCTION()
 	void OnDeath(AController* EventInstigator, AActor* DamageCauser);

@@ -184,7 +184,7 @@ protected:
 
 	/** Server -> All: notify clients to spawn a niagara system at a location */
 	UFUNCTION(NetMulticast, Unreliable)
-	void Multicast_SpawnSystemAtLocation(UNiagaraSystem* System, FVector Location);
+	void Multicast_SpawnSystemAtLocation(UNiagaraSystem* System, FVector Location, FRotator Rotation = FRotator::ZeroRotator);
 
 protected:
 	/** Only modifier to WeaponInventory. Called on server */

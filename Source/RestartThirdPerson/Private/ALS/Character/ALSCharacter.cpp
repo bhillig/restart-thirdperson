@@ -57,7 +57,6 @@ void AALSCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	AttributesComponent->OnHealthChanged.AddDynamic(this, &AALSCharacter::OnHealthChanged);
 	AttributesComponent->OnDeath.AddDynamic(this, &AALSCharacter::OnDeath);
 
 	WeaponsComponent->OnWeaponAdded.AddDynamic(this, &AALSCharacter::OnWeaponAdded);
@@ -646,11 +645,6 @@ void AALSCharacter::ApplyRecoil(float DeltaSeconds)
 void AALSCharacter::OnWeaponFired()
 {
 	AddRecoil();
-}
-
-void AALSCharacter::OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser)
-{
-	rs::LogFloat("New Health", NewHealth, FColor::Green, 2.0f);
 }
 
 void AALSCharacter::OnDeath(AController* EventInstigator, AActor* DamageCauser)

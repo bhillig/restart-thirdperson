@@ -7,6 +7,7 @@
 #include "ActorComponents/AttributesComponent.h"
 #include "Actors/WeaponPickup.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
@@ -398,9 +399,9 @@ void UWeaponsComponent::Multicast_PlaySoundAtLocation_Implementation(UMetaSoundS
 	UGameplayStatics::PlaySoundAtLocation(this, Sound, Location);
 }
 
-void UWeaponsComponent::Multicast_SpawnSystemAtLocation_Implementation(UNiagaraSystem* System, FVector Location)
+void UWeaponsComponent::Multicast_SpawnSystemAtLocation_Implementation(UNiagaraSystem* System, FVector Location, FRotator Rotation)
 {
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, System, Location);
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, System, Location, Rotation);
 }
 
 void UWeaponsComponent::Client_NotifyHitType_Implementation(EHitMarkerType HitMarkerType)
@@ -575,6 +576,8 @@ void UWeaponsComponent::FireWeapon()
 	QueryParams.bReturnPhysicalMaterial = true;
 	QueryParams.AddIgnoredActor(GetOwner());
 
+	FVector BulletImpactPosition = End;
+
 	FHitResult HitResult;
 	GetWorld()->LineTraceSingleByChannel(HitResult, ShotLocation, End, ECC_Weapon, QueryParams);
 
@@ -582,6 +585,7 @@ void UWeaponsComponent::FireWeapon()
 	if (HitResult.bBlockingHit)
 	{
 		const FVector ImpactPoint = HitResult.ImpactPoint;
+		BulletImpactPosition = ImpactPoint;
 		AActor* HitActor = HitResult.GetActor();
 
 		APawn* InstigatorPawn = Cast<APawn>(GetOwner());
@@ -637,8 +641,10 @@ void UWeaponsComponent::FireWeapon()
 		Multicast_SpawnSystemAtLocation(ImpactParticles, ImpactPoint);
 	}
 
+	const FRotator TraceRotation = UKismetMathLibrary::FindLookAtRotation(WeaponBarrelLocation, BulletImpactPosition);
+
 	// Spawn smoke trail
-	Multicast_SpawnSystemAtLocation(BulletTracerVFX, WeaponBarrelLocation);
+	Multicast_SpawnSystemAtLocation(BulletTracerVFX, WeaponBarrelLocation, TraceRotation);
 
 	// If we have ammo left, and we are using an automatic fire 
 	if (EquippedWeapon.CurrentBulletsInClip > 0 && EquippedWeapon.Data->Config.WeaponArchetype == EWeaponArchetype::AutomaticRifle)
