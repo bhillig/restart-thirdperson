@@ -459,10 +459,11 @@ void AALSCharacter::RefreshWeaponVisuals()
 {
 	if (!GetMesh() || !GetMesh()->GetAnimInstance()) return;
 
+	DetachAllWeaponMeshes();
+
 	if (const FWeapon* EquippedWeapon = WeaponsComponent->GetEquippedWeapon())
 	{
 		UpdateAnimInstanceForWeapon(EquippedWeapon->Data->Config.WeaponSlot);
-		DetachAllWeaponMeshes();
 		UpdateMeshLocationForWeapon(EquippedWeapon->Data->Config.WeaponSlot);
 	}
 	else
