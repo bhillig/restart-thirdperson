@@ -10,6 +10,11 @@
  */
 constexpr ECollisionChannel ECC_Ground = ECC_GameTraceChannel1;
 
+/** Weapon detection trace channel (DefaultEngine.ini: ECC_GameTraceChannel2).
+ *  Use this for "does the bullet stop here" queries. Helpful for ignoring objects like glass that don't block a bullet but block Visibility.
+ */
+constexpr ECollisionChannel ECC_Weapon = ECC_GameTraceChannel2;
+
 /** Default physical material set to plaster */
 constexpr EPhysicalSurface SurfaceType_Plaster = SurfaceType_Default;
 /** Glass surface type */

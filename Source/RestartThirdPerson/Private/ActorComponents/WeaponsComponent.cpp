@@ -576,7 +576,7 @@ void UWeaponsComponent::FireWeapon()
 	QueryParams.AddIgnoredActor(GetOwner());
 
 	FHitResult HitResult;
-	GetWorld()->LineTraceSingleByChannel(HitResult, ShotLocation, End, ECC_Visibility, QueryParams);
+	GetWorld()->LineTraceSingleByChannel(HitResult, ShotLocation, End, ECC_Weapon, QueryParams);
 
 	// If we hit any object
 	if (HitResult.bBlockingHit)

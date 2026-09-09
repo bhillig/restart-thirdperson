@@ -229,7 +229,7 @@ bool AALSCharacter::CalculateShotLocationAndRotation(FVector& ShotLocation, FRot
 	QueryParams.AddIgnoredActor(this);
 
 	FHitResult HitResult;
-	GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, QueryParams);
+	GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Weapon, QueryParams);
 
 	const FVector DesiredImpactPoint = HitResult.bBlockingHit ? HitResult.ImpactPoint : End;
 
