@@ -11,6 +11,9 @@
 #include "Net/UnrealNetwork.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
+static TAutoConsoleVariable CVarBulletAdjustmentDebugDraw(TEXT("Game.Projectile.DebugDraw"), 0.f,
+	TEXT("Enable bullet adjustment debug drawing"));
+
 UWeaponsComponent::UWeaponsComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -440,6 +443,11 @@ void UWeaponsComponent::Client_NotifyWeaponFired_Implementation()
 	OnWeaponFired.Broadcast();
 }
 
+void UWeaponsComponent::Client_DrawDebugLine_Implementation(FVector Start, FVector End, FColor Color, float Duration)
+{
+	DrawDebugLine(GetWorld(), Start, End, Color, false, Duration);
+}
+
 void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData)
 {
 	if (!GetOwner()->HasAuthority())
@@ -640,6 +648,15 @@ void UWeaponsComponent::FireWeapon()
 		// Spawn particle effects
 		Multicast_SpawnSystemAtLocation(ImpactParticles, ImpactPoint);
 	}
+
+#if !UE_BUILD_SHIPPING
+	const float BulletAdjustmentDebugDrawDuration = CVarBulletAdjustmentDebugDraw.GetValueOnGameThread();
+	if (BulletAdjustmentDebugDrawDuration > 0.f)
+	{
+		// Draw adjusted bullet trace line to the impact point
+		Client_DrawDebugLine(ShotLocation, BulletImpactPosition, FColor::Green, BulletAdjustmentDebugDrawDuration);
+	}
+#endif
 
 	const FRotator TraceRotation = UKismetMathLibrary::FindLookAtRotation(WeaponBarrelLocation, BulletImpactPosition);
 

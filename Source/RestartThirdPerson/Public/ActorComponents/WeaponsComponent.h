@@ -174,6 +174,10 @@ protected:
 	UFUNCTION(Client, Unreliable)
 	void Client_NotifyWeaponFired();
 
+	/** Server -> Owner debug draw line */
+	UFUNCTION(Client, Unreliable)
+	void Client_DrawDebugLine(FVector Start, FVector End, FColor Color, float Duration = 5.f);
+
 	/** Server -> All: notify clients to request animations */
 	UFUNCTION(NetMulticast, Unreliable)
 	void Multicast_RequestAnimations(EWeaponSlot WeaponSlot, UAnimSequenceBase* WeaponAnimation, UAnimMontage* CharacterAnimation);
