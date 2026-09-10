@@ -8,19 +8,21 @@
 /** Ground detection trace channel (DefaultEngine.ini: ECC_GameTraceChannel1).
  *  Use this for "where is the floor" queries. Helpful for ignoring other pawns during IK Traces as they block Visibility.
  */
-constexpr ECollisionChannel ECC_Ground = ECC_GameTraceChannel1;
+#define ECC_GROUND ECC_GameTraceChannel1
 
 /** Weapon detection trace channel (DefaultEngine.ini: ECC_GameTraceChannel2).
  *  Use this for "does the bullet stop here" queries. Helpful for ignoring objects like glass that don't block a bullet but block Visibility.
  */
-constexpr ECollisionChannel ECC_Weapon = ECC_GameTraceChannel2;
+#define ECC_WEAPON ECC_GameTraceChannel2
 
 /** Default physical material set to plaster */
-constexpr EPhysicalSurface SurfaceType_Plaster = SurfaceType_Default;
+#define SURFACE_TYPE_PLASTER SurfaceType_Default
+
 /** Glass surface type */
-constexpr EPhysicalSurface SurfaceType_Glass = SurfaceType1;
+#define SURFACE_TYPE_GLASS SurfaceType1
+
 /** Human flesh surface type */
-constexpr EPhysicalSurface SurfaceType_Human = SurfaceType2;
+#define SURFACE_TYPE_HUMAN SurfaceType2
 
 namespace rs
 {

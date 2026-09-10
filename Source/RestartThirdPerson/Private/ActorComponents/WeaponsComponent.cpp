@@ -579,7 +579,7 @@ void UWeaponsComponent::FireWeapon()
 	FVector BulletImpactPosition = End;
 
 	FHitResult HitResult;
-	GetWorld()->LineTraceSingleByChannel(HitResult, ShotLocation, End, ECC_Weapon, QueryParams);
+	GetWorld()->LineTraceSingleByChannel(HitResult, ShotLocation, End, ECC_WEAPON, QueryParams);
 
 	// If we hit any object
 	if (HitResult.bBlockingHit)
@@ -618,17 +618,17 @@ void UWeaponsComponent::FireWeapon()
 
 		switch (UGameplayStatics::GetSurfaceType(HitResult))
 		{
-		case SurfaceType_Glass:
+		case SURFACE_TYPE_GLASS:
 			ImpactParticles = GlassImpactParticles;
 			ImpactSound = GlassImpactSound;
 			DebrisImpactSound = GlassDebrisImpactSound;
 			break;
-		case SurfaceType_Human:
+		case SURFACE_TYPE_HUMAN:
 			ImpactParticles = HumanImpactParticles;
 			ImpactSound = HumanImpactSound;
 			DebrisImpactSound = HumanDebrisImpactSound;
 			break;
-		case SurfaceType_Plaster: // Default, already assigned
+		case SURFACE_TYPE_PLASTER: // Default, already assigned
 		default:
 			break;
 		}

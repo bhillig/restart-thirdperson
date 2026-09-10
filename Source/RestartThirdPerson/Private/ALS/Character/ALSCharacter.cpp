@@ -41,8 +41,8 @@ AALSCharacter::AALSCharacter()
 	VoiceComponent->SetupAttachment(GetMesh(), FName("head"));
 
 	// Set capsule and mesh to ignore the Ground Trace Channel. Used for IK Traces and should ignore pawns
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
-	GetMesh()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GROUND, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_GROUND, ECR_Ignore);
 	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 }
 
@@ -120,7 +120,7 @@ void AALSCharacter::Tick(float DeltaSeconds)
 			CollisionShape.SetSphere(30.f);
 
 			FHitResult OutResult;
-			if (GetWorld()->SweepSingleByChannel(OutResult, StartFeetLocation, EndLocation, FQuat::Identity, ECC_Ground, CollisionShape, QueryParams))
+			if (GetWorld()->SweepSingleByChannel(OutResult, StartFeetLocation, EndLocation, FQuat::Identity, ECC_GROUND, CollisionShape, QueryParams))
 			{
 				DistanceFromGround = OutResult.Distance;
 			}
@@ -228,7 +228,7 @@ bool AALSCharacter::CalculateShotLocationAndRotation(FVector& ShotLocation, FRot
 	QueryParams.AddIgnoredActor(this);
 
 	FHitResult HitResult;
-	GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Weapon, QueryParams);
+	GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_WEAPON, QueryParams);
 
 	const FVector DesiredImpactPoint = HitResult.bBlockingHit ? HitResult.ImpactPoint : End;
 

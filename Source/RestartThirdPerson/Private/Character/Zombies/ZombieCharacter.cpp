@@ -29,8 +29,8 @@ AZombieCharacter::AZombieCharacter()
 	ZombieVoiceComponent->SetupAttachment(GetMesh(), FName("head"));
 
 	// Set capsule and mesh to ignore the Ground Trace Channel. Used for IK Traces and should ignore pawns
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
-	GetMesh()->SetCollisionResponseToChannel(ECC_Ground, ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GROUND, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_GROUND, ECR_Ignore);
 }
 
 void AZombieCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

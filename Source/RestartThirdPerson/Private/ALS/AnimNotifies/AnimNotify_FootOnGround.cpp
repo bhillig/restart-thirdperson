@@ -24,7 +24,7 @@ void UAnimNotify_FootOnGround::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 
 	// Calculate what surface we are landing on
 	FHitResult OutHit;
-	if (MeshComp->GetWorld()->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, ECC_Ground, Shape, QueryParams))
+	if (MeshComp->GetWorld()->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, ECC_GROUND, Shape, QueryParams))
 	{
 		const EPhysicalSurface HitSurface = UGameplayStatics::GetSurfaceType(OutHit);
 
@@ -32,10 +32,10 @@ void UAnimNotify_FootOnGround::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 		USoundBase* FootSound = nullptr;
 		switch (HitSurface)
 		{
-		case SurfaceType_Glass:
+		case SURFACE_TYPE_GLASS:
 			FootSound = FootType == EFootType::Left ? LeftFootOnGlassSound : RightFootOnGlassSound;
 			break;
-		case SurfaceType_Plaster:
+		case SURFACE_TYPE_PLASTER:
 		default:
 			FootSound = FootType == EFootType::Left ? LeftFootOnPlasterSound : RightFootOnPlasterSound;
 			break;
