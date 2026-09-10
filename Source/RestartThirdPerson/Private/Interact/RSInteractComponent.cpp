@@ -6,8 +6,10 @@
 #include "GameFramework/Character.h"
 #include "Interact/RSInteractableComponent.h"
 #include "Interact/RSInteractionRegistry.h"
-#include "Net/UnrealNetwork.h"
 #include "PlayerStates/RSPlayerState.h"
+
+static TAutoConsoleVariable CVarInteractDebugDraw(TEXT("Game.Interaction.DebugDraw"), false,
+	TEXT("Enable interaction component debug drawing (0 = disabled, 1 = enabled)"));
 
 URSInteractComponent::URSInteractComponent()
 {
@@ -81,31 +83,78 @@ void URSInteractComponent::RefreshFocus()
 	URSInteractionRegistry* InteractRegistry = GetWorld()->GetSubsystem<URSInteractionRegistry>();
 	ensure(InteractRegistry);
 
+	APawn* Pawn = CastChecked<APawn>(GetOwner());
+	APlayerController* PC = CastChecked<APlayerController>(Pawn->GetController());
+
+	const FVector PlayerCenter = Pawn->GetActorLocation();
+	const FVector CameraLocation = PC->PlayerCameraManager->GetCameraLocation();
+
+	// Where the camera is looking
+	const FVector CameraHitLocation = CameraLocation + PC->GetControlRotation().Vector() * MaxInteractRange;
+	const FVector LookDirectionVector = (CameraHitLocation - CameraLocation).GetSafeNormal();
+
+	const bool bDebugDraw = CVarInteractDebugDraw.GetValueOnGameThread();
+
 	URSInteractableComponent* Best = nullptr;
-	float ClosestDistance = 9999.f;
+	float HighestWeight = TNumericLimits<float>::Min();
+
+	const float MaxInteractRangeSqr = MaxInteractRange * MaxInteractRange;
 
 	for (URSInteractableComponent* Interactable : InteractRegistry->GetInteractables())
 	{
-		// Get distance between it and the player
-		const float Distance = FVector::Dist(GetOwner()->GetActorLocation(), Interactable->GetOwner()->GetActorLocation());
-		if (Distance > MaxInteractRange)
+		FVector InteractableOrigin;
+		FVector InteractableExtents;
+		Interactable->GetOwner()->GetActorBounds(false, InteractableOrigin, InteractableExtents);
+
+		const float DistanceSqr = FVector::DistSquared(PlayerCenter, InteractableOrigin);
+
+		// Normalized Distance [0-1] where 0 is maximum distance away and 1 is the closest it can be
+		const float DistanceWeight = FMath::Clamp(1.f - (DistanceSqr / MaxInteractRangeSqr), 0.f, 1.f);
+
+		const FVector CameraToInteractableDirectionVector = (InteractableOrigin - CameraLocation).GetSafeNormal();
+		const float Dot = FVector::DotProduct(PC->GetControlRotation().Vector(), CameraToInteractableDirectionVector);
+
+		// Normalized Direction [0-1] where 1 is looking directly at the object and 0 is looking away
+		const float DirectionWeight = Dot * 0.5f + 0.5f;
+
+		// Calculate total weight
+		const float Weight = DistanceWeight * DistanceWeightScale + DirectionWeight * DirectionWeightScale;
+
+#if !UE_BUILD_SHIPPING
+		if (bDebugDraw)
+		{
+			const FString Msg = FString::Printf(TEXT("DistSqr: %f, Dot: %f, Total Weight: %f"), DistanceSqr, Dot, Weight);
+			DrawDebugString(GetWorld(), InteractableOrigin, Msg, nullptr, FColor::White, InteractInterval, true);
+		}
+#endif
+
+		if (DistanceSqr > MaxInteractRangeSqr || Dot < MinDotThreshold)
 		{
 			continue;
 		}
 
-		// TODO: Check if player is viewing in the general direction of the interactable
-
-		// TODO: Check for line of sight
-
 		// Update best
-		if (Distance < ClosestDistance)
+		if (Weight > HighestWeight)
 		{
-			ClosestDistance = Distance;
+			HighestWeight = Weight;
 			Best = Interactable;
 		}
 	}
-
+	
 	SetFocus(Best);
+
+#if !UE_BUILD_SHIPPING
+	if (bDebugDraw)
+	{
+		for (URSInteractableComponent* Interactable : InteractRegistry->GetInteractables())
+		{
+			FVector InteractableOrigin;
+			FVector InteractableExtents;
+			Interactable->GetOwner()->GetActorBounds(false, InteractableOrigin, InteractableExtents);
+			DrawDebugBox(GetWorld(), InteractableOrigin, InteractableExtents, Interactable == Best ? FColor::Green : FColor::White, false, InteractInterval);
+		}
+	}
+#endif
 }
 
 void URSInteractComponent::SetFocus(URSInteractableComponent* InteractableComp)

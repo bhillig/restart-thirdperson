@@ -33,6 +33,18 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Interact")
 	float MaxInteractRange = 150.f;
 
+	/** Minimum dot product threshold for interaction */
+	UPROPERTY(EditAnywhere, Category = "Interact")
+	float MinDotThreshold = 0.9f;
+
+	/** Scale for how much the distance weight contributes to the total weight */
+	UPROPERTY(EditAnywhere, Category = "Interact")
+	float DistanceWeightScale = 1.f;
+
+	/** Scale for how much the direction weight contributes to the total weight */
+	UPROPERTY(EditAnywhere, Category = "Interact")
+	float DirectionWeightScale = 1.f;
+
 	/** Interval in which the focused interactable is updated */
 	UPROPERTY(EditAnywhere, Category = "Interact")
 	float InteractInterval = 0.1f;
