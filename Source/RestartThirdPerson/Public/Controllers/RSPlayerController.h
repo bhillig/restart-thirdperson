@@ -18,6 +18,9 @@ class RESTARTTHIRDPERSON_API ARSPlayerController : public APlayerController
 	GENERATED_BODY()
 	
 public:
+	/** Constructor */
+	ARSPlayerController();
+
 	/** Called when the game begins */
 	virtual void BeginPlay() override;
 

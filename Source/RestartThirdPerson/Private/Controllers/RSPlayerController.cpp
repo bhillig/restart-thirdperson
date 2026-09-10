@@ -4,8 +4,14 @@
 #include "Controllers/RSPlayerController.h"
 
 #include "ALS/Character/ALSCharacter.h"
+#include "Debug/RSCheatManager.h"
 #include "GameStates/RSZombiesGameState.h"
 #include "PlayerStates/RSPlayerState.h"
+
+ARSPlayerController::ARSPlayerController()
+{
+	CheatClass = URSCheatManager::StaticClass();
+}
 
 void ARSPlayerController::BeginPlay()
 {
