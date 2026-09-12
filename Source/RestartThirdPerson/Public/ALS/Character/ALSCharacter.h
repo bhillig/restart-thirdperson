@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "ALSCharacter.generated.h"
 
+class URSActionSystemComponent;
 class URSPlayerVoiceComponent;
 class URSInteractComponent;
 class URSDamageFeedbackComponent;
@@ -128,6 +129,9 @@ protected:
 	TObjectPtr<URSInteractComponent> InteractComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<URSActionSystemComponent> ActionSystemComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UAttributesComponent> AttributesComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -156,7 +160,7 @@ protected:
 	TObjectPtr<UInputAction> InteractAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> StruggleAction;
+	TObjectPtr<UInputAction> TestAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> ToggleCrouchAction;
@@ -305,6 +309,9 @@ private:
 
 	/** Modifies the view depending on recoil pending and recoil debt. Called on Tick */
 	void ApplyRecoil(float DeltaSeconds);
+
+	/** Requests to start an action on the ActionSystemComponent with a given name */
+	void StartAction(FName InActionName);
 
 	/** Called when the current weapon fires */
 	UFUNCTION()

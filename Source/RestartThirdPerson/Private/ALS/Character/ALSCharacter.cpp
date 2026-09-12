@@ -6,6 +6,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "ActionSystem/RSActionSystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -33,6 +34,7 @@ AALSCharacter::AALSCharacter()
 	FollowCamera->SetupAttachment(SpringArm);
 
 	InteractComponent = CreateDefaultSubobject<URSInteractComponent>("InteractComponent");
+	ActionSystemComponent = CreateDefaultSubobject<URSActionSystemComponent>("ActionSystemComponent");
 	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>("AttributesComponent");
 	WeaponsComponent = CreateDefaultSubobject<UWeaponsComponent>("WeaponsComponent");
 	DamageFeedbackComponent = CreateDefaultSubobject<URSDamageFeedbackComponent>("DamageFeedbackComponent");
@@ -170,6 +172,9 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 		// Interact
 		EnhancedInputComp->BindAction(InteractAction, ETriggerEvent::Started, this, &AALSCharacter::OnInteractStarted);
+
+		// Action System
+		EnhancedInputComp->BindAction(TestAction, ETriggerEvent::Started, this, &AALSCharacter::StartAction, FName("TestAction"));
 
 		// Crouching
 		EnhancedInputComp->BindAction(ToggleCrouchAction, ETriggerEvent::Started, this, &AALSCharacter::OnCrouchToggled);
@@ -640,6 +645,12 @@ void AALSCharacter::ApplyRecoil(float DeltaSeconds)
 
 	// Keep track of the recoil debt we recovered
 	RecoilDebt -= RecoilDebtThisFrame;
+}
+
+void AALSCharacter::StartAction(FName InActionName)
+{
+	ensure(ActionSystemComponent);
+	ActionSystemComponent->StartAction(InActionName);
 }
 
 void AALSCharacter::OnWeaponFired()
