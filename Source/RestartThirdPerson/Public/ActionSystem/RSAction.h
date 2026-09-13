@@ -6,10 +6,11 @@
 #include "UObject/Object.h"
 #include "RSAction.generated.h"
 
+class URSActionSystemComponent;
 /**
  * 
  */
-UCLASS()
+UCLASS(Blueprintable, Abstract)
 class RESTARTTHIRDPERSON_API URSAction : public UObject
 {
 	GENERATED_BODY()
@@ -17,7 +18,7 @@ class RESTARTTHIRDPERSON_API URSAction : public UObject
 public:
 	/** Starts the action */
 	UFUNCTION()
-	void StartAction();
+	virtual void StartAction();
 
 	/** Returns the name of the action */
 	UFUNCTION(BlueprintPure, Category = "Action")
@@ -26,9 +27,12 @@ public:
 		return ActionName;
 	}
 
+	/** Returns the owning action system component this ability is within */
+	URSActionSystemComponent* GetOwningComponent() const;
+
 protected:
 	/** The name of the action */
-	UPROPERTY(BlueprintReadOnly, Category = "Action")
-	FName ActionName = "TestAction";
+	UPROPERTY(EditDefaultsOnly, Category = "Action")
+	FName ActionName = "Action";
 	
 };

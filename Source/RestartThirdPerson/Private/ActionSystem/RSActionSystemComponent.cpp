@@ -15,9 +15,13 @@ void URSActionSystemComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
-	// Add a default test action
-	URSAction* TestAction = NewObject<URSAction>(this, URSAction::StaticClass());
-	Actions.Add(TestAction);
+	for (TSubclassOf<URSAction> ActionClass : DefaultActions)
+	{
+		if (ensure(ActionClass))
+		{
+			Actions.Add(NewObject<URSAction>(this, ActionClass));
+		}
+	}
 }
 
 void URSActionSystemComponent::StartAction(FName InActionName)

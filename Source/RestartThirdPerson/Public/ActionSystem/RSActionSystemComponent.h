@@ -26,6 +26,11 @@ public:
 	void StartAction(FName InActionName);
 
 protected:
+	/** Default actions to grant upon initialization */
+	UPROPERTY(EditAnywhere, Category="Actions")
+	TArray<TSubclassOf<URSAction>> DefaultActions;
+
+protected:
 	/** Array of actions */
 	UPROPERTY()
 	TArray<TObjectPtr<URSAction>> Actions;

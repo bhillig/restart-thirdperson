@@ -3,6 +3,7 @@
 
 #include "ActionSystem/RSAction.h"
 
+#include "ActionSystem/RSActionSystemComponent.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
 void URSAction::StartAction()
@@ -11,4 +12,9 @@ void URSAction::StartAction()
 	UE_LOGFMT(LogTemp, Log, "Starting Action: {ActionName} at {WorldTime}", 
 		("ActionName", ActionName), 
 		("WorldTime", GetWorld()->GetTimeSeconds()));
+}
+
+URSActionSystemComponent* URSAction::GetOwningComponent() const
+{
+	return Cast<URSActionSystemComponent>(GetOuter());
 }
