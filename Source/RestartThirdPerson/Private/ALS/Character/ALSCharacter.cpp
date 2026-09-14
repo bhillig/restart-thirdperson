@@ -19,6 +19,7 @@
 #include "Interact/RSInteractComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "RestartThirdPerson/RSGameplayTags.h"
 
 static TAutoConsoleVariable CVar_DebugGateSettings(TEXT("Debug.GateSettings"), false, TEXT("Debug gate setting movement variables"));
 
@@ -167,8 +168,8 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComp->BindAction(LookAction, ETriggerEvent::Triggered, this, &AALSCharacter::OnLookTriggered);
 
 		// Sprinting (Experimental)
-		EnhancedInputComp->BindAction(SprintAction, ETriggerEvent::Started, this, &AALSCharacter::StartAction, FGameplayTag::RequestGameplayTag("Action.Sprint"));
-		EnhancedInputComp->BindAction(SprintAction, ETriggerEvent::Completed, this, &AALSCharacter::StopAction, FGameplayTag::RequestGameplayTag("Action.Sprint"));
+		EnhancedInputComp->BindAction(SprintAction, ETriggerEvent::Started, this, &AALSCharacter::StartAction, RSGameplayTags::Action_Sprint.GetTag());
+		EnhancedInputComp->BindAction(SprintAction, ETriggerEvent::Completed, this, &AALSCharacter::StopAction, RSGameplayTags::Action_Sprint.GetTag());
 
 		// Aiming
 		EnhancedInputComp->BindAction(AimAction, ETriggerEvent::Started, this, &AALSCharacter::OnAimStarted);
@@ -178,7 +179,7 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComp->BindAction(InteractAction, ETriggerEvent::Started, this, &AALSCharacter::OnInteractStarted);
 
 		// Action System
-		EnhancedInputComp->BindAction(TestAction, ETriggerEvent::Started, this, &AALSCharacter::StartAction, UGameplayTagsManager::Get().RequestGameplayTag("Action.Test"));
+		EnhancedInputComp->BindAction(TestAction, ETriggerEvent::Started, this, &AALSCharacter::StartAction, RSGameplayTags::Action_Test.GetTag());
 
 		// Crouching
 		EnhancedInputComp->BindAction(ToggleCrouchAction, ETriggerEvent::Started, this, &AALSCharacter::OnCrouchToggled);

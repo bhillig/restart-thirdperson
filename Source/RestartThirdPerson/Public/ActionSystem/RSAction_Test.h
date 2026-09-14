@@ -3,11 +3,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "NativeGameplayTags.h"
 #include "RSAction.h"
 #include "RSAction_Test.generated.h"
 
-UE_DECLARE_GAMEPLAY_TAG_EXTERN(Action_Test);
 
 /**
  * 
