@@ -17,6 +17,6 @@ class RESTARTTHIRDPERSON_API URSAction_Test : public URSAction
 
 public:
 	/** URSAction Interface */
-	virtual void StartAction() override;
+	virtual void StartAction_Implementation() override;
 	/** URSAction Interface */
 };

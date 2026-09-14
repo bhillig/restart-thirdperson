@@ -35,6 +35,21 @@ void URSActionSystemComponent::StartAction(FName InActionName)
 		}
 	}
 
-	rs::LogOnce(FString::Printf(TEXT("Could not start action: %s. The name was not found in available actions!"), 
+	rs::LogOnce(FString::Printf(TEXT("Could not start action: %s. The name was not found in available actions!"),
+		*InActionName.ToString()), FColor::Yellow, 5.0f);
+}
+
+void URSActionSystemComponent::StopAction(FName InActionName)
+{
+	for (URSAction* Action : Actions)
+	{
+		if (Action->GetActionName() == InActionName)
+		{
+			Action->StopAction();
+			return;
+		}
+	}
+
+	rs::LogOnce(FString::Printf(TEXT("Could not stop action: %s. The name was not found in available actions!"),
 		*InActionName.ToString()), FColor::Yellow, 5.0f);
 }

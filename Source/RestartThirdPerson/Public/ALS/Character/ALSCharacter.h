@@ -154,6 +154,9 @@ protected:
 	TObjectPtr<UInputAction> LookAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> SprintAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> AimAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
@@ -312,6 +315,9 @@ private:
 
 	/** Requests to start an action on the ActionSystemComponent with a given name */
 	void StartAction(FName InActionName);
+
+	/** Requests to stop an action on the ActionSystemComponent with a given name */
+	void StopAction(FName InActionName);
 
 	/** Called when the current weapon fires */
 	UFUNCTION()

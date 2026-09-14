@@ -17,22 +17,27 @@ class RESTARTTHIRDPERSON_API URSAction : public UObject
 
 public:
 	/** Starts the action */
-	UFUNCTION()
-	virtual void StartAction();
+	UFUNCTION(BlueprintNativeEvent, Category="Action")
+	void StartAction();
+
+	/** Stops the action */
+	UFUNCTION(BlueprintNativeEvent, Category="Action")
+	void StopAction();
 
 	/** Returns the name of the action */
-	UFUNCTION(BlueprintPure, Category = "Action")
+	UFUNCTION(BlueprintPure, Category="Action")
 	FName GetActionName() const
 	{
 		return ActionName;
 	}
 
 	/** Returns the owning action system component this ability is within */
+	UFUNCTION(BlueprintPure, Category="Action")
 	URSActionSystemComponent* GetOwningComponent() const;
 
 protected:
 	/** The name of the action */
-	UPROPERTY(EditDefaultsOnly, Category = "Action")
+	UPROPERTY(EditDefaultsOnly, Category="Action")
 	FName ActionName = "Action";
 	
 };

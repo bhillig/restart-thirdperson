@@ -25,6 +25,9 @@ public:
 	/** Request to start the action with a given name */
 	void StartAction(FName InActionName);
 
+	/** Request to stop the action with a given name */
+	void StopAction(FName InActionName);
+
 protected:
 	/** Default actions to grant upon initialization */
 	UPROPERTY(EditAnywhere, Category="Actions")
@@ -32,6 +35,6 @@ protected:
 
 protected:
 	/** Array of actions */
-	UPROPERTY()
+	UPROPERTY(Transient)
 	TArray<TObjectPtr<URSAction>> Actions;
 };

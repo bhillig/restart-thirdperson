@@ -166,6 +166,10 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComp->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AALSCharacter::OnMoveTriggered);
 		EnhancedInputComp->BindAction(LookAction, ETriggerEvent::Triggered, this, &AALSCharacter::OnLookTriggered);
 
+		// Sprinting (Experimental)
+		EnhancedInputComp->BindAction(SprintAction, ETriggerEvent::Started, this, &AALSCharacter::StartAction, FName("Sprint"));
+		EnhancedInputComp->BindAction(SprintAction, ETriggerEvent::Completed, this, &AALSCharacter::StopAction, FName("Sprint"));
+
 		// Aiming
 		EnhancedInputComp->BindAction(AimAction, ETriggerEvent::Started, this, &AALSCharacter::OnAimStarted);
 		EnhancedInputComp->BindAction(AimAction, ETriggerEvent::Completed, this, &AALSCharacter::OnAimCompleted);
@@ -651,6 +655,12 @@ void AALSCharacter::StartAction(FName InActionName)
 {
 	ensure(ActionSystemComponent);
 	ActionSystemComponent->StartAction(InActionName);
+}
+
+void AALSCharacter::StopAction(FName InActionName)
+{
+	ensure(ActionSystemComponent);
+	ActionSystemComponent->StopAction(InActionName);
 }
 
 void AALSCharacter::OnWeaponFired()
