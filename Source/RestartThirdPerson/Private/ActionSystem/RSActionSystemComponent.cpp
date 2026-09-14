@@ -24,32 +24,32 @@ void URSActionSystemComponent::InitializeComponent()
 	}
 }
 
-void URSActionSystemComponent::StartAction(FName InActionName)
+void URSActionSystemComponent::StartAction(FGameplayTag InActionTag)
 {
 	for (URSAction* Action : Actions)
 	{
-		if (Action->GetActionName() == InActionName)
+		if (InActionTag.MatchesTagExact(Action->GetActionTag()))
 		{
 			Action->StartAction();
 			return;
 		}
 	}
 
-	rs::LogOnce(FString::Printf(TEXT("Could not start action: %s. The name was not found in available actions!"),
-		*InActionName.ToString()), FColor::Yellow, 5.0f);
+	rs::LogOnce(FString::Printf(TEXT("Could not start action: %s. The tag was not found in available actions!"),
+		*InActionTag.ToString()), FColor::Yellow, 5.0f);
 }
 
-void URSActionSystemComponent::StopAction(FName InActionName)
+void URSActionSystemComponent::StopAction(FGameplayTag InActionTag)
 {
 	for (URSAction* Action : Actions)
 	{
-		if (Action->GetActionName() == InActionName)
+		if (InActionTag.MatchesTagExact(Action->GetActionTag()))
 		{
 			Action->StopAction();
 			return;
 		}
 	}
 
-	rs::LogOnce(FString::Printf(TEXT("Could not stop action: %s. The name was not found in available actions!"),
-		*InActionName.ToString()), FColor::Yellow, 5.0f);
+	rs::LogOnce(FString::Printf(TEXT("Could not stop action: %s. The tag was not found in available actions!"),
+		*InActionTag.ToString()), FColor::Yellow, 5.0f);
 }

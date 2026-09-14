@@ -6,6 +6,7 @@
 #include "UObject/Object.h"
 #include "RSActionSystemComponent.generated.h"
 
+struct FGameplayTag;
 class URSAction;
 /**
  * 
@@ -22,11 +23,11 @@ public:
 	/** Called when initializing the component */
 	virtual void InitializeComponent() override;
 
-	/** Request to start the action with a given name */
-	void StartAction(FName InActionName);
+	/** Request to start the action with a given tag */
+	void StartAction(FGameplayTag InActionTag);
 
-	/** Request to stop the action with a given name */
-	void StopAction(FName InActionName);
+	/** Request to stop the action with a given tag */
+	void StopAction(FGameplayTag InActionTag);
 
 protected:
 	/** Default actions to grant upon initialization */

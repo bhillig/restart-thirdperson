@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "ALSCharacter.generated.h"
 
+struct FGameplayTag;
 class URSActionSystemComponent;
 class URSPlayerVoiceComponent;
 class URSInteractComponent;
@@ -313,11 +314,11 @@ private:
 	/** Modifies the view depending on recoil pending and recoil debt. Called on Tick */
 	void ApplyRecoil(float DeltaSeconds);
 
-	/** Requests to start an action on the ActionSystemComponent with a given name */
-	void StartAction(FName InActionName);
+	/** Requests to start an action on the ActionSystemComponent with a given tag */
+	void StartAction(FGameplayTag InActionTag);
 
-	/** Requests to stop an action on the ActionSystemComponent with a given name */
-	void StopAction(FName InActionName);
+	/** Requests to stop an action on the ActionSystemComponent with a given tag */
+	void StopAction(FGameplayTag InActionTag);
 
 	/** Called when the current weapon fires */
 	UFUNCTION()

@@ -167,8 +167,8 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComp->BindAction(LookAction, ETriggerEvent::Triggered, this, &AALSCharacter::OnLookTriggered);
 
 		// Sprinting (Experimental)
-		EnhancedInputComp->BindAction(SprintAction, ETriggerEvent::Started, this, &AALSCharacter::StartAction, FName("Sprint"));
-		EnhancedInputComp->BindAction(SprintAction, ETriggerEvent::Completed, this, &AALSCharacter::StopAction, FName("Sprint"));
+		EnhancedInputComp->BindAction(SprintAction, ETriggerEvent::Started, this, &AALSCharacter::StartAction, FGameplayTag::RequestGameplayTag("Action.Sprint"));
+		EnhancedInputComp->BindAction(SprintAction, ETriggerEvent::Completed, this, &AALSCharacter::StopAction, FGameplayTag::RequestGameplayTag("Action.Sprint"));
 
 		// Aiming
 		EnhancedInputComp->BindAction(AimAction, ETriggerEvent::Started, this, &AALSCharacter::OnAimStarted);
@@ -178,7 +178,7 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		EnhancedInputComp->BindAction(InteractAction, ETriggerEvent::Started, this, &AALSCharacter::OnInteractStarted);
 
 		// Action System
-		EnhancedInputComp->BindAction(TestAction, ETriggerEvent::Started, this, &AALSCharacter::StartAction, FName("TestAction"));
+		EnhancedInputComp->BindAction(TestAction, ETriggerEvent::Started, this, &AALSCharacter::StartAction, UGameplayTagsManager::Get().RequestGameplayTag("Action.Test"));
 
 		// Crouching
 		EnhancedInputComp->BindAction(ToggleCrouchAction, ETriggerEvent::Started, this, &AALSCharacter::OnCrouchToggled);
@@ -651,16 +651,16 @@ void AALSCharacter::ApplyRecoil(float DeltaSeconds)
 	RecoilDebt -= RecoilDebtThisFrame;
 }
 
-void AALSCharacter::StartAction(FName InActionName)
+void AALSCharacter::StartAction(FGameplayTag InActionTag)
 {
 	ensure(ActionSystemComponent);
-	ActionSystemComponent->StartAction(InActionName);
+	ActionSystemComponent->StartAction(InActionTag);
 }
 
-void AALSCharacter::StopAction(FName InActionName)
+void AALSCharacter::StopAction(FGameplayTag InActionTag)
 {
 	ensure(ActionSystemComponent);
-	ActionSystemComponent->StopAction(InActionName);
+	ActionSystemComponent->StopAction(InActionTag);
 }
 
 void AALSCharacter::OnWeaponFired()

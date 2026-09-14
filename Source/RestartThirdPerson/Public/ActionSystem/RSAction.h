@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "UObject/Object.h"
 #include "RSAction.generated.h"
 
@@ -24,11 +25,11 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category="Action")
 	void StopAction();
 
-	/** Returns the name of the action */
+	/** Returns the tag of the action */
 	UFUNCTION(BlueprintPure, Category="Action")
-	FName GetActionName() const
+	FGameplayTag GetActionTag() const
 	{
-		return ActionName;
+		return ActionTag;
 	}
 
 	/** Returns the owning action system component this ability is within */
@@ -36,8 +37,8 @@ public:
 	URSActionSystemComponent* GetOwningComponent() const;
 
 protected:
-	/** The name of the action */
+	/** The tag of the action */
 	UPROPERTY(EditDefaultsOnly, Category="Action")
-	FName ActionName = "Action";
+	FGameplayTag ActionTag;
 	
 };
