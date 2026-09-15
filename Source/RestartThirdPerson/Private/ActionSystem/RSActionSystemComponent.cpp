@@ -30,7 +30,10 @@ void URSActionSystemComponent::StartAction(FGameplayTag InActionTag)
 	{
 		if (InActionTag.MatchesTagExact(Action->GetActionTag()))
 		{
-			Action->StartAction();
+			if (Action->CanStart())
+			{
+				Action->StartAction();
+			}
 			return;
 		}
 	}
@@ -45,7 +48,10 @@ void URSActionSystemComponent::StopAction(FGameplayTag InActionTag)
 	{
 		if (InActionTag.MatchesTagExact(Action->GetActionTag()))
 		{
-			Action->StopAction();
+			if (Action->IsRunning())
+			{
+				Action->StopAction();
+			}
 			return;
 		}
 	}

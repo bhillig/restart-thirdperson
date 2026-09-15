@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "UObject/Object.h"
 #include "RSActionSystemComponent.generated.h"
 
@@ -28,6 +29,10 @@ public:
 
 	/** Request to stop the action with a given tag */
 	void StopAction(FGameplayTag InActionTag);
+
+	/** Active gameplay tags on this pawn */
+	UPROPERTY(BlueprintReadWrite, Category="Tags")
+	FGameplayTagContainer ActiveGameplayTags;
 
 protected:
 	/** Default actions to grant upon initialization */
