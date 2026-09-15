@@ -4,16 +4,20 @@
 #include "ActionSystem/RSActionSystemComponent.h"
 
 #include "ActionSystem/RSAction.h"
+#include "ActionSystem/RSAttributeSet.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
 URSActionSystemComponent::URSActionSystemComponent()
 {
 	bWantsInitializeComponent = true;
+	AttributeSetClass = URSAttributeSet::StaticClass();
 }
 
 void URSActionSystemComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
+
+	Attributes = NewObject<URSAttributeSet>(this, AttributeSetClass);
 
 	for (TSubclassOf<URSAction> ActionClass : DefaultActions)
 	{

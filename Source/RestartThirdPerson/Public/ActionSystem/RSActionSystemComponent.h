@@ -7,6 +7,7 @@
 #include "UObject/Object.h"
 #include "RSActionSystemComponent.generated.h"
 
+class URSAttributeSet;
 struct FGameplayTag;
 class URSAction;
 /**
@@ -39,7 +40,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Actions")
 	TArray<TSubclassOf<URSAction>> DefaultActions;
 
+	/** Attribute Set Class to instantiate */
+	UPROPERTY(EditAnywhere, NoClear, Category="Attributes")
+	TSubclassOf<URSAttributeSet> AttributeSetClass;
+
 protected:
+	/** Current attributes */
+	UPROPERTY(Transient)
+	TObjectPtr<URSAttributeSet> Attributes;
+
 	/** Array of actions */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<URSAction>> Actions;
