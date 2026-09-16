@@ -6,6 +6,7 @@
 #include "GameFramework/CheatManager.h"
 #include "RSCheatManager.generated.h"
 
+class URSActionSystemComponent;
 class UWeaponsComponent;
 class UWeaponDataAsset;
 /**
@@ -24,9 +25,16 @@ public:
 	UFUNCTION(Exec)
 	void ListWeapons();
 
+	/** Applies a health change to the owning player */
+	UFUNCTION(Exec)
+	void ApplyHealthChange(float Delta);
+
 private:
 	static void GatherWeaponDataAssets(TArray<const UWeaponDataAsset*>& OutWeapons);
 
 	/** Gets the local player's weapon component */
 	UWeaponsComponent* GetWeaponsComponent() const;
+
+	/** Gets the local player's action system component */
+	URSActionSystemComponent* GetActionSystemComponent() const;
 };

@@ -7,6 +7,8 @@
 #include "ActionSystem/RSAttributeSet.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
+static TAutoConsoleVariable<bool> CVarDebugAttributes(TEXT("Game.DebugAttributes"), false, TEXT("Enables logging of attribute changes"));
+
 URSActionSystemComponent::URSActionSystemComponent()
 {
 	bWantsInitializeComponent = true;
@@ -74,17 +76,48 @@ void URSActionSystemComponent::StopAction(FGameplayTag InActionTag)
 		*InActionTag.ToString()), FColor::Yellow, 5.0f);
 }
 
-bool URSActionSystemComponent::ApplyAttributeChange(FGameplayTag InAttributeTag, float Delta)
+bool URSActionSystemComponent::ApplyAttributeChange(FGameplayTag InAttributeTag, float Delta, EAttributeChangeType ChangeType, AController* EventInstigator, AActor* InstigatorActor)
 {
 	FRSAttribute* Attribute = FindAttributeByTag(InAttributeTag);
 	if (!Attribute)
 	{
-		rs::LogOnce(FString::Printf(TEXT("Could not apply attribute change to attribute: %s. Name not found!"), *InAttributeTag.ToString()), 
+		rs::LogOnce(FString::Printf(TEXT("Could not apply attribute change to attribute: %s. Name not found!"), *InAttributeTag.ToString()),
 			FColor::Red, 3.0f);
 		return false;
 	}
 
-	Attribute->ApplyBaseChange(Delta);
+	const float OldValue = Attribute->GetValue();
+
+	switch (ChangeType)
+	{
+	case Base:
+		Attribute->Base += Delta;
+		break;
+	case Modifier:
+		Attribute->Modifier += Delta;
+		break;
+	case BaseOverride:
+		Attribute->Base = Delta;
+		break;
+	default:
+		check(false);
+	}
+
+	Attributes->PostAttributeChange();
+
+	if (FOnAttributeChanged* AttributeDelegate = AttributeDelegates.Find(InAttributeTag))
+	{
+		AttributeDelegate->Broadcast(Attribute->GetValue(), OldValue, EventInstigator, InstigatorActor);
+	}
+
+#if !UE_BUILD_SHIPPING
+	if (CVarDebugAttributes.GetValueOnGameThread())
+	{
+		const FString Msg = FString::Printf(TEXT("Attribute: %s, New Value: %f, Old Value: %f"), *InAttributeTag.ToString(), Attribute->GetValue(), OldValue);
+		rs::LogOnce(Msg);
+	}
+#endif
+
 	return true;
 }
 
@@ -95,4 +128,9 @@ FRSAttribute* URSActionSystemComponent::FindAttributeByTag(FGameplayTag InAttrib
 		return *FoundAttribute;
 	}
 	return nullptr;
+}
+
+FOnAttributeChanged& URSActionSystemComponent::GetAttributeDelegate(FGameplayTag InAttributeTag)
+{
+	return AttributeDelegates.FindOrAdd(InAttributeTag);
 }

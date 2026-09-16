@@ -3,9 +3,11 @@
 
 #include "Debug/RSCheatManager.h"
 
+#include "ActionSystem/RSActionSystemComponent.h"
 #include "ActorComponents/WeaponsComponent.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
+#include "RestartThirdPerson/RSGameplayTags.h"
 
 void URSCheatManager::GiveWeapon(const FString& WeaponName)
 {
@@ -42,6 +44,14 @@ void URSCheatManager::ListWeapons()
 	}
 }
 
+void URSCheatManager::ApplyHealthChange(float Delta)
+{
+	URSActionSystemComponent* ActionSystemComponent = GetActionSystemComponent();
+	ensure(ActionSystemComponent);
+
+	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, Delta, Base, nullptr, nullptr);
+}
+
 void URSCheatManager::GatherWeaponDataAssets(TArray<const UWeaponDataAsset*>& OutWeapons)
 {
 	FARFilter Filter;
@@ -65,4 +75,11 @@ UWeaponsComponent* URSCheatManager::GetWeaponsComponent() const
 	const APlayerController* PC = GetOuterAPlayerController();
 	APawn* Pawn = PC ? PC->GetPawn() : nullptr;
 	return Pawn ? Pawn->FindComponentByClass<UWeaponsComponent>() : nullptr;
+}
+
+URSActionSystemComponent* URSCheatManager::GetActionSystemComponent() const
+{
+	const APlayerController* PC = GetOuterAPlayerController();
+	APawn* Pawn = PC ? PC->GetPawn() : nullptr;
+	return Pawn ? Pawn->FindComponentByClass<URSActionSystemComponent>() : nullptr;
 }

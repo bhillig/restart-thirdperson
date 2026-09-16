@@ -10,6 +10,18 @@
 
 struct FGameplayTag;
 class URSAction;
+
+UENUM()
+enum EAttributeChangeType : uint8
+{
+	Base,
+	Modifier,
+	BaseOverride,
+	Invalid
+};
+
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnAttributeChanged, float, /* New Value */ float, /* Old Value */ AController*, /* EventInstigator */ AActor* /* ActorInstigator */);
+
 /**
  * 
  */
@@ -32,13 +44,17 @@ public:
 	void StopAction(FGameplayTag InActionTag);
 
 	/** Applies an attribute change */
-	bool ApplyAttributeChange(FGameplayTag InAttributeTag, float Delta);
+	bool ApplyAttributeChange(FGameplayTag InAttributeTag, float Delta, EAttributeChangeType ChangeType, AController* EventInstigator = nullptr, AActor* InstigatorActor = nullptr);
 
 	/** Active gameplay tags on this pawn */
 	UPROPERTY(BlueprintReadWrite, Category="Tags")
 	FGameplayTagContainer ActiveGameplayTags;
 
+	/** Finds the attribute of a given tag, returns nullptr if it doesn't exist */
 	FRSAttribute* FindAttributeByTag(FGameplayTag InAttributeTag);
+
+	/** Retrieves the attribute delegate of a given attribute tag, creates one if it doesn't exist yet */
+	FOnAttributeChanged& GetAttributeDelegate(FGameplayTag InAttributeTag);
 
 protected:
 	/** Default actions to grant upon initialization */
@@ -56,6 +72,9 @@ protected:
 
 	/** Cached Attributes */
 	TMap<FGameplayTag, FRSAttribute*> CachedAttributes;
+
+	/** Attribute Delegates */
+	TMap<FGameplayTag, FOnAttributeChanged> AttributeDelegates;
 
 	/** Array of actions */
 	UPROPERTY(Transient)

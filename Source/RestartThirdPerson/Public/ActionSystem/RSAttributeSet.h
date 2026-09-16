@@ -15,25 +15,20 @@ struct FRSAttribute
 
 	/** Constructors */
 	FRSAttribute() {}
-	FRSAttribute(float InBaseValue) : BaseValue(InBaseValue) {}
+	FRSAttribute(float InBaseValue) : Base(InBaseValue) {}
 
 	/** Base value of the attribute */
 	UPROPERTY(EditAnywhere, Category="Attributes")
-	float BaseValue = 0.0f;
+	float Base = 0.0f;
 
 	/** Modifier applied on top of the base value */
 	UPROPERTY(Transient)
 	float Modifier = 0.0f;
 
-	void ApplyBaseChange(float InValueChange)
-	{
-		BaseValue += InValueChange;
-	}
-
 	/** Returns the calculated value of the attribute */
 	float GetValue() const
 	{
-		return BaseValue + Modifier;
+		return Base + Modifier;
 	}
 };
 
@@ -44,6 +39,10 @@ UCLASS()
 class RESTARTTHIRDPERSON_API URSAttributeSet : public UObject
 {
 	GENERATED_BODY()
+
+public:
+	/** Called when an attribute on this set changes */
+	virtual void PostAttributeChange() {}
 };
 
 /** 
@@ -64,6 +63,10 @@ protected:
 	FRSAttribute HealthMax;
 
 public:
+	/** URSAttributeSet */
+	virtual void PostAttributeChange() override;
+	/** URSAttributeSet */
+
 	/** Constructor */
 	URSHealthAttributeSet();
 };
