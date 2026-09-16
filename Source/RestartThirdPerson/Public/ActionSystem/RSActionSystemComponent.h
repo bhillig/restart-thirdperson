@@ -4,10 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "RSAttributeSet.h"
 #include "UObject/Object.h"
 #include "RSActionSystemComponent.generated.h"
 
-class URSAttributeSet;
 struct FGameplayTag;
 class URSAction;
 /**
@@ -31,9 +31,14 @@ public:
 	/** Request to stop the action with a given tag */
 	void StopAction(FGameplayTag InActionTag);
 
+	/** Applies an attribute change */
+	bool ApplyAttributeChange(FGameplayTag InAttributeTag, float Delta);
+
 	/** Active gameplay tags on this pawn */
 	UPROPERTY(BlueprintReadWrite, Category="Tags")
 	FGameplayTagContainer ActiveGameplayTags;
+
+	FRSAttribute* FindAttributeByTag(FGameplayTag InAttributeTag);
 
 protected:
 	/** Default actions to grant upon initialization */
@@ -48,6 +53,9 @@ protected:
 	/** Current attributes */
 	UPROPERTY(Transient)
 	TObjectPtr<URSAttributeSet> Attributes;
+
+	/** Cached Attributes */
+	TMap<FGameplayTag, FRSAttribute*> CachedAttributes;
 
 	/** Array of actions */
 	UPROPERTY(Transient)

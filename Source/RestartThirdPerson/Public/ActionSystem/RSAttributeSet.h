@@ -8,7 +8,7 @@
 /** 
  *  Attribute
  */
-USTRUCT()
+USTRUCT(Blueprintable)
 struct FRSAttribute
 {
 	GENERATED_BODY()
@@ -24,6 +24,11 @@ struct FRSAttribute
 	/** Modifier applied on top of the base value */
 	UPROPERTY(Transient)
 	float Modifier = 0.0f;
+
+	void ApplyBaseChange(float InValueChange)
+	{
+		BaseValue += InValueChange;
+	}
 
 	/** Returns the calculated value of the attribute */
 	float GetValue() const
