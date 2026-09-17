@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "RSAttributeSet.generated.h"
 
+class URSActionSystemComponent;
 /** 
  *  Attribute
  */
@@ -41,15 +42,22 @@ class RESTARTTHIRDPERSON_API URSAttributeSet : public UObject
 	GENERATED_BODY()
 
 public:
+	/** Called when the game begins */
+	virtual void Initialize() {}
+
 	/** Called when an attribute on this set changes */
 	virtual void PostAttributeChange() {}
+
+protected:
+	/** Returns the owning action system component */
+	URSActionSystemComponent* GetOwningComponent() const;
 };
 
 /** 
  *  Health Attribute Set
  */
 UCLASS()
-class URSHealthAttributeSet : public URSAttributeSet
+class URSHealthAttributeSet final : public URSAttributeSet
 {
 	GENERATED_BODY()
 
@@ -69,4 +77,31 @@ public:
 
 	/** Constructor */
 	URSHealthAttributeSet();
+};
+
+/**
+ *  Character Attribute Set
+ */
+UCLASS()
+class URSCharacterAttributeSet final : public URSAttributeSet
+{
+	GENERATED_BODY()
+
+protected:
+	/** Move Speed Attribute */
+	UPROPERTY(EditAnywhere, Category = "Attributes")
+	FRSAttribute MoveSpeed;
+
+	/** Applies the move speed on the character movement component */
+	void ApplyMoveSpeed();
+
+public:
+	/** URSAttributeSet */
+	virtual void Initialize() override;
+
+	virtual void PostAttributeChange() override;
+	/** URSAttributeSet */
+
+	/** Constructor */
+	URSCharacterAttributeSet();
 };

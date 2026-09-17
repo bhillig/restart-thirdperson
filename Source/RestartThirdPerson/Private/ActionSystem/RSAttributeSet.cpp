@@ -3,6 +3,10 @@
 
 #include "ActionSystem/RSAttributeSet.h"
 
+#include "ActionSystem/RSActionSystemComponent.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
+
 URSHealthAttributeSet::URSHealthAttributeSet()
 {
 	HealthMax = FRSAttribute(100.f);
@@ -16,3 +20,35 @@ void URSHealthAttributeSet::PostAttributeChange()
 	Health.Base = FMath::Clamp(Health.GetValue(), 0.0f, HealthMax.GetValue());
 }
 
+URSCharacterAttributeSet::URSCharacterAttributeSet()
+{
+	MoveSpeed = FRSAttribute(425.f);
+}
+
+void URSCharacterAttributeSet::Initialize()
+{
+	Super::Initialize();
+
+	ApplyMoveSpeed();
+}
+
+void URSCharacterAttributeSet::PostAttributeChange()
+{
+	Super::PostAttributeChange();
+
+	ApplyMoveSpeed();
+}
+
+void URSCharacterAttributeSet::ApplyMoveSpeed()
+{
+	URSActionSystemComponent* ActionSystemComponent = GetOwningComponent();
+	ensure(ActionSystemComponent);
+
+	ACharacter* OwningCharacter = CastChecked<ACharacter>(ActionSystemComponent->GetOwner());
+	OwningCharacter->GetCharacterMovement()->MaxWalkSpeed = MoveSpeed.GetValue();
+}
+
+URSActionSystemComponent* URSAttributeSet::GetOwningComponent() const
+{
+	return Cast<URSActionSystemComponent>(GetOuter());
+}

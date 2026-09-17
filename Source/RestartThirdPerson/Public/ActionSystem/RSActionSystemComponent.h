@@ -11,7 +11,7 @@
 struct FGameplayTag;
 class URSAction;
 
-UENUM()
+UENUM(BlueprintType)
 enum EAttributeChangeType : uint8
 {
 	Base,
@@ -44,6 +44,7 @@ public:
 	void StopAction(FGameplayTag InActionTag);
 
 	/** Applies an attribute change */
+	UFUNCTION(BlueprintCallable, Category="Attributes")
 	bool ApplyAttributeChange(FGameplayTag InAttributeTag, float Delta, EAttributeChangeType ChangeType, AController* EventInstigator = nullptr, AActor* InstigatorActor = nullptr);
 
 	/** Active gameplay tags on this pawn */
@@ -53,6 +54,9 @@ public:
 	/** Finds the attribute of a given tag, returns nullptr if it doesn't exist */
 	FRSAttribute* FindAttributeByTag(FGameplayTag InAttributeTag);
 
+	/** Finds the owning attribute set of a given attribute, returns nullptr if it doesn't exist */
+	URSAttributeSet* FindOwningAttributeSet(FRSAttribute* Attribute);
+
 	/** Retrieves the attribute delegate of a given attribute tag, creates one if it doesn't exist yet */
 	FOnAttributeChanged& GetAttributeDelegate(FGameplayTag InAttributeTag);
 
@@ -61,17 +65,20 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Actions")
 	TArray<TSubclassOf<URSAction>> DefaultActions;
 
-	/** Attribute Set Class to instantiate */
+	/** Attribute Set Classes to instantiate */
 	UPROPERTY(EditAnywhere, NoClear, Category="Attributes")
-	TSubclassOf<URSAttributeSet> AttributeSetClass;
+	TArray<TSubclassOf<URSAttributeSet>> AttributeSetClasses;
 
 protected:
-	/** Current attributes */
+	/** Current attribute sets */
 	UPROPERTY(Transient)
-	TObjectPtr<URSAttributeSet> Attributes;
+	TArray<TObjectPtr<URSAttributeSet>> AttributeSets;
 
 	/** Cached Attributes */
 	TMap<FGameplayTag, FRSAttribute*> CachedAttributes;
+
+	/** Cached Attribute Sets */
+	TMap<FRSAttribute*, URSAttributeSet*> CachedAttributeSets;
 
 	/** Attribute Delegates */
 	TMap<FGameplayTag, FOnAttributeChanged> AttributeDelegates;

@@ -12,24 +12,31 @@ static TAutoConsoleVariable<bool> CVarDebugAttributes(TEXT("Game.DebugAttributes
 URSActionSystemComponent::URSActionSystemComponent()
 {
 	bWantsInitializeComponent = true;
-	AttributeSetClass = URSAttributeSet::StaticClass();
 }
 
 void URSActionSystemComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
-	Attributes = NewObject<URSAttributeSet>(this, AttributeSetClass);
-
-	for (TFieldIterator<FStructProperty> PropIt(Attributes->GetClass()); PropIt; ++PropIt)
+	for (TSubclassOf<URSAttributeSet> AttributeSetClass : AttributeSetClasses)
 	{
-		FRSAttribute* FoundAttribute = PropIt->ContainerPtrToValuePtr<FRSAttribute>(Attributes);
-
-		FName AttributeTagName = FName("Attribute." + PropIt->GetName());
-		FGameplayTag AttributeTag = FGameplayTag::RequestGameplayTag(AttributeTagName);
-
-		CachedAttributes.Add(AttributeTag, FoundAttribute);
+		AttributeSets.Add(NewObject<URSAttributeSet>(this, AttributeSetClass));
 	}
+
+	for (URSAttributeSet* AttributeSet : AttributeSets)
+	{
+		for (TFieldIterator<FStructProperty> PropIt(AttributeSet->GetClass()); PropIt; ++PropIt)
+		{
+			FRSAttribute* FoundAttribute = PropIt->ContainerPtrToValuePtr<FRSAttribute>(AttributeSet);
+
+			FName AttributeTagName = FName("Attribute." + PropIt->GetName());
+			FGameplayTag AttributeTag = FGameplayTag::RequestGameplayTag(AttributeTagName);
+
+			CachedAttributes.Add(AttributeTag, FoundAttribute);
+			CachedAttributeSets.Add(FoundAttribute, AttributeSet);
+		}
+	}
+	
 
 	for (TSubclassOf<URSAction> ActionClass : DefaultActions)
 	{
@@ -103,7 +110,10 @@ bool URSActionSystemComponent::ApplyAttributeChange(FGameplayTag InAttributeTag,
 		check(false);
 	}
 
-	Attributes->PostAttributeChange();
+	URSAttributeSet* OwningAttributeSet = FindOwningAttributeSet(Attribute);
+	ensure(OwningAttributeSet);
+
+	OwningAttributeSet->PostAttributeChange();
 
 	if (FOnAttributeChanged* AttributeDelegate = AttributeDelegates.Find(InAttributeTag))
 	{
@@ -126,6 +136,15 @@ FRSAttribute* URSActionSystemComponent::FindAttributeByTag(FGameplayTag InAttrib
 	if (FRSAttribute** FoundAttribute = CachedAttributes.Find(InAttributeTag))
 	{
 		return *FoundAttribute;
+	}
+	return nullptr;
+}
+
+URSAttributeSet* URSActionSystemComponent::FindOwningAttributeSet(FRSAttribute* Attribute)
+{
+	if (URSAttributeSet** FoundAttributeSet = CachedAttributeSets.Find(Attribute))
+	{
+		return *FoundAttributeSet;
 	}
 	return nullptr;
 }
