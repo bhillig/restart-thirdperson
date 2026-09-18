@@ -20,7 +20,11 @@ enum EAttributeChangeType : uint8
 	Invalid
 };
 
+// Native delegate
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnAttributeChanged, float, /* New Value */ float, /* Old Value */ AController*, /* EventInstigator */ AActor* /* ActorInstigator */);
+
+// Dynamic delegate
+DECLARE_DYNAMIC_DELEGATE_FourParams(FOnAttributeChangedDynamic, float, NewValue, float, OldValue, AController*, EventInstigator, AActor*, InstigatorActor);
 
 /**
  * 
@@ -31,12 +35,6 @@ class RESTARTTHIRDPERSON_API URSActionSystemComponent : public UActorComponent
 	GENERATED_BODY()
 	
 public:
-	/** Constructor */
-	URSActionSystemComponent();
-
-	/** Called when initializing the component */
-	virtual void InitializeComponent() override;
-
 	/** Request to start the action with a given tag */
 	void StartAction(FGameplayTag InActionTag);
 
@@ -47,18 +45,28 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Attributes")
 	bool ApplyAttributeChange(FGameplayTag InAttributeTag, float Delta, EAttributeChangeType ChangeType, AController* EventInstigator = nullptr, AActor* InstigatorActor = nullptr);
 
+	/** Returns the attribute value for a given attribute */
+	UFUNCTION(BlueprintCallable, Category="Attributes")
+	float GetAttributeValue(FGameplayTag InAttributeTag) const;
+
+	/** USED TO REGISTER A NATIVE LISTENER */
+	/** Retrieves the attribute listener of a given attribute tag, creates one if it doesn't exist yet */
+	FOnAttributeChanged& GetAttributeListener(FGameplayTag InAttributeTag);
+
+	/** REGISTER A BLUEPRINT LISTENER */
+	UFUNCTION(BlueprintCallable, DisplayName="Add Attribute Listener", Category="Attributes")
+	void AddDynamicAttributeListener(FGameplayTag InAttributeTag, FOnAttributeChangedDynamic Event, bool bExecuteInitialBroadcast = false);
+
 	/** Active gameplay tags on this pawn */
-	UPROPERTY(BlueprintReadWrite, Category="Tags")
+	UPROPERTY(BlueprintReadWrite, Category = "Tags")
 	FGameplayTagContainer ActiveGameplayTags;
 
+protected:
 	/** Finds the attribute of a given tag, returns nullptr if it doesn't exist */
-	FRSAttribute* FindAttributeByTag(FGameplayTag InAttributeTag);
+	FRSAttribute* FindAttributeByTag(FGameplayTag InAttributeTag) const;
 
 	/** Finds the owning attribute set of a given attribute, returns nullptr if it doesn't exist */
-	URSAttributeSet* FindOwningAttributeSet(FRSAttribute* Attribute);
-
-	/** Retrieves the attribute delegate of a given attribute tag, creates one if it doesn't exist yet */
-	FOnAttributeChanged& GetAttributeDelegate(FGameplayTag InAttributeTag);
+	URSAttributeSet* FindOwningAttributeSet(FRSAttribute* Attribute) const;
 
 protected:
 	/** Default actions to grant upon initialization */
@@ -80,10 +88,20 @@ protected:
 	/** Cached Attribute Sets */
 	TMap<FRSAttribute*, URSAttributeSet*> CachedAttributeSets;
 
-	/** Attribute Delegates */
-	TMap<FGameplayTag, FOnAttributeChanged> AttributeDelegates;
+	/** Attribute Listeners */
+	TMap<FGameplayTag, FOnAttributeChanged> AttributeListeners;
+
+	/** Blueprint Attribute Listeners */
+	TMap<FGameplayTag, TArray<FOnAttributeChangedDynamic>> BlueprintAttributeListeners;
 
 	/** Array of actions */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<URSAction>> Actions;
+
+public:
+	/** Constructor */
+	URSActionSystemComponent();
+
+	/** Called when initializing the component */
+	virtual void InitializeComponent() override;
 };

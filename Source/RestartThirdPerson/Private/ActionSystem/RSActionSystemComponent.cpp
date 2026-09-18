@@ -115,9 +115,20 @@ bool URSActionSystemComponent::ApplyAttributeChange(FGameplayTag InAttributeTag,
 
 	OwningAttributeSet->PostAttributeChange();
 
-	if (FOnAttributeChanged* AttributeDelegate = AttributeDelegates.Find(InAttributeTag))
+	// Broadcast to Native Listeners
+	if (FOnAttributeChanged* AttributeListener = AttributeListeners.Find(InAttributeTag))
 	{
-		AttributeDelegate->Broadcast(Attribute->GetValue(), OldValue, EventInstigator, InstigatorActor);
+		AttributeListener->Broadcast(Attribute->GetValue(), OldValue, EventInstigator, InstigatorActor);
+	}
+
+	// Broadcast to Blueprint Listeners
+	if (TArray<FOnAttributeChangedDynamic>* BlueprintListenersArray = BlueprintAttributeListeners.Find(InAttributeTag))
+	{
+		TArray<FOnAttributeChangedDynamic>& BlueprintListeners = *BlueprintListenersArray;
+		for (FOnAttributeChangedDynamic& AttributeListener : BlueprintListeners)
+		{
+			AttributeListener.Execute(Attribute->GetValue(), OldValue, EventInstigator, InstigatorActor);
+		}
 	}
 
 #if !UE_BUILD_SHIPPING
@@ -131,25 +142,50 @@ bool URSActionSystemComponent::ApplyAttributeChange(FGameplayTag InAttributeTag,
 	return true;
 }
 
-FRSAttribute* URSActionSystemComponent::FindAttributeByTag(FGameplayTag InAttributeTag)
+FRSAttribute* URSActionSystemComponent::FindAttributeByTag(FGameplayTag InAttributeTag) const
 {
-	if (FRSAttribute** FoundAttribute = CachedAttributes.Find(InAttributeTag))
+	if (FRSAttribute* const* FoundAttribute = CachedAttributes.Find(InAttributeTag))
 	{
 		return *FoundAttribute;
 	}
 	return nullptr;
 }
 
-URSAttributeSet* URSActionSystemComponent::FindOwningAttributeSet(FRSAttribute* Attribute)
+float URSActionSystemComponent::GetAttributeValue(FGameplayTag InAttributeTag) const
 {
-	if (URSAttributeSet** FoundAttributeSet = CachedAttributeSets.Find(Attribute))
+	if (FRSAttribute* FoundAttribute = FindAttributeByTag(InAttributeTag))
+	{
+		return FoundAttribute->GetValue();
+	}
+	ensure(false);
+	return 0.f;
+}
+
+URSAttributeSet* URSActionSystemComponent::FindOwningAttributeSet(FRSAttribute* Attribute) const
+{
+	if (URSAttributeSet* const* FoundAttributeSet = CachedAttributeSets.Find(Attribute))
 	{
 		return *FoundAttributeSet;
 	}
 	return nullptr;
 }
 
-FOnAttributeChanged& URSActionSystemComponent::GetAttributeDelegate(FGameplayTag InAttributeTag)
+FOnAttributeChanged& URSActionSystemComponent::GetAttributeListener(FGameplayTag InAttributeTag)
 {
-	return AttributeDelegates.FindOrAdd(InAttributeTag);
+	return AttributeListeners.FindOrAdd(InAttributeTag);
+}
+
+void URSActionSystemComponent::AddDynamicAttributeListener(FGameplayTag InAttributeTag, FOnAttributeChangedDynamic Event, bool bExecuteInitialBroadcast /* = false*/)
+{
+	if (bExecuteInitialBroadcast)
+	{
+		// Initial broadcast
+		FRSAttribute* FoundAttribute = FindAttributeByTag(InAttributeTag);
+		ensure(FoundAttribute);
+		Event.Execute(FoundAttribute->GetValue(), FoundAttribute->GetValue(), nullptr, nullptr);
+	}
+
+	// Add blueprint listener
+	TArray<FOnAttributeChangedDynamic>& BlueprintListeners = BlueprintAttributeListeners.FindOrAdd(InAttributeTag);
+	BlueprintListeners.Add(Event);
 }
