@@ -54,8 +54,12 @@ public:
 	FOnAttributeChanged& GetAttributeListener(FGameplayTag InAttributeTag);
 
 	/** REGISTER A BLUEPRINT LISTENER */
-	UFUNCTION(BlueprintCallable, DisplayName="Add Attribute Listener", Category="Attributes")
+	UFUNCTION(BlueprintCallable, DisplayName="Add Attribute Listener", Category="Attributes", meta = (Keywords="event,delegate"))
 	void AddDynamicAttributeListener(FGameplayTag InAttributeTag, FOnAttributeChangedDynamic Event, bool bExecuteInitialBroadcast = false);
+
+	/** REMOVE A BLUEPRINT LISTENER */
+	UFUNCTION(BlueprintCallable, DisplayName = "Remove Attribute Listener", Category = "Attributes", meta = (Keywords = "event,delegate"))
+	void RemoveDynamicAttributeListener(FOnAttributeChangedDynamic Event);
 
 	/** Active gameplay tags on this pawn */
 	UPROPERTY(BlueprintReadWrite, Category = "Tags")

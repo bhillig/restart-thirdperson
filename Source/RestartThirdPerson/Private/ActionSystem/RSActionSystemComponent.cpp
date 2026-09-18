@@ -125,9 +125,15 @@ bool URSActionSystemComponent::ApplyAttributeChange(FGameplayTag InAttributeTag,
 	if (TArray<FOnAttributeChangedDynamic>* BlueprintListenersArray = BlueprintAttributeListeners.Find(InAttributeTag))
 	{
 		TArray<FOnAttributeChangedDynamic>& BlueprintListeners = *BlueprintListenersArray;
-		for (FOnAttributeChangedDynamic& AttributeListener : BlueprintListeners)
+		for (int32 i = BlueprintListeners.Num() - 1; i >= 0; --i)
 		{
-			AttributeListener.Execute(Attribute->GetValue(), OldValue, EventInstigator, InstigatorActor);
+			FOnAttributeChangedDynamic& AttributeListener = BlueprintListeners[i];
+			if (!AttributeListener.ExecuteIfBound(Attribute->GetValue(), OldValue, EventInstigator, InstigatorActor))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Cleaned up unbound blueprint attribute listener for: %s"), *GetNameSafe(GetOwner()));
+				// Remove unbound delegate
+				BlueprintListeners.RemoveAt(i);
+			}
 		}
 	}
 
@@ -188,4 +194,16 @@ void URSActionSystemComponent::AddDynamicAttributeListener(FGameplayTag InAttrib
 	// Add blueprint listener
 	TArray<FOnAttributeChangedDynamic>& BlueprintListeners = BlueprintAttributeListeners.FindOrAdd(InAttributeTag);
 	BlueprintListeners.Add(Event);
+}
+
+void URSActionSystemComponent::RemoveDynamicAttributeListener(FOnAttributeChangedDynamic Event)
+{
+	for (TPair<FGameplayTag, TArray<FOnAttributeChangedDynamic>> Pair : BlueprintAttributeListeners)
+	{
+		if (Pair.Value.RemoveSingle(Event) > 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Removed blueprint attribute listener for: %s"), *GetNameSafe(GetOwner()));
+			break;
+		}
+	}
 }
