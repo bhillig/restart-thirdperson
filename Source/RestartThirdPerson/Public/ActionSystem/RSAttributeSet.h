@@ -92,6 +92,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Attributes")
 	FRSAttribute MoveSpeed;
 
+	/** Move Speed Multiplier Attribute */
+	UPROPERTY(EditAnywhere, Category = "Attributes")
+	FRSAttribute MoveSpeedMultiplier;
+
 	/** Applies the move speed on the character movement component */
 	void ApplyMoveSpeed();
 

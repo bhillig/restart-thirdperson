@@ -23,6 +23,7 @@ void URSHealthAttributeSet::PostAttributeChange()
 URSCharacterAttributeSet::URSCharacterAttributeSet()
 {
 	MoveSpeed = FRSAttribute(425.f);
+	MoveSpeedMultiplier = FRSAttribute(1.f);
 }
 
 void URSCharacterAttributeSet::Initialize()
@@ -45,7 +46,7 @@ void URSCharacterAttributeSet::ApplyMoveSpeed()
 	ensure(ActionSystemComponent);
 
 	ACharacter* OwningCharacter = CastChecked<ACharacter>(ActionSystemComponent->GetOwner());
-	OwningCharacter->GetCharacterMovement()->MaxWalkSpeed = MoveSpeed.GetValue();
+	OwningCharacter->GetCharacterMovement()->MaxWalkSpeed = MoveSpeed.GetValue() * MoveSpeedMultiplier.GetValue();
 }
 
 URSRageAttributeSet::URSRageAttributeSet()

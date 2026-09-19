@@ -13,5 +13,6 @@ namespace RSGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_Health, "Attribute.Health", "Health Attribute");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_HealthMax, "Attribute.HealthMax", "Health Max Attribute");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_MoveSpeed, "Attribute.MoveSpeed", "Move Speed Attribute");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_MoveSpeedMultiplier, "Attribute.MoveSpeedMultiplier", "Move Speed Multiplier Attribute");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_Rage, "Attribute.Rage", "Rage Attribute");
 }
