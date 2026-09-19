@@ -67,6 +67,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Action")
 	FGameplayTagContainer BlockedTags;
 
+	/** Costs to activate action */
+	UPROPERTY(EditDefaultsOnly, Category = "Action")
+	TMap<FGameplayTag, float> ActivationCost;
+
 protected:
 	/** The state of whether this action is running */
 	UPROPERTY(Transient)

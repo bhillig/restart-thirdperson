@@ -105,3 +105,21 @@ public:
 	/** Constructor */
 	URSCharacterAttributeSet();
 };
+
+/**
+ *  Rage Attribute Set
+ */
+UCLASS()
+class URSRageAttributeSet final : public URSAttributeSet
+{
+	GENERATED_BODY()
+
+protected:
+	/** Rage Attribute */
+	UPROPERTY(EditAnywhere, Category = "Attributes")
+	FRSAttribute Rage;
+
+public:
+	/** Constructor */
+	URSRageAttributeSet();
+};

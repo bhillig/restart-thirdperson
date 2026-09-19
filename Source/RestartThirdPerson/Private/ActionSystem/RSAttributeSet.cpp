@@ -48,6 +48,11 @@ void URSCharacterAttributeSet::ApplyMoveSpeed()
 	OwningCharacter->GetCharacterMovement()->MaxWalkSpeed = MoveSpeed.GetValue();
 }
 
+URSRageAttributeSet::URSRageAttributeSet()
+{
+	Rage = FRSAttribute(0.f);
+}
+
 URSActionSystemComponent* URSAttributeSet::GetOwningComponent() const
 {
 	return Cast<URSActionSystemComponent>(GetOuter());

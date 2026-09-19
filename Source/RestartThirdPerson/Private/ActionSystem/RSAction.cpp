@@ -10,6 +10,14 @@ void URSAction::StartAction_Implementation()
 {
 	bIsRunning = true;
 
+	URSActionSystemComponent* ActionSystemComponent = GetOwningComponent();
+	ensure(ActionSystemComponent);
+
+	for (const auto& [AttributeTag, Cost] : ActivationCost)
+	{
+		ActionSystemComponent->ApplyAttributeChange(AttributeTag, -Cost, Base);
+	}
+
 	rs::LogOnce(FString::Printf(TEXT("Starting action: %s"), *ActionTag.ToString()), FColor::Green, 3.0f);
 	UE_LOGFMT(LogTemp, Log, "Starting Action: {ActionTag} at {WorldTime}",
 		("ActionTag", ActionTag.ToString()),
@@ -47,6 +55,17 @@ bool URSAction::CanStart() const
 	{
 		rs::LogOnce("Can't start action. Instigator has blocked tags!", FColor::Red, 3.0f);
 		return false;
+	}
+
+	for (const auto&[AttributeTag, Cost] : ActivationCost)
+	{
+		const float AttributeAmount = ActionSystemComponent->GetAttributeValue(AttributeTag);
+		if (AttributeAmount < Cost)
+		{
+			const FString Msg = FString::Printf(TEXT("Can't start action. Action requires: %f of %s. Pawn has: %f"), Cost, *AttributeTag.ToString(), AttributeAmount);
+			rs::LogOnce("", FColor::Red, 3.0f);
+			return false;
+		}
 	}
 
 	return true;

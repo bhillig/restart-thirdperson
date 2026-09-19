@@ -727,7 +727,12 @@ void AALSCharacter::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted
 float AALSCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	ensure(ActionSystemComponent);
+
+	// Apply damage
 	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, -DamageAmount, Base, EventInstigator, DamageCauser);
+
+	// Apply rage
+	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Rage, 100.f, Modifier, EventInstigator, DamageCauser);
 
 	const float NewHealth = ActionSystemComponent->GetAttributeValue(RSGameplayTags::Attribute_Health);
 
