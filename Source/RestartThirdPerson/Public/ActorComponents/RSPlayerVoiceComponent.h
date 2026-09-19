@@ -22,10 +22,9 @@ public:
 protected:
 	/** Callback for when the owning player's health changes */
 	UFUNCTION()
-	void OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser);
+	void OnHealthChanged(float NewHealth, float OldHealth, AController* EventInstigator, AActor* DamageCauser);
 
 	/** Callback for when the owning player dies */
-	UFUNCTION()
 	void OnDeath(AController* EventInstigator, AActor* DamageCauser);
 
 	/** Hit react sound */

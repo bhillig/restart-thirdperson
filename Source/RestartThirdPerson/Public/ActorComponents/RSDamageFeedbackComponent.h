@@ -48,7 +48,7 @@ protected:
 
 	/** Called when the owning actor's health changes. Requires Owner to have UAttributeComponent. */
 	UFUNCTION()
-	void OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser);
+	void OnHealthChanged(float NewHealth, float OldHealth, AController* EventInstigator, AActor* DamageCauser);
 
 protected:
 	/** Server -> Owner: Notify owning client that they are receiving damage */

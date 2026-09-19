@@ -12,7 +12,6 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "ActorComponents/AttributesComponent.h"
 #include "ActorComponents/RSDamageFeedbackComponent.h"
 #include "ActorComponents/RSPlayerVoiceComponent.h"
 #include "ActorComponents/WeaponsComponent.h"
@@ -36,7 +35,6 @@ AALSCharacter::AALSCharacter()
 
 	InteractComponent = CreateDefaultSubobject<URSInteractComponent>("InteractComponent");
 	ActionSystemComponent = CreateDefaultSubobject<URSActionSystemComponent>("ActionSystemComponent");
-	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>("AttributesComponent");
 	WeaponsComponent = CreateDefaultSubobject<UWeaponsComponent>("WeaponsComponent");
 	DamageFeedbackComponent = CreateDefaultSubobject<URSDamageFeedbackComponent>("DamageFeedbackComponent");
 
@@ -59,8 +57,6 @@ void AALSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& 
 void AALSCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-
-	AttributesComponent->OnDeath.AddDynamic(this, &AALSCharacter::OnDeath);
 
 	WeaponsComponent->OnWeaponAdded.AddDynamic(this, &AALSCharacter::OnWeaponAdded);
 	WeaponsComponent->OnWeaponEquipped.AddDynamic(this, &AALSCharacter::OnWeaponEquipped);
@@ -726,6 +722,21 @@ void AALSCharacter::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted
 	{
 		CharacterMeshComp->SetComponentTickEnabled(false);
 	}
+}
+
+float AALSCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	ensure(ActionSystemComponent);
+	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, -DamageAmount, Base, EventInstigator, DamageCauser);
+
+	const float NewHealth = ActionSystemComponent->GetAttributeValue(RSGameplayTags::Attribute_Health);
+
+	if (FMath::IsNearlyZero(NewHealth))
+	{
+		OnDeath(EventInstigator, DamageCauser);
+	}
+
+	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 }
 
 void AALSCharacter::OnRep_IsDead()

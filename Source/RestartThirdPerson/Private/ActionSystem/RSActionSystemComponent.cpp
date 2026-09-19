@@ -181,17 +181,8 @@ FOnAttributeChanged& URSActionSystemComponent::GetAttributeListener(FGameplayTag
 	return AttributeListeners.FindOrAdd(InAttributeTag);
 }
 
-void URSActionSystemComponent::AddDynamicAttributeListener(FGameplayTag InAttributeTag, FOnAttributeChangedDynamic Event, bool bExecuteInitialBroadcast /* = false*/)
+void URSActionSystemComponent::AddDynamicAttributeListener(FGameplayTag InAttributeTag, FOnAttributeChangedDynamic Event)
 {
-	if (bExecuteInitialBroadcast)
-	{
-		// Initial broadcast
-		FRSAttribute* FoundAttribute = FindAttributeByTag(InAttributeTag);
-		ensure(FoundAttribute);
-		Event.Execute(FoundAttribute->GetValue(), FoundAttribute->GetValue(), nullptr, nullptr);
-	}
-
-	// Add blueprint listener
 	TArray<FOnAttributeChangedDynamic>& BlueprintListeners = BlueprintAttributeListeners.FindOrAdd(InAttributeTag);
 	BlueprintListeners.Add(Event);
 }

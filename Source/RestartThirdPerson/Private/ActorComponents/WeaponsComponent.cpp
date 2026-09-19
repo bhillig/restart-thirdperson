@@ -4,15 +4,16 @@
 
 #include "MetasoundSource.h"
 #include "NiagaraFunctionLibrary.h"
-#include "ActorComponents/AttributesComponent.h"
+#include "ActionSystem/RSActionSystemComponent.h"
 #include "Actors/WeaponPickup.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
+#include "RestartThirdPerson/RSGameplayTags.h"
 
 static TAutoConsoleVariable CVarBulletAdjustmentDebugDraw(TEXT("Game.Projectile.DebugDraw"), 0.f,
-	TEXT("Enable bullet adjustment debug drawing"));
+                                                          TEXT("Enable bullet adjustment debug drawing"));
 
 UWeaponsComponent::UWeaponsComponent()
 {
@@ -599,21 +600,19 @@ void UWeaponsComponent::FireWeapon()
 		APawn* InstigatorPawn = Cast<APawn>(GetOwner());
 		AController* EventInstigator = InstigatorPawn ? InstigatorPawn->GetController() : nullptr;
 
-		TArray<UAttributesComponent*> AttributeComponents;
-		HitActor->GetComponents(UAttributesComponent::StaticClass(), AttributeComponents);
-		UAttributesComponent* AttributeComp = !AttributeComponents.IsEmpty() ? AttributeComponents[0] : nullptr;
+		URSActionSystemComponent* ActionSystemComponent = HitActor->FindComponentByClass<URSActionSystemComponent>();
 
-		const float OldHealth = AttributeComp ? AttributeComp->GetHealth() : 0.f;
+		const float OldHealth = ActionSystemComponent ? ActionSystemComponent->GetAttributeValue(RSGameplayTags::Attribute_Health) : 0.f;
 
 		// Apply damage
 		// TODO: Allow weapons to specify their damage type class
 		UGameplayStatics::ApplyPointDamage(HitActor, WeaponConfig.DamagePerBullet, ShotRotation.Vector(), HitResult, EventInstigator, GetOwner(), UDamageType::StaticClass());
 
-		const float NewHealth = AttributeComp ? AttributeComp->GetHealth() : 0.f;
+		const float NewHealth = ActionSystemComponent ? ActionSystemComponent->GetAttributeValue(RSGameplayTags::Attribute_Health) : 0.f;
 
 		const float DamageDealt = OldHealth - NewHealth;
 
-		if (AttributeComp && DamageDealt > 0.f)
+		if (ActionSystemComponent && DamageDealt > 0.f)
 		{
 			// We hit an object with an attributes component so broadcast a hitmarker
 			const EHitMarkerType HitMarkerType = FMath::IsNearlyZero(NewHealth) ? EHitMarkerType::Kill : EHitMarkerType::Base;

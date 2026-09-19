@@ -3,7 +3,7 @@
 
 #include "Character/Zombies/ZombieCharacter.h"
 
-#include "ActorComponents/AttributesComponent.h"
+#include "ActionSystem/RSActionSystemComponent.h"
 #include "ActorComponents/RSZombieVoiceComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -11,6 +11,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
+#include "RestartThirdPerson/RSGameplayTags.h"
 
 AZombieCharacter::AZombieCharacter()
 {
@@ -23,7 +24,7 @@ AZombieCharacter::AZombieCharacter()
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
 	// Create components
-	AttributesComponent = CreateDefaultSubobject<UAttributesComponent>("AttributesComponent");
+	ActionSystemComponent = CreateDefaultSubobject<URSActionSystemComponent>("ActionSystemComponent");
 
 	ZombieVoiceComponent = CreateDefaultSubobject<URSZombieVoiceComponent>("ZombieVoiceComponent");
 	ZombieVoiceComponent->SetupAttachment(GetMesh(), FName("head"));
@@ -45,7 +46,6 @@ void AZombieCharacter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	OnTakePointDamage.AddDynamic(this, &AZombieCharacter::OnZombieTakePointDamage);
-	AttributesComponent->OnDeath.AddDynamic(this, &AZombieCharacter::OnZombieDeath);
 
 	ZombieVoiceComponent->Enable();
 }
@@ -128,9 +128,14 @@ void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damag
 	// Cache whether this damage hit the head. Used in OnZombieDeath to broadcast headshot kill.
 	bLastShotWasAHeadshot = BoneName == HeadBoneName;
 
-	if (FMath::IsNearlyZero(AttributesComponent->GetHealth()))
+	ensure(ActionSystemComponent);
+	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, -Damage, Base, InstigatedBy, DamageCauser);
+
+	const float NewHealth = ActionSystemComponent->GetAttributeValue(RSGameplayTags::Attribute_Health);
+
+	if (FMath::IsNearlyZero(NewHealth))
 	{
-		// Let the OnDeath callback handle death
+		OnZombieDeath(InstigatedBy, DamageCauser);
 		return;
 	}
 

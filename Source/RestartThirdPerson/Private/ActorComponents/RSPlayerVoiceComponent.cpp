@@ -3,8 +3,9 @@
 
 #include "ActorComponents/RSPlayerVoiceComponent.h"
 
-#include "ActorComponents/AttributesComponent.h"
+#include "ActionSystem/RSActionSystemComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "RestartThirdPerson/RSGameplayTags.h"
 
 URSPlayerVoiceComponent::URSPlayerVoiceComponent()
 {
@@ -17,15 +18,15 @@ void URSPlayerVoiceComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
-	// Get attributes component and bind delegates
-	if (UAttributesComponent* AttributesComponent = GetOwner()->GetComponentByClass<UAttributesComponent>())
+	// Get action system component and bind delegates
+	if (URSActionSystemComponent* ActionSystemComponent = GetOwner()->FindComponentByClass<URSActionSystemComponent>())
 	{
-		AttributesComponent->OnHealthChanged.AddDynamic(this, &URSPlayerVoiceComponent::OnHealthChanged);
-		AttributesComponent->OnDeath.AddDynamic(this, &URSPlayerVoiceComponent::OnDeath);
+		FOnAttributeChanged& HealthChangedEvent = ActionSystemComponent->GetAttributeListener(RSGameplayTags::Attribute_Health);
+		HealthChangedEvent.AddUObject(this, &URSPlayerVoiceComponent::OnHealthChanged);
 	}
 }
 
-void URSPlayerVoiceComponent::OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser)
+void URSPlayerVoiceComponent::OnHealthChanged(float NewHealth, float OldHealth, AController* EventInstigator, AActor* DamageCauser)
 {
 	if (!GetOwner()->HasAuthority())
 	{
@@ -35,7 +36,7 @@ void URSPlayerVoiceComponent::OnHealthChanged(float NewHealth, float MaxHealth, 
 	// Must be on the server
 	if (FMath::IsNearlyZero(NewHealth))
 	{
-		// Let OnDeath handle this state
+		OnDeath(EventInstigator, DamageCauser);
 		return;
 	}
 

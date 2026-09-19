@@ -55,7 +55,7 @@ public:
 
 	/** REGISTER A BLUEPRINT LISTENER */
 	UFUNCTION(BlueprintCallable, DisplayName="Add Attribute Listener", Category="Attributes", meta = (Keywords="event,delegate"))
-	void AddDynamicAttributeListener(FGameplayTag InAttributeTag, FOnAttributeChangedDynamic Event, bool bExecuteInitialBroadcast = false);
+	void AddDynamicAttributeListener(FGameplayTag InAttributeTag, FOnAttributeChangedDynamic Event);
 
 	/** REMOVE A BLUEPRINT LISTENER */
 	UFUNCTION(BlueprintCallable, DisplayName = "Remove Attribute Listener", Category = "Attributes", meta = (Keywords = "event,delegate"))

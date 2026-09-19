@@ -3,7 +3,8 @@
 
 #include "ActorComponents/RSDamageFeedbackComponent.h"
 
-#include "ActorComponents/AttributesComponent.h"
+#include "ActionSystem/RSActionSystemComponent.h"
+#include "RestartThirdPerson/RSGameplayTags.h"
 
 
 URSDamageFeedbackComponent::URSDamageFeedbackComponent()
@@ -19,9 +20,11 @@ void URSDamageFeedbackComponent::InitializeComponent()
 	if (AActor* OwningActor = GetOwner())
 	{
 		OwningActor->OnTakePointDamage.AddDynamic(this, &URSDamageFeedbackComponent::OnTakePointDamage);
-		if (UAttributesComponent* AttributesComponent = OwningActor->FindComponentByClass<UAttributesComponent>())
+
+		if (URSActionSystemComponent* ActionSystemComponent = OwningActor->FindComponentByClass<URSActionSystemComponent>())
 		{
-			AttributesComponent->OnHealthChanged.AddDynamic(this, &URSDamageFeedbackComponent::OnHealthChanged);
+			FOnAttributeChanged& HealthChangedEvent = ActionSystemComponent->GetAttributeListener(RSGameplayTags::Attribute_Health);
+			HealthChangedEvent.AddUObject(this, &URSDamageFeedbackComponent::OnHealthChanged);
 		}
 	}
 }
@@ -32,12 +35,14 @@ void URSDamageFeedbackComponent::OnTakePointDamage(AActor* DamagedActor, float D
 	bUseDirection = true;
 }
 
-void URSDamageFeedbackComponent::OnHealthChanged(float NewHealth, float MaxHealth, float Delta, AController* EventInstigator, AActor* DamageCauser)
+void URSDamageFeedbackComponent::OnHealthChanged(float NewHealth, float OldHealth, AController* EventInstigator, AActor* DamageCauser)
 {
 	if (!GetOwner()->HasAuthority())
 	{
 		return;
 	}
+
+	const float Delta = NewHealth - OldHealth;
 
 	// If we were healed
 	if (Delta >= 0.f)

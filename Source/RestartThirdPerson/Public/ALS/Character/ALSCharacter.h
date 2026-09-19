@@ -13,7 +13,6 @@ class URSPlayerVoiceComponent;
 class URSInteractComponent;
 class URSDamageFeedbackComponent;
 class UWeaponsComponent;
-class UAttributesComponent;
 class UNiagaraSystem;
 struct FInputActionValue;
 class UInputAction;
@@ -131,9 +130,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<URSActionSystemComponent> ActionSystemComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UAttributesComponent> AttributesComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UWeaponsComponent> WeaponsComponent;
@@ -333,6 +329,8 @@ private:
 
 	UFUNCTION()
 	void OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 protected:
 

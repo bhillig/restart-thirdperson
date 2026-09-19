@@ -6,21 +6,21 @@
 #include "GameFramework/Character.h"
 #include "ZombieCharacter.generated.h"
 
+class URSActionSystemComponent;
 class URSZombieVoiceComponent;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPawnDeathDelegate, AController*, InstigatedBy, bool, bWasHeadshot);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPawnHitDelegate, AController*, InstigatedBy);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPawnNoLongerStunnedDelegate);
-
-class UAttributesComponent;
 
 UCLASS()
 class RESTARTTHIRDPERSON_API AZombieCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	/** Attributes the zombie has */
+	/** ActionSystemComponent */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess=true))
-	TObjectPtr<UAttributesComponent> AttributesComponent;
+	TObjectPtr<URSActionSystemComponent> ActionSystemComponent;
 
 	/** Voice component for the zombie */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
@@ -118,7 +118,6 @@ protected:
 	UFUNCTION()
 	void OnFireReactMontageEnded();
 
-	UFUNCTION()
 	void OnZombieDeath(AController* EventInstigator, AActor* DamageCauser);
 
 	void HandleZombieDeath();
