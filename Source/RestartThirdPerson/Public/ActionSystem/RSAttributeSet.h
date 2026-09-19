@@ -36,7 +36,7 @@ struct FRSAttribute
 /**
  *  Base Attribute Set
  */
-UCLASS()
+UCLASS(EditInlineNew, Abstract)
 class RESTARTTHIRDPERSON_API URSAttributeSet : public UObject
 {
 	GENERATED_BODY()
@@ -56,18 +56,18 @@ protected:
 /** 
  *  Health Attribute Set
  */
-UCLASS()
+UCLASS(DisplayName="Health Attribute Set")
 class URSHealthAttributeSet final : public URSAttributeSet
 {
 	GENERATED_BODY()
 
 protected:
 	/** Health Attribute */
-	UPROPERTY(EditAnywhere, Category="Attributes")
+	UPROPERTY(EditAnywhere, Category="Health")
 	FRSAttribute Health;
 
 	/** Health Max Attribute */
-	UPROPERTY(EditAnywhere, Category = "Attributes")
+	UPROPERTY(EditAnywhere, Category="Health")
 	FRSAttribute HealthMax;
 
 public:
@@ -82,18 +82,18 @@ public:
 /**
  *  Character Attribute Set
  */
-UCLASS()
+UCLASS(DisplayName="Character Attribute Set")
 class URSCharacterAttributeSet final : public URSAttributeSet
 {
 	GENERATED_BODY()
 
 protected:
 	/** Move Speed Attribute */
-	UPROPERTY(EditAnywhere, Category = "Attributes")
+	UPROPERTY(EditAnywhere, Category="Move Speed")
 	FRSAttribute MoveSpeed;
 
 	/** Move Speed Multiplier Attribute */
-	UPROPERTY(EditAnywhere, Category = "Attributes")
+	UPROPERTY(EditAnywhere, Category="Move Speed")
 	FRSAttribute MoveSpeedMultiplier;
 
 	/** Applies the move speed on the character movement component */
@@ -113,14 +113,14 @@ public:
 /**
  *  Rage Attribute Set
  */
-UCLASS()
+UCLASS(DisplayName="Rage Attribute Set")
 class URSRageAttributeSet final : public URSAttributeSet
 {
 	GENERATED_BODY()
 
 protected:
 	/** Rage Attribute */
-	UPROPERTY(EditAnywhere, Category = "Attributes")
+	UPROPERTY(EditAnywhere, Category="Rage")
 	FRSAttribute Rage;
 
 public:

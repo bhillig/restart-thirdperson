@@ -18,11 +18,6 @@ void URSActionSystemComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
-	for (TSubclassOf<URSAttributeSet> AttributeSetClass : AttributeSetClasses)
-	{
-		AttributeSets.Add(NewObject<URSAttributeSet>(this, AttributeSetClass));
-	}
-
 	for (URSAttributeSet* AttributeSet : AttributeSets)
 	{
 		for (TFieldIterator<FStructProperty> PropIt(AttributeSet->GetClass()); PropIt; ++PropIt)

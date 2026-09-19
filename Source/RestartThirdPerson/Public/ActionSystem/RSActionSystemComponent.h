@@ -77,13 +77,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Actions")
 	TArray<TSubclassOf<URSAction>> DefaultActions;
 
-	/** Attribute Set Classes to instantiate */
-	UPROPERTY(EditAnywhere, NoClear, Category="Attributes")
-	TArray<TSubclassOf<URSAttributeSet>> AttributeSetClasses;
-
 protected:
 	/** Current attribute sets */
-	UPROPERTY(Transient)
+	UPROPERTY(EditAnywhere, Instanced, Category="Action System")
 	TArray<TObjectPtr<URSAttributeSet>> AttributeSets;
 
 	/** Cached Attributes */
