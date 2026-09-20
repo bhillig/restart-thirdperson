@@ -3,9 +3,11 @@
 
 #include "Debug/RSCheatManager.h"
 
+#include "NavigationSystem.h"
 #include "ActionSystem/RSActionSystemComponent.h"
 #include "ActorComponents/WeaponsComponent.h"
 #include "AssetRegistry/IAssetRegistry.h"
+#include "Pickup/RSCoinPickupSubsystem.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 #include "RestartThirdPerson/RSGameplayTags.h"
 
@@ -50,6 +52,38 @@ void URSCheatManager::ApplyHealthChange(float Delta)
 	ensure(ActionSystemComponent);
 
 	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, Delta, Base, nullptr, nullptr);
+}
+
+void URSCheatManager::SpawnCoins(int32 Amount)
+{
+	APawn* PlayerPawn = GetOuterAPlayerController()->GetPawn();
+
+	const FVector PlayerLocation = PlayerPawn->GetActorLocation();
+	const FVector PlayerForwardVector = PlayerPawn->GetActorForwardVector();
+
+	// Get the point 1050cm in front of the player
+	const FVector CenterPoint = PlayerLocation + PlayerForwardVector * 1050;
+
+	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(PlayerPawn);
+	ensure(NavSystem);
+
+	TArray<FVector> CoinLocations;
+	TArray<int32> CoinPoints;
+	for (int32 i = 0; i < Amount; ++i)
+	{
+		FNavLocation NavLocation;
+		NavSystem->GetRandomPointInNavigableRadius(CenterPoint, 1024, NavLocation);
+
+		CoinLocations.Add(NavLocation.Location);
+		CoinPoints.Add(10);
+	}
+
+	// Get the coin subsystem
+	URSCoinPickupSubsystem* CoinPickupSubsytem = GetWorld()->GetSubsystem<URSCoinPickupSubsystem>();
+	ensure(CoinPickupSubsytem);
+
+	// Add the coin pickups to the subsystem
+	CoinPickupSubsytem->AddCoinPickups(CoinLocations, CoinPoints);
 }
 
 void URSCheatManager::GatherWeaponDataAssets(TArray<const UWeaponDataAsset*>& OutWeapons)

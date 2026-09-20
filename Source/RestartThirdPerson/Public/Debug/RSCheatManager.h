@@ -29,6 +29,10 @@ public:
 	UFUNCTION(Exec)
 	void ApplyHealthChange(float Delta);
 
+	/** Spawns a given amount of coins to test the data oriented design system */
+	UFUNCTION(Exec)
+	void SpawnCoins(int32 Amount);
+
 private:
 	static void GatherWeaponDataAssets(TArray<const UWeaponDataAsset*>& OutWeapons);
 
