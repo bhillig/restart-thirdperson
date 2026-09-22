@@ -26,7 +26,19 @@ protected:
 	/** Points of all coins */
 	TArray<int32> CoinPoints;
 
+	/** Instance IDs of all coins */
+	TArray<FPrimitiveInstanceId> CoinInstanceIDs;
+
+protected:
+	/** World Instanced Static Mesh Component */
+	UPROPERTY()
+	TObjectPtr<UInstancedStaticMeshComponent> WorldISM;
+
 public:
+	// UWorldSubsystem implementation Begin
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
+	// UWorldSubsystem implementation End
+
 	// FTickableGameObject implementation Begin
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;

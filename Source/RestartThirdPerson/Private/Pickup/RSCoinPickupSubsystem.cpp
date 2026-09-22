@@ -3,6 +3,7 @@
 
 #include "Pickup/RSCoinPickupSubsystem.h"
 
+#include "Components/InstancedStaticMeshComponent.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 
@@ -26,6 +27,30 @@ void URSCoinPickupSubsystem::AddCoinPickups(TArray<FVector> Locations, TArray<in
 {
 	CoinLocations.Append(Locations);
 	CoinPoints.Append(Points);
+
+	TArray<FTransform> CoinTransforms;
+	for (int32 i = 0; i < Locations.Num(); ++i)
+	{
+		CoinTransforms.Add(FTransform(CoinLocations[i] + FVector(0, 0, 50)));
+	}
+
+	TArray<FPrimitiveInstanceId> CoinInstanceIDsToAdd = WorldISM->AddInstancesById(CoinTransforms, true, false);
+	CoinInstanceIDs.Append(CoinInstanceIDsToAdd);
+}
+
+void URSCoinPickupSubsystem::OnWorldBeginPlay(UWorld& InWorld)
+{
+	Super::OnWorldBeginPlay(InWorld);
+
+	// Load static mesh
+	FSoftObjectPath MeshPath(TEXT("/Game/ThirdParty/ProjectOrionAssets/Content/ExampleContent/Meshes/SM_Pickup_Coin.SM_Pickup_Coin"));
+	UStaticMesh* Mesh = Cast<UStaticMesh>(MeshPath.TryLoad());
+
+	// Create instanced static mesh
+	WorldISM = NewObject<UInstancedStaticMeshComponent>(&InWorld, NAME_None, RF_Transient);
+	WorldISM->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
+	WorldISM->SetStaticMesh(Mesh);
+	WorldISM->RegisterComponentWithWorld(&InWorld);
 }
 
 void URSCoinPickupSubsystem::Tick(float DeltaTime)
@@ -54,6 +79,8 @@ void URSCoinPickupSubsystem::Tick(float DeltaTime)
 				// Remove coin
 				CoinLocations.RemoveAt(j);
 				CoinPoints.RemoveAt(j);
+				WorldISM->RemoveInstanceById(CoinInstanceIDs[j]);
+				CoinInstanceIDs.RemoveAt(j);
 			}
 		}
 	}
