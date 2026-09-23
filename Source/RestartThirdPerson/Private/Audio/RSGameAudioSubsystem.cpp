@@ -15,9 +15,9 @@ void URSGameAudioSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
 
-	// Load game audio catalog
+	// Request to load game audio catalog
 	const URSGameAudioSubsystemSettings* GameAudioSubsystemSettings = GetDefault<URSGameAudioSubsystemSettings>();
-	GameAudioCatalog = GameAudioSubsystemSettings->GameAudioCatalog.LoadSynchronous();
+	GameAudioSubsystemSettings->GameAudioCatalog.LoadAsync(FLoadSoftObjectPathAsyncDelegate::CreateUObject(this, &ThisClass::OnAudioLoaded));
 
 	// Try to get the game state
 	if (AGameStateBase* GameState = InWorld.GetGameState())
@@ -30,6 +30,17 @@ void URSGameAudioSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		// Listen for replication
 		InWorld.GameStateSetEvent.AddUObject(this, &URSGameAudioSubsystem::BindGameState);
 	}
+}
+
+void URSGameAudioSubsystem::OnAudioLoaded(const FSoftObjectPath& SoftObjectPath, UObject* Object)
+{
+	if (!Object)
+	{
+		// Failed to load
+		return;
+	}
+
+	GameAudioCatalog = Cast<URSGameAudioCatalogData>(Object);
 }
 
 void URSGameAudioSubsystem::BindGameState(AGameStateBase* GameState)
