@@ -3,6 +3,7 @@
 
 #include "Pickup/RSCoinPickupSubsystem.h"
 
+#include "Components/AudioComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
@@ -42,15 +43,23 @@ void URSCoinPickupSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
 
-	// Load static mesh
-	FSoftObjectPath MeshPath(TEXT("/Game/ThirdParty/ProjectOrionAssets/Content/ExampleContent/Meshes/SM_Pickup_Coin.SM_Pickup_Coin"));
-	UStaticMesh* Mesh = Cast<UStaticMesh>(MeshPath.TryLoad());
-
 	// Create instanced static mesh
 	WorldISM = NewObject<UInstancedStaticMeshComponent>(&InWorld, NAME_None, RF_Transient);
 	WorldISM->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
-	WorldISM->SetStaticMesh(Mesh);
 	WorldISM->RegisterComponentWithWorld(&InWorld);
+
+	// Create audio component
+	WorldAudioComponent = NewObject<UAudioComponent>(&InWorld, NAME_None, RF_Transient);
+	WorldAudioComponent->RegisterComponentWithWorld(&InWorld);
+
+	const URSCoinPickupSubsystemSettings* CoinPickupSubsystemSettings = GetDefault<URSCoinPickupSubsystemSettings>();
+	CoinPickedUpParameter = CoinPickupSubsystemSettings->CoinPickupTriggerParameter;
+
+	// Kick off load static mesh
+	CoinPickupSubsystemSettings->CoinMesh.LoadAsync(FLoadSoftObjectPathAsyncDelegate::CreateUObject(this, &ThisClass::OnCoinMeshLoaded));
+
+	// Kick off load coin pickup sound
+	CoinPickupSubsystemSettings->CoinPickupSound.LoadAsync(FLoadSoftObjectPathAsyncDelegate::CreateUObject(this, &ThisClass::OnAudioLoaded));
 }
 
 void URSCoinPickupSubsystem::Tick(float DeltaTime)
@@ -69,6 +78,8 @@ void URSCoinPickupSubsystem::Tick(float DeltaTime)
 
 	constexpr float MaxDistanceSqr = 100 * 100;
 
+	TArray<int32> CoinIndicesToRemove;
+
 	for (int32 i = 0; i < PlayerLocations.Num(); ++i)
 	{
 		for (int32 j = CoinLocations.Num() - 1; j >= 0; --j)
@@ -76,14 +87,58 @@ void URSCoinPickupSubsystem::Tick(float DeltaTime)
 			const float DistanceSqr = FVector::DistSquared(PlayerLocations[i], CoinLocations[j]);
 			if (DistanceSqr < MaxDistanceSqr)
 			{
-				// Remove coin
-				CoinLocations.RemoveAt(j);
-				CoinPoints.RemoveAt(j);
-				WorldISM->RemoveInstanceById(CoinInstanceIDs[j]);
-				CoinInstanceIDs.RemoveAt(j);
+				CoinIndicesToRemove.Add(j);
 			}
 		}
 	}
+
+	// Remove coins
+	for (int32 i = CoinIndicesToRemove.Num() - 1; i >= 0; --i)
+	{
+		const int32 IndexToRemove = CoinIndicesToRemove[i];
+		CoinLocations.RemoveAt(IndexToRemove);
+		CoinPoints.RemoveAt(IndexToRemove);
+		WorldISM->RemoveInstanceById(CoinInstanceIDs[IndexToRemove]);
+		CoinInstanceIDs.RemoveAt(IndexToRemove);
+	}
+
+	if (!CoinIndicesToRemove.IsEmpty())
+	{
+		// Play sound
+		UpdatePickupSound();
+	}
+}
+
+void URSCoinPickupSubsystem::UpdatePickupSound()
+{
+	if (!WorldAudioComponent->IsPlaying())
+	{
+		WorldAudioComponent->Play();
+	}
+
+	WorldAudioComponent->SetTriggerParameter(CoinPickedUpParameter);
+}
+
+void URSCoinPickupSubsystem::OnCoinMeshLoaded(const FSoftObjectPath& ObjectPath, UObject* Object)
+{
+	if (!Object)
+	{
+		// Failed to load
+		return;
+	}
+
+	WorldISM->SetStaticMesh(Cast<UStaticMesh>(Object));
+}
+
+void URSCoinPickupSubsystem::OnAudioLoaded(const FSoftObjectPath& ObjectPath, UObject* Object)
+{
+	if (!Object)
+	{
+		// Failed to load
+		return;
+	}
+
+	WorldAudioComponent->SetSound(Cast<USoundBase>(Object));
 }
 
 TStatId URSCoinPickupSubsystem::GetStatId() const
