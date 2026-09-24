@@ -44,6 +44,10 @@ public:
 	void AddCoinPickups(TArray<FVector> Locations, TArray<int32> Points);
 
 protected:
+	/** Removes coin pickups at the desired indices from the world */
+	void RemoveCoinPickups(TArray<int32> IndicesToRemove);
+
+protected:
 	/** Location of all coins */
 	TArray<FVector> CoinLocations;
 

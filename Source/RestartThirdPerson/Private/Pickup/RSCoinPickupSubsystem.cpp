@@ -7,6 +7,9 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
+#include "ProfilingDebugging/CountersTrace.h"
+
+TRACE_DECLARE_INT_COUNTER(CoinPickupsCount, TEXT("Coin Pickups in World"));
 
 void GetAllPlayerLocations(const UWorld& World, TArray<FVector>& Locations)
 {
@@ -26,6 +29,8 @@ void GetAllPlayerLocations(const UWorld& World, TArray<FVector>& Locations)
 
 void URSCoinPickupSubsystem::AddCoinPickups(TArray<FVector> Locations, TArray<int32> Points)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(CoinPickupSubsystem::AddCoinPickups);
+
 	CoinLocations.Append(Locations);
 	CoinPoints.Append(Points);
 
@@ -37,6 +42,24 @@ void URSCoinPickupSubsystem::AddCoinPickups(TArray<FVector> Locations, TArray<in
 
 	TArray<FPrimitiveInstanceId> CoinInstanceIDsToAdd = WorldISM->AddInstancesById(CoinTransforms, true, false);
 	CoinInstanceIDs.Append(CoinInstanceIDsToAdd);
+
+	TRACE_COUNTER_SET(CoinPickupsCount, CoinLocations.Num());
+}
+
+void URSCoinPickupSubsystem::RemoveCoinPickups(TArray<int32> IndicesToRemove)
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE(CoinPickupSubsystem::RemoveCoinPickups);
+
+	for (int32 i = 0; i < IndicesToRemove.Num(); ++i)
+	{
+		const int32 IndexToRemove = IndicesToRemove[i];
+		CoinLocations.RemoveAt(IndexToRemove);
+		CoinPoints.RemoveAt(IndexToRemove);
+		WorldISM->RemoveInstanceById(CoinInstanceIDs[IndexToRemove]);
+		CoinInstanceIDs.RemoveAt(IndexToRemove);
+	}
+
+	TRACE_COUNTER_SET(CoinPickupsCount, CoinLocations.Num());
 }
 
 void URSCoinPickupSubsystem::OnWorldBeginPlay(UWorld& InWorld)
@@ -60,18 +83,24 @@ void URSCoinPickupSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 
 	// Kick off load coin pickup sound
 	CoinPickupSubsystemSettings->CoinPickupSound.LoadAsync(FLoadSoftObjectPathAsyncDelegate::CreateUObject(this, &ThisClass::OnAudioLoaded));
+
+	TRACE_COUNTER_SET(CoinPickupsCount, 0);
 }
 
 void URSCoinPickupSubsystem::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	TRACE_CPUPROFILER_EVENT_SCOPE(CoinPickupSubsystem::Tick);
+
 	UWorld* World = GetWorld();
 
+#if 0
 	for (int32 i = 0; i < CoinLocations.Num(); ++i)
 	{
 		DrawDebugPoint(World, CoinLocations[i], 8.f, FColor::White);
 	}
+#endif 
 
 	TArray<FVector> PlayerLocations;
 	GetAllPlayerLocations(*World, PlayerLocations);
@@ -80,31 +109,27 @@ void URSCoinPickupSubsystem::Tick(float DeltaTime)
 
 	TArray<int32> CoinIndicesToRemove;
 
-	for (int32 i = 0; i < PlayerLocations.Num(); ++i)
+	// Distance Check
 	{
-		for (int32 j = CoinLocations.Num() - 1; j >= 0; --j)
+		TRACE_CPUPROFILER_EVENT_SCOPE(CoinPickupSubsystem::DistanceCheck);
+
+		for (int32 i = 0; i < PlayerLocations.Num(); ++i)
 		{
-			const float DistanceSqr = FVector::DistSquared(PlayerLocations[i], CoinLocations[j]);
-			if (DistanceSqr < MaxDistanceSqr)
+			for (int32 j = CoinLocations.Num() - 1; j >= 0; --j)
 			{
-				CoinIndicesToRemove.Add(j);
+				const float DistanceSqr = FVector::DistSquared(PlayerLocations[i], CoinLocations[j]);
+				if (DistanceSqr < MaxDistanceSqr)
+				{
+					CoinIndicesToRemove.Add(j);
+				}
 			}
 		}
 	}
-
-	// Remove coins
-	for (int32 i = CoinIndicesToRemove.Num() - 1; i >= 0; --i)
-	{
-		const int32 IndexToRemove = CoinIndicesToRemove[i];
-		CoinLocations.RemoveAt(IndexToRemove);
-		CoinPoints.RemoveAt(IndexToRemove);
-		WorldISM->RemoveInstanceById(CoinInstanceIDs[IndexToRemove]);
-		CoinInstanceIDs.RemoveAt(IndexToRemove);
-	}
+	
 
 	if (!CoinIndicesToRemove.IsEmpty())
 	{
-		// Play sound
+		RemoveCoinPickups(CoinIndicesToRemove);
 		UpdatePickupSound();
 	}
 }
