@@ -53,10 +53,10 @@ void URSCoinPickupSubsystem::RemoveCoinPickups(TArray<int32> IndicesToRemove)
 	for (int32 i = 0; i < IndicesToRemove.Num(); ++i)
 	{
 		const int32 IndexToRemove = IndicesToRemove[i];
-		CoinLocations.RemoveAt(IndexToRemove);
-		CoinPoints.RemoveAt(IndexToRemove);
+		CoinLocations.RemoveAtSwap(IndexToRemove);
+		CoinPoints.RemoveAtSwap(IndexToRemove);
 		WorldISM->RemoveInstanceById(CoinInstanceIDs[IndexToRemove]);
-		CoinInstanceIDs.RemoveAt(IndexToRemove);
+		CoinInstanceIDs.RemoveAtSwap(IndexToRemove);
 	}
 
 	TRACE_COUNTER_SET(CoinPickupsCount, CoinLocations.Num());
