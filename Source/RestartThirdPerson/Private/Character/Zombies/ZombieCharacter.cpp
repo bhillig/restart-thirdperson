@@ -3,6 +3,7 @@
 
 #include "Character/Zombies/ZombieCharacter.h"
 
+#include "KismetTraceUtils.h"
 #include "ActionSystem/RSActionSystemComponent.h"
 #include "ActorComponents/RSZombieVoiceComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -12,6 +13,8 @@
 #include "Net/UnrealNetwork.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 #include "RestartThirdPerson/RSGameplayTags.h"
+
+static TAutoConsoleVariable CVarDebugZombieHitCheck(TEXT("Game.DebugZombieHitCheck"), 0.f, TEXT("Draws debug information for zombie hit checks on the player"));
 
 AZombieCharacter::AZombieCharacter()
 {
@@ -76,7 +79,7 @@ bool AZombieCharacter::Attack(AActor* TargetActor)
 bool AZombieCharacter::PerformHitCheck()
 {
 	FCollisionShape Shape;
-	Shape.SetSphere(30.f);
+	Shape.SetSphere(TraceRadius);
 
 	FCollisionQueryParams QueryParams(TEXT("ZombieAttack"));
 	QueryParams.AddIgnoredActor(this);
@@ -97,6 +100,14 @@ bool AZombieCharacter::PerformHitCheck()
 			UGameplayStatics::ApplyPointDamage(VictimActor, DamagePerHit, OutHit.ImpactNormal, OutHit, GetController(), this, UDamageType::StaticClass());
 		}
 	}
+
+#if !UE_BUILD_SHIPPING
+	const float DrawDebugDuration = CVarDebugZombieHitCheck.GetValueOnGameThread();
+	if (DrawDebugDuration > 0.f)
+	{
+		DrawDebugSweptSphere(GetWorld(), Start, End, TraceRadius, FColor::Red, false, DrawDebugDuration);
+	}
+#endif
 
 	// Clear victim from cache
 	VictimActor = nullptr;

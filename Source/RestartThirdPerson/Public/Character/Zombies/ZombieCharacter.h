@@ -45,34 +45,50 @@ public:
 
 protected:
 	/** Animations */
+
+	/** Attack montage */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<UAnimMontage> AttackMontage;
 
+	/** Fire react montage - played when hit */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<UAnimMontage> FireReactMontage;
 
+	/** Head react montage - played when hit in the head */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<UAnimMontage> HeadReactMontage;
 
+	/** Death montage */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	TObjectPtr<UAnimMontage> DeathMontage;
 
 	/** Config */
-	UPROPERTY(EditAnywhere, Category = "Config")
-	float AttackRange = 120.f;
 
+	/** Range of attack in centimeters */
+	UPROPERTY(EditAnywhere, Category = "Config")
+	float AttackRange = 100.f;
+
+	/** Sphere trace radius when performing a hit check during swing */
+	UPROPERTY(EditAnywhere, Category = "Config")
+	float TraceRadius = 30.f;
+
+	/** Damage dealt per hit */
 	UPROPERTY(EditAnywhere, Category = "Config")
 	float DamagePerHit = 30.f;
 
+	/** Lifespan of the corpse after death in seconds */
 	UPROPERTY(EditAnywhere, Category = "Config")
 	float CorpseLifeSpanAfterDeath = 60.f;
 
+	/** Duration of hit react montage */
 	UPROPERTY(EditAnywhere, Category = "Config")
 	float HitReactMontageDuration = 5.f;
 
+	/** Duration of death montage */
 	UPROPERTY(EditAnywhere, Category = "Config")
 	float DeathMontageDuration = 2.f;
 
+	/** Name of the head bone - used for headshot detection */
 	UPROPERTY(EditAnywhere, Category = "Config")
 	FName HeadBoneName = "head";
 
