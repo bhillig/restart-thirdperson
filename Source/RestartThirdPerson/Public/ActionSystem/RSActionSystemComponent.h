@@ -8,6 +8,7 @@
 #include "UObject/Object.h"
 #include "RSActionSystemComponent.generated.h"
 
+class URSActionEffect;
 struct FGameplayTag;
 class URSAction;
 
@@ -48,6 +49,14 @@ public:
 	/** Returns the attribute value for a given attribute */
 	UFUNCTION(BlueprintCallable, Category="Attributes")
 	float GetAttributeValue(FGameplayTag InAttributeTag) const;
+
+	/** Applies a status effect */
+	UFUNCTION(BlueprintCallable, Category="Effects")
+	void ApplyStatusEffect(TSubclassOf<URSActionEffect> ActionEffectClass);
+
+	/** Removes a status effect with a given tag */
+	UFUNCTION(BlueprintCallable, Category="Effects")
+	void RemoveStatusEffect(FGameplayTag StatusffectTag);
 
 	/** USED TO REGISTER A NATIVE LISTENER */
 	/** Retrieves the attribute listener of a given attribute tag, creates one if it doesn't exist yet */
@@ -97,6 +106,10 @@ protected:
 	/** Array of actions */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<URSAction>> Actions;
+
+	/** Array of action effects */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<URSActionEffect>> ActionEffects;
 
 public:
 	/** Constructor */

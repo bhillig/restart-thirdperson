@@ -10,6 +10,12 @@ namespace RSGameplayTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Action_Test);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Action_Sprint);
 
+	/** Action Effects */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(ActionEffect_Sprint);
+
+	/** Status Effects */
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(StatusEffect_Sprinting);
+
 	/** Attributes */
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attribute_Health);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attribute_HealthMax);

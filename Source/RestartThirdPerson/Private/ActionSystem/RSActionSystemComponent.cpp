@@ -4,6 +4,7 @@
 #include "ActionSystem/RSActionSystemComponent.h"
 
 #include "ActionSystem/RSAction.h"
+#include "ActionSystem/RSActionEffect.h"
 #include "ActionSystem/RSAttributeSet.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
@@ -160,6 +161,33 @@ float URSActionSystemComponent::GetAttributeValue(FGameplayTag InAttributeTag) c
 	}
 	ensure(false);
 	return 0.f;
+}
+
+void URSActionSystemComponent::ApplyStatusEffect(TSubclassOf<URSActionEffect> ActionEffectClass)
+{
+	URSActionEffect* ActionEffect = NewObject<URSActionEffect>(this, ActionEffectClass);
+	ActionEffect->OnApplyEffect();
+	ActionEffects.Add(ActionEffect);
+}
+
+void URSActionSystemComponent::RemoveStatusEffect(FGameplayTag StatusEffectTag)
+{
+	TArray<URSActionEffect*> ActionEffectsRemoved;
+
+	for (int32 i = ActionEffects.Num() - 1; i >= 0; --i)
+	{
+		URSActionEffect* Effect = ActionEffects[i];
+		if (Effect->GetActionEffectTag() == StatusEffectTag)
+		{
+			ActionEffectsRemoved.Add(Effect);
+			ActionEffects.RemoveAt(i);
+		}
+	}
+
+	for (URSActionEffect* Effect : ActionEffectsRemoved)
+	{
+		Effect->OnRemoveEffect();
+	}
 }
 
 URSAttributeSet* URSActionSystemComponent::FindOwningAttributeSet(FRSAttribute* Attribute) const
