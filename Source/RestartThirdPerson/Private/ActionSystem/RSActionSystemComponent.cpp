@@ -8,6 +8,7 @@
 #include "ActionSystem/RSAttributeSet.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
+static TAutoConsoleVariable<bool> CVarDebugActions(TEXT("Game.DebugActions"), false, TEXT("Enables logging of actions and action effects"));
 static TAutoConsoleVariable<bool> CVarDebugAttributes(TEXT("Game.DebugAttributes"), false, TEXT("Enables logging of attribute changes"));
 
 URSActionSystemComponent::URSActionSystemComponent()
@@ -57,8 +58,13 @@ void URSActionSystemComponent::StartAction(FGameplayTag InActionTag)
 		}
 	}
 
-	rs::LogOnce(FString::Printf(TEXT("Could not start action: %s. The tag was not found in available actions!"),
-		*InActionTag.ToString()), FColor::Yellow, 5.0f);
+#if !UE_BUILD_SHIPPING
+	if (CVarDebugActions.GetValueOnGameThread())
+	{
+		rs::LogOnce(FString::Printf(TEXT("Could not start action: %s. The tag was not found in available actions!"),
+			*InActionTag.ToString()), FColor::Yellow, 5.0f);
+	}
+#endif 
 }
 
 void URSActionSystemComponent::StopAction(FGameplayTag InActionTag)
@@ -75,8 +81,13 @@ void URSActionSystemComponent::StopAction(FGameplayTag InActionTag)
 		}
 	}
 
-	rs::LogOnce(FString::Printf(TEXT("Could not stop action: %s. The tag was not found in available actions!"),
-		*InActionTag.ToString()), FColor::Yellow, 5.0f);
+#if !UE_BUILD_SHIPPING
+	if (CVarDebugActions.GetValueOnGameThread())
+	{
+		rs::LogOnce(FString::Printf(TEXT("Could not stop action: %s. The tag was not found in available actions!"),
+			*InActionTag.ToString()), FColor::Yellow, 5.0f);
+	}
+#endif 
 }
 
 bool URSActionSystemComponent::ApplyAttributeChange(FGameplayTag InAttributeTag, float Delta, EAttributeChangeType ChangeType, AController* EventInstigator, AActor* InstigatorActor)
@@ -137,7 +148,7 @@ bool URSActionSystemComponent::ApplyAttributeChange(FGameplayTag InAttributeTag,
 	if (CVarDebugAttributes.GetValueOnGameThread())
 	{
 		const FString Msg = FString::Printf(TEXT("Attribute: %s, New Value: %f, Old Value: %f"), *InAttributeTag.ToString(), Attribute->GetValue(), OldValue);
-		rs::LogOnce(Msg);
+		rs::LogOnce(Msg, FColor::Emerald, 5.f);
 	}
 #endif
 
@@ -163,21 +174,47 @@ float URSActionSystemComponent::GetAttributeValue(FGameplayTag InAttributeTag) c
 	return 0.f;
 }
 
-void URSActionSystemComponent::ApplyStatusEffect(TSubclassOf<URSActionEffect> ActionEffectClass)
+URSActionEffect* URSActionSystemComponent::ApplyActionEffect(TSubclassOf<URSActionEffect> ActionEffectClass)
 {
 	URSActionEffect* ActionEffect = NewObject<URSActionEffect>(this, ActionEffectClass);
 	ActionEffect->OnApplyEffect();
 	ActionEffects.Add(ActionEffect);
+
+#if !UE_BUILD_SHIPPING
+	if (CVarDebugActions.GetValueOnGameThread())
+	{
+		const FString Msg = FString::Printf(TEXT("Applied action effect: %s on actor: %s"), *GetNameSafe(ActionEffect), *GetNameSafe(GetOwner()));
+		rs::LogOnce(Msg, FColor::Emerald);
+	}
+#endif
+
+	return ActionEffect;
 }
 
-void URSActionSystemComponent::RemoveStatusEffect(FGameplayTag StatusEffectTag)
+void URSActionSystemComponent::RemoveActionEffect(URSActionEffect* ActionEffect)
+{
+	if (ActionEffect && ActionEffects.RemoveSingle(ActionEffect) > 0)
+	{
+		ActionEffect->OnRemoveEffect();
+
+#if !UE_BUILD_SHIPPING
+		if (CVarDebugActions.GetValueOnGameThread())
+		{
+			const FString Msg = FString::Printf(TEXT("Removed action effect: %s on actor: %s"), *GetNameSafe(ActionEffect), *GetNameSafe(GetOwner()));
+			rs::LogOnce(Msg, FColor::Emerald);
+		}
+#endif
+	}
+}
+
+void URSActionSystemComponent::RemoveActionEffectWithTag(FGameplayTag ActionEffectTag)
 {
 	TArray<URSActionEffect*> ActionEffectsRemoved;
 
 	for (int32 i = ActionEffects.Num() - 1; i >= 0; --i)
 	{
 		URSActionEffect* Effect = ActionEffects[i];
-		if (Effect->GetActionEffectTag() == StatusEffectTag)
+		if (Effect->GetActionEffectTag() == ActionEffectTag)
 		{
 			ActionEffectsRemoved.Add(Effect);
 			ActionEffects.RemoveAt(i);
@@ -187,6 +224,14 @@ void URSActionSystemComponent::RemoveStatusEffect(FGameplayTag StatusEffectTag)
 	for (URSActionEffect* Effect : ActionEffectsRemoved)
 	{
 		Effect->OnRemoveEffect();
+
+#if !UE_BUILD_SHIPPING
+		if (CVarDebugActions.GetValueOnGameThread())
+		{
+			const FString Msg = FString::Printf(TEXT("Removed action effect: %s on actor: %s"), *GetNameSafe(Effect), *GetNameSafe(GetOwner()));
+			rs::LogOnce(Msg, FColor::Emerald);
+		}
+#endif
 	}
 }
 

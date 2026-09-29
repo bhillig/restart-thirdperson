@@ -7,6 +7,7 @@
 #include "UObject/Object.h"
 #include "RSAction.generated.h"
 
+class URSActionEffect;
 class URSActionSystemComponent;
 /**
  * 
@@ -59,9 +60,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category="Action")
 	float CooldownDuration = 0.f;
 
-	/** Tags granted upon the start of the action and removed at the end */
+	/** Action effects applied upon action */ 
 	UPROPERTY(EditDefaultsOnly, Category="Action")
-	FGameplayTagContainer GrantedTags;
+	TArray<TSubclassOf<URSActionEffect>> ActionEffectClasses;
 
 	/** Tags that must not exist on the instigator in order to start the action */
 	UPROPERTY(EditDefaultsOnly, Category="Action")
@@ -79,5 +80,9 @@ protected:
 	/** Game time seconds when this action exits cooldown */
 	UPROPERTY(Transient)
 	float GameTimeActionBecomesActive = 0.f;
+
+	/** Action effect instances applied by this action that should end when it stops */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<URSActionEffect>> ActionEffectsApplied;
 	
 };

@@ -11,6 +11,7 @@ class URSActionSystemComponent;
 UENUM(BlueprintType, DisplayName="Effect Type")
 enum class EEffectType : uint8
 {
+	ActionDuration,
 	Manual,
 	Duration
 };
@@ -42,6 +43,12 @@ public:
 	FGameplayTag GetActionEffectTag() const
 	{
 		return ActionEffectTag;
+	}
+
+	UFUNCTION(BlueprintPure, Category = "Effect")
+	EEffectType GetEffectType() const
+	{
+		return EffectType;
 	}
 
 protected:

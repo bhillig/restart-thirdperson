@@ -3,6 +3,7 @@
 
 #include "ActionSystem/RSAction.h"
 
+#include "ActionSystem/RSActionEffect.h"
 #include "ActionSystem/RSActionSystemComponent.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 
@@ -13,25 +14,38 @@ void URSAction::StartAction_Implementation()
 	URSActionSystemComponent* ActionSystemComponent = GetOwningComponent();
 	ensure(ActionSystemComponent);
 
+	// Apply Activation Cost
 	for (const auto& [AttributeTag, Cost] : ActivationCost)
 	{
 		ActionSystemComponent->ApplyAttributeChange(AttributeTag, -Cost, Base);
 	}
 
-	rs::LogOnce(FString::Printf(TEXT("Starting action: %s"), *ActionTag.ToString()), FColor::Green, 3.0f);
-	UE_LOGFMT(LogTemp, Log, "Starting Action: {ActionTag} at {WorldTime}",
-		("ActionTag", ActionTag.ToString()),
-		("WorldTime", GetWorld()->GetTimeSeconds()));
+	// Apply Action Effects
+	for (TSubclassOf<URSActionEffect> ActionEffectClass : ActionEffectClasses)
+	{
+		if (URSActionEffect* ActionEffect = ActionSystemComponent->ApplyActionEffect(ActionEffectClass))
+		{
+			// Track action effects applied with an action based duration so we can remove them on stop action
+			if (ActionEffect->GetEffectType() == EEffectType::ActionDuration)
+			{
+				ActionEffectsApplied.Add(ActionEffect);
+			}
+		}
+	}
 }
 
 void URSAction::StopAction_Implementation()
 {
 	bIsRunning = false;
 
-	rs::LogOnce(FString::Printf(TEXT("Stopping action: %s"), *ActionTag.ToString()), FColor::Green, 3.0f);
-	UE_LOGFMT(LogTemp, Log, "Stopping Action: {ActionTag} at {WorldTime}",
-		("ActionTag", ActionTag.ToString()),
-		("WorldTime", GetWorld()->GetTimeSeconds()));
+	URSActionSystemComponent* ActionSystemComponent = GetOwningComponent();
+	ensure(ActionSystemComponent);
+
+	// Remove Action Effects
+	for (URSActionEffect* ActionEffect : ActionEffectsApplied)
+	{
+		ActionSystemComponent->RemoveActionEffect(ActionEffect);
+	}
 }
 
 bool URSAction::CanStart() const

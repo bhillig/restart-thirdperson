@@ -50,13 +50,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Attributes")
 	float GetAttributeValue(FGameplayTag InAttributeTag) const;
 
-	/** Applies a status effect */
+	/** Applies an action effect */
 	UFUNCTION(BlueprintCallable, Category="Effects")
-	void ApplyStatusEffect(TSubclassOf<URSActionEffect> ActionEffectClass);
+	URSActionEffect* ApplyActionEffect(TSubclassOf<URSActionEffect> ActionEffectClass);
 
-	/** Removes a status effect with a given tag */
+	/** Removes an action effect instance */
 	UFUNCTION(BlueprintCallable, Category="Effects")
-	void RemoveStatusEffect(FGameplayTag StatusffectTag);
+	void RemoveActionEffect(URSActionEffect* ActionEffect);
+	
+	/** Removes an action effect with a given tag */
+	UFUNCTION(BlueprintCallable, Category="Effects")
+	void RemoveActionEffectWithTag(FGameplayTag ActionEffectTag);
 
 	/** USED TO REGISTER A NATIVE LISTENER */
 	/** Retrieves the attribute listener of a given attribute tag, creates one if it doesn't exist yet */

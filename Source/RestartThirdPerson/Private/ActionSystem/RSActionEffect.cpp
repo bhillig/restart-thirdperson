@@ -15,7 +15,7 @@ void URSActionEffect::OnApplyEffect()
 	// Set timer for duration based effects
 	if (EffectType == EEffectType::Duration)
 	{
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle_Duration, FTimerDelegate::CreateUObject(OwningComponent, &URSActionSystemComponent::RemoveStatusEffect, ActionEffectTag), Duration, false);
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle_Duration, FTimerDelegate::CreateUObject(OwningComponent, &URSActionSystemComponent::RemoveActionEffectWithTag, ActionEffectTag), Duration, false);
 	}
 
 	// Call blueprint event
@@ -29,6 +29,9 @@ void URSActionEffect::OnRemoveEffect()
 
 	// Remove tags
 	OwningComponent->ActiveGameplayTags.RemoveTags(GrantedTags);
+
+	// Clear timer for duration based effects
+	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Duration);
 
 	// Call blueprint event
 	BlueprintOnRemoveEffect();
