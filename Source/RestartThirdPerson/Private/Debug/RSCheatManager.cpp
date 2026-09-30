@@ -8,6 +8,7 @@
 #include "ActorComponents/WeaponsComponent.h"
 #include "AssetRegistry/IAssetRegistry.h"
 #include "Pickup/RSCoinPickupSubsystem.h"
+#include "PlayerStates/RSPlayerState.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
 #include "RestartThirdPerson/RSGameplayTags.h"
 
@@ -79,11 +80,19 @@ void URSCheatManager::SpawnCoins(int32 Amount)
 	}
 
 	// Get the coin subsystem
-	URSCoinPickupSubsystem* CoinPickupSubsytem = GetWorld()->GetSubsystem<URSCoinPickupSubsystem>();
-	ensure(CoinPickupSubsytem);
+	URSCoinPickupSubsystem* CoinPickupSubsystem = GetWorld()->GetSubsystem<URSCoinPickupSubsystem>();
+	ensure(CoinPickupSubsystem);
 
 	// Add the coin pickups to the subsystem
-	CoinPickupSubsytem->AddCoinPickups(CoinLocations, CoinPoints);
+	CoinPickupSubsystem->AddCoinPickups(CoinLocations, CoinPoints);
+}
+
+void URSCheatManager::GiveCredits(int32 Amount)
+{
+	const APlayerController* PC = GetOuterAPlayerController();
+	ARSPlayerState* PS = PC->GetPlayerState<ARSPlayerState>();
+	ensure(PS);
+	PS->AddCredits(Amount);
 }
 
 void URSCheatManager::GatherWeaponDataAssets(TArray<const UWeaponDataAsset*>& OutWeapons)

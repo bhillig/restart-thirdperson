@@ -50,6 +50,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
 	TObjectPtr<UCharacterMovementComponent> CharacterMovementComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Action System")
+	TObjectPtr<URSActionSystemComponent> ActionSystemComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
 	TObjectPtr<AALSCharacter> ALSCharacter;
 
@@ -75,6 +78,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
 	bool bIsAccelerating;
+
+	UPROPERTY(Transient, BlueprintReadOnly, Category = "Character Movement")
+	bool bIsSprinting;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character Movement")
 	float GroundSpeed;

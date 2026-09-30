@@ -5,12 +5,14 @@
 
 #include "AnimCharacterMovementLibrary.h"
 #include "KismetAnimationLibrary.h"
+#include "ActionSystem/RSActionSystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "RestartThirdPerson/RestartThirdPerson.h"
+#include "RestartThirdPerson/RSGameplayTags.h"
 
-static TAutoConsoleVariable CVar_DebugALSAnimInstance(TEXT("Debug.ALS"), false, TEXT("Show debug info for ALS AnimInstance"));
+static TAutoConsoleVariable CVar_DebugALSAnimInstance(TEXT("Game.DebugALS"), false, TEXT("Show debug info for ALS AnimInstance"));
 
 namespace
 {
@@ -39,6 +41,7 @@ void UALSCharacterAnimInstance::NativeInitializeAnimation()
 	{
 		ALSCharacter = Character;
 		CharacterMovementComponent = Character->GetCharacterMovement();
+		ActionSystemComponent = Character->FindComponentByClass<URSActionSystemComponent>();
 	}
 }
 
@@ -46,6 +49,7 @@ void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
+#if !UE_BUILD_SHIPPING
 	if (CVar_DebugALSAnimInstance.GetValueOnAnyThread()) 
 	{
 		// Debug variables
@@ -54,6 +58,7 @@ void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		rs::LogFloat("Root Yaw Offset", RootYawOffset, FColor::Orange);
 		rs::LogFloat("Time Remaining To Jump Apex", TimeRemainingToJumpApex, FColor::Emerald);
 		rs::LogFloat("Distance From Ground", DistanceFromGround, FColor::Red);
+		rs::LogBool("IsSprinting", bIsSprinting, FColor::Blue);
 
 		if (const APawn* PawnOwner = TryGetPawnOwner())
 		{
@@ -78,6 +83,7 @@ void UALSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			}
 		}
 	}
+#endif
 }
 
 void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
@@ -109,6 +115,12 @@ void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSecon
 
 	// Get Is Accelerating
 	bIsAccelerating = Acceleration.Length() >= 0.1f;
+
+	if (ActionSystemComponent)
+	{
+		// Get Is Sprinting
+		bIsSprinting = ActionSystemComponent->ActiveGameplayTags.HasTag(RSGameplayTags::StatusEffect_Sprinting);
+	}
 
 	// Get Ground Speed
 	const FVector GroundVelocity = FVector(Velocity.X, Velocity.Y, 0);

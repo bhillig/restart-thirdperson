@@ -33,6 +33,10 @@ public:
 	UFUNCTION(Exec)
 	void SpawnCoins(int32 Amount);
 
+	/** Gives a given amount of credits to the player */
+	UFUNCTION(Exec)
+	void GiveCredits(int32 Amount);
+
 private:
 	static void GatherWeaponDataAssets(TArray<const UWeaponDataAsset*>& OutWeapons);
 
