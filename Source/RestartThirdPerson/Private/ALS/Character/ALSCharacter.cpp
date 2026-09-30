@@ -90,6 +90,21 @@ void AALSCharacter::Tick(float DeltaSeconds)
 		return;
 	}
 
+	if (bShouldHeal)
+	{
+		const float Health = ActionSystemComponent->GetAttributeValue(RSGameplayTags::Attribute_Health);
+		const float HealthMax = ActionSystemComponent->GetAttributeValue(RSGameplayTags::Attribute_HealthMax);
+		if (FMath::IsNearlyEqual(Health, HealthMax, 1e-3))
+		{
+			bShouldHeal = false;
+		}
+		else
+		{
+			const float NewHealth = FMath::Lerp(Health, HealthMax, HealSpeed * DeltaSeconds);
+			ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, NewHealth - Health, EAttributeChangeType::Base);
+		}
+	}
+
 	if (CVar_DebugGateSettings.GetValueOnGameThread())
 	{
 		rs::LogTick(FString::Printf(TEXT("Max Walk Speed: %f"), GetCharacterMovement()->MaxWalkSpeed), 1, FColor::Emerald);
@@ -730,6 +745,13 @@ float AALSCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEv
 
 	// Apply damage
 	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, -DamageAmount, Base, EventInstigator, DamageCauser);
+
+	// Stop healing
+	bShouldHeal = false;
+	GetWorldTimerManager().SetTimer(TimerHandle_Heal, FTimerDelegate::CreateLambda([this]()
+		{
+			bShouldHeal = true;
+		}), TimeUntilHealAfterTakenDamage, false);
 
 	// Apply rage
 	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Rage, 100.f, Modifier, EventInstigator, DamageCauser);

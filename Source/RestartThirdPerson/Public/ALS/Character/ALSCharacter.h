@@ -357,6 +357,24 @@ protected:
 	/** Look input since recoil (used to offset debt) */
 	FVector2D LookInputSinceRecoil = FVector2D::ZeroVector;
 
+	// HEALING /////////////////////////////////////////////////
+
+	/** Time until healing begins after taking damage */
+	UPROPERTY(EditDefaultsOnly, Category="Health")
+	float TimeUntilHealAfterTakenDamage = 8.f;
+
+	/** Rate at which health is restored while healing */
+	UPROPERTY(EditDefaultsOnly, Category="Health")
+	float HealSpeed = 3.f;
+
+	/** Timer handle for setting bShouldHeal. Reset when taking damage */
+	UPROPERTY(Transient)
+	FTimerHandle TimerHandle_Heal;
+
+	/** Whether the player should heal or not on Tick */
+	UPROPERTY(Transient)
+	bool bShouldHeal = false;
+
 protected:
 	/** Rep notify for bIsDead */
 	UFUNCTION()

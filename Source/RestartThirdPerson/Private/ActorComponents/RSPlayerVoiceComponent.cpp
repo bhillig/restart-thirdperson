@@ -40,9 +40,14 @@ void URSPlayerVoiceComponent::OnHealthChanged(float NewHealth, float OldHealth, 
 		return;
 	}
 
-	if (HitReactSound)
+	const float Delta = NewHealth - OldHealth;
+
+	if (Delta < 0.f)
 	{
-		Multicast_SpawnSoundAttached(HitReactSound);
+		if (HitReactSound)
+		{
+			Multicast_SpawnSoundAttached(HitReactSound);
+		}
 	}
 }
 
