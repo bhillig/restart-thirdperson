@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "ALSCharacter.generated.h"
 
+class URSHealthRegenComponent;
 struct FGameplayTag;
 class URSActionSystemComponent;
 class URSPlayerVoiceComponent;
@@ -130,6 +131,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<URSActionSystemComponent> ActionSystemComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<URSHealthRegenComponent> HealthRegenComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UWeaponsComponent> WeaponsComponent;
@@ -320,6 +324,9 @@ private:
 	UFUNCTION()
 	void OnWeaponFired();
 
+	/** Called when the health attribute changes */
+	void OnHealthChanged(float NewHealth, float OldHealth, AController* EventInstigator, AActor* InstigatorActor);
+
 	/** Called when the health attribute reaches zero */
 	UFUNCTION()
 	void OnDeath(AController* EventInstigator, AActor* DamageCauser);
@@ -356,24 +363,6 @@ protected:
 
 	/** Look input since recoil (used to offset debt) */
 	FVector2D LookInputSinceRecoil = FVector2D::ZeroVector;
-
-	// HEALING /////////////////////////////////////////////////
-
-	/** Time until healing begins after taking damage */
-	UPROPERTY(EditDefaultsOnly, Category="Health")
-	float TimeUntilHealAfterTakenDamage = 8.f;
-
-	/** Rate at which health is restored while healing */
-	UPROPERTY(EditDefaultsOnly, Category="Health")
-	float HealSpeed = 3.f;
-
-	/** Timer handle for setting bShouldHeal. Reset when taking damage */
-	UPROPERTY(Transient)
-	FTimerHandle TimerHandle_Heal;
-
-	/** Whether the player should heal or not on Tick */
-	UPROPERTY(Transient)
-	bool bShouldHeal = false;
 
 protected:
 	/** Rep notify for bIsDead */

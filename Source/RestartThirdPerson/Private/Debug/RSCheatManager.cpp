@@ -52,7 +52,15 @@ void URSCheatManager::ApplyHealthChange(float Delta)
 	URSActionSystemComponent* ActionSystemComponent = GetActionSystemComponent();
 	ensure(ActionSystemComponent);
 
-	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, Delta, Base, nullptr, nullptr);
+	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, Delta, EAttributeChangeType::Base, nullptr, nullptr);
+}
+
+void URSCheatManager::ApplyHealthMaxChange(float Delta)
+{
+	URSActionSystemComponent* ActionSystemComponent = GetActionSystemComponent();
+	ensure(ActionSystemComponent);
+
+	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_HealthMax, Delta, EAttributeChangeType::Base, nullptr, nullptr);
 }
 
 void URSCheatManager::SpawnCoins(int32 Amount)

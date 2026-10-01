@@ -14,6 +14,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "ActorComponents/RSDamageFeedbackComponent.h"
 #include "ActorComponents/RSPlayerVoiceComponent.h"
+#include "ActorComponents/RSHealthRegenComponent.h"
 #include "ActorComponents/WeaponsComponent.h"
 #include "Interact/RSInteractComponent.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -35,6 +36,7 @@ AALSCharacter::AALSCharacter()
 
 	InteractComponent = CreateDefaultSubobject<URSInteractComponent>("InteractComponent");
 	ActionSystemComponent = CreateDefaultSubobject<URSActionSystemComponent>("ActionSystemComponent");
+	HealthRegenComponent = CreateDefaultSubobject<URSHealthRegenComponent>("HealthRegenComponent");
 	WeaponsComponent = CreateDefaultSubobject<UWeaponsComponent>("WeaponsComponent");
 	DamageFeedbackComponent = CreateDefaultSubobject<URSDamageFeedbackComponent>("DamageFeedbackComponent");
 
@@ -57,6 +59,9 @@ void AALSCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& 
 void AALSCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
+
+	FOnAttributeChanged& HealthChangedEvent = ActionSystemComponent->GetAttributeListener(RSGameplayTags::Attribute_Health);
+	HealthChangedEvent.AddUObject(this, &ThisClass::OnHealthChanged);
 
 	WeaponsComponent->OnWeaponAdded.AddDynamic(this, &AALSCharacter::OnWeaponAdded);
 	WeaponsComponent->OnWeaponEquipped.AddDynamic(this, &AALSCharacter::OnWeaponEquipped);
@@ -88,21 +93,6 @@ void AALSCharacter::Tick(float DeltaSeconds)
 	if (bIsDead)
 	{
 		return;
-	}
-
-	if (bShouldHeal)
-	{
-		const float Health = ActionSystemComponent->GetAttributeValue(RSGameplayTags::Attribute_Health);
-		const float HealthMax = ActionSystemComponent->GetAttributeValue(RSGameplayTags::Attribute_HealthMax);
-		if (FMath::IsNearlyEqual(Health, HealthMax, 1e-3))
-		{
-			bShouldHeal = false;
-		}
-		else
-		{
-			const float NewHealth = FMath::Lerp(Health, HealthMax, HealSpeed * DeltaSeconds);
-			ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, NewHealth - Health, EAttributeChangeType::Base);
-		}
 	}
 
 	if (CVar_DebugGateSettings.GetValueOnGameThread())
@@ -680,6 +670,14 @@ void AALSCharacter::OnWeaponFired()
 	AddRecoil();
 }
 
+void AALSCharacter::OnHealthChanged(float NewHealth, float OldHealth, AController* EventInstigator, AActor* InstigatorActor)
+{
+	if (FMath::IsNearlyZero(NewHealth))
+	{
+		OnDeath(EventInstigator, InstigatorActor);
+	}
+}
+
 void AALSCharacter::OnDeath(AController* EventInstigator, AActor* DamageCauser)
 {
 	if (!GetOwner()->HasAuthority())
@@ -741,29 +739,18 @@ void AALSCharacter::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted
 
 float AALSCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	ensure(ActionSystemComponent);
+	const float DamageReceived = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
-	// Apply damage
-	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, -DamageAmount, Base, EventInstigator, DamageCauser);
-
-	// Stop healing
-	bShouldHeal = false;
-	GetWorldTimerManager().SetTimer(TimerHandle_Heal, FTimerDelegate::CreateLambda([this]()
-		{
-			bShouldHeal = true;
-		}), TimeUntilHealAfterTakenDamage, false);
-
-	// Apply rage
-	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Rage, 100.f, Modifier, EventInstigator, DamageCauser);
-
-	const float NewHealth = ActionSystemComponent->GetAttributeValue(RSGameplayTags::Attribute_Health);
-
-	if (FMath::IsNearlyZero(NewHealth))
+	if (DamageReceived <= 0.f || bIsDead)
 	{
-		OnDeath(EventInstigator, DamageCauser);
+		return 0.f;
 	}
 
-	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	// Apply damage
+	ensure(ActionSystemComponent);
+	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, -DamageReceived, EAttributeChangeType::Base, EventInstigator, DamageCauser);
+
+	return DamageReceived;
 }
 
 void AALSCharacter::OnRep_IsDead()

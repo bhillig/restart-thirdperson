@@ -17,7 +17,7 @@ void URSAction::StartAction_Implementation()
 	// Apply Activation Cost
 	for (const auto& [AttributeTag, Cost] : ActivationCost)
 	{
-		ActionSystemComponent->ApplyAttributeChange(AttributeTag, -Cost, Base);
+		ActionSystemComponent->ApplyAttributeChange(AttributeTag, -Cost, EAttributeChangeType::Base);
 	}
 
 	// Apply Action Effects

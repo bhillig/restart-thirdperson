@@ -13,7 +13,7 @@ struct FGameplayTag;
 class URSAction;
 
 UENUM(BlueprintType)
-enum EAttributeChangeType : uint8
+enum class EAttributeChangeType : uint8
 {
 	Base,
 	Modifier,

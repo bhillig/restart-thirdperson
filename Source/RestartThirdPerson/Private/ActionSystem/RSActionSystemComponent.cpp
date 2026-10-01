@@ -104,13 +104,13 @@ bool URSActionSystemComponent::ApplyAttributeChange(FGameplayTag InAttributeTag,
 
 	switch (ChangeType)
 	{
-	case Base:
+	case EAttributeChangeType::Base:
 		Attribute->Base += Delta;
 		break;
-	case Modifier:
+	case EAttributeChangeType::Modifier:
 		Attribute->Modifier += Delta;
 		break;
-	case BaseOverride:
+	case EAttributeChangeType::BaseOverride:
 		Attribute->Base = Delta;
 		break;
 	default:

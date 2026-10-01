@@ -140,7 +140,7 @@ void AZombieCharacter::OnZombieTakePointDamage(AActor* DamagedActor, float Damag
 	bLastShotWasAHeadshot = BoneName == HeadBoneName;
 
 	ensure(ActionSystemComponent);
-	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, -Damage, Base, InstigatedBy, DamageCauser);
+	ActionSystemComponent->ApplyAttributeChange(RSGameplayTags::Attribute_Health, -Damage, EAttributeChangeType::Base, InstigatedBy, DamageCauser);
 
 	const float NewHealth = ActionSystemComponent->GetAttributeValue(RSGameplayTags::Attribute_Health);
 
