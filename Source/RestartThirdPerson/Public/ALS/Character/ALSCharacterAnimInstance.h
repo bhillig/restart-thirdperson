@@ -174,6 +174,11 @@ protected:
 	FFloatSpringState RootYawOffsetToZeroSpringState;
 
 protected:
+	/** Callback for when the status effect for sprinting is added */
+	void OnSprintingTagAdded();
+
+	/** Callback for when the status effect for sprinting is added */
+	void OnSprintingTagRemoved();
 
 	UFUNCTION()
 	void OnGateSwitched(EGate Gate);

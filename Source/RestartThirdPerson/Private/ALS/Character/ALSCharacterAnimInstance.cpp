@@ -31,6 +31,15 @@ void UALSCharacterAnimInstance::NativeBeginPlay()
 	{
 		Character->OnGateSwitched.AddDynamic(this, &UALSCharacterAnimInstance::OnGateSwitched);
 	}
+
+	if (ActionSystemComponent)
+	{
+		FOnGameplayTagAdded& OnSprintingAddedEvent = ActionSystemComponent->GetGameplayTagAddedListener(RSGameplayTags::StatusEffect_Sprinting);
+		OnSprintingAddedEvent.AddUObject(this, &ThisClass::OnSprintingTagAdded);
+
+		FOnGameplayTagRemoved& OnSprintingRemovedEvent = ActionSystemComponent->GetGameplayTagRemovedListener(RSGameplayTags::StatusEffect_Sprinting);
+		OnSprintingRemovedEvent.AddUObject(this, &ThisClass::OnSprintingTagRemoved);
+	}
 }
 
 void UALSCharacterAnimInstance::NativeInitializeAnimation()
@@ -115,12 +124,6 @@ void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSecon
 
 	// Get Is Accelerating
 	bIsAccelerating = Acceleration.Length() >= 0.1f;
-
-	if (ActionSystemComponent)
-	{
-		// Get Is Sprinting
-		bIsSprinting = ActionSystemComponent->ActiveGameplayTags.HasTag(RSGameplayTags::StatusEffect_Sprinting);
-	}
 
 	// Get Ground Speed
 	const FVector GroundVelocity = FVector(Velocity.X, Velocity.Y, 0);
@@ -219,6 +222,16 @@ void UALSCharacterAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSecon
 	// Get Distance From Ground
 	DistanceFromGround = ALSCharacter->GetDistanceFromGround();
 	
+}
+
+void UALSCharacterAnimInstance::OnSprintingTagAdded()
+{
+	bIsSprinting = true;
+}
+
+void UALSCharacterAnimInstance::OnSprintingTagRemoved()
+{
+	bIsSprinting = false;
 }
 
 void UALSCharacterAnimInstance::OnGateSwitched(EGate Gate)

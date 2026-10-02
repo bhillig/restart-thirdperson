@@ -10,7 +10,7 @@ void URSActionEffect::OnApplyEffect()
 	ensure(OwningComponent);
 
 	// Apply tags
-	OwningComponent->ActiveGameplayTags.AppendTags(GrantedTags);
+	OwningComponent->AppendGameplayTags(GrantedTags);
 
 	// Set timer for duration based effects
 	if (EffectType == EEffectType::Duration)
@@ -28,7 +28,7 @@ void URSActionEffect::OnRemoveEffect()
 	ensure(OwningComponent);
 
 	// Remove tags
-	OwningComponent->ActiveGameplayTags.RemoveTags(GrantedTags);
+	OwningComponent->RemoveGameplayTags(GrantedTags);
 
 	// Clear timer for duration based effects
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Duration);

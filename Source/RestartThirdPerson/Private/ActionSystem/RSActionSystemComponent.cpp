@@ -235,6 +235,54 @@ void URSActionSystemComponent::RemoveActionEffectWithTag(FGameplayTag ActionEffe
 	}
 }
 
+void URSActionSystemComponent::AppendGameplayTags(const FGameplayTagContainer& TagContainer)
+{
+	for (FGameplayTag Tag : TagContainer)
+	{
+		AddGameplayTag(Tag);
+	}
+}
+
+void URSActionSystemComponent::AddGameplayTag(FGameplayTag Tag)
+{
+	ActiveGameplayTags.AddTag(Tag);
+
+	// Broadcast to native listeners
+	if (FOnGameplayTagAdded* OnTagAdded = NativeGameplayTagsAddedListeners.Find(Tag))
+	{
+		OnTagAdded->Broadcast();
+	}
+}
+
+void URSActionSystemComponent::RemoveGameplayTags(const FGameplayTagContainer& TagContainer)
+{
+	for (FGameplayTag Tag : TagContainer)
+	{
+		RemoveGameplayTag(Tag);
+	}
+}
+
+void URSActionSystemComponent::RemoveGameplayTag(FGameplayTag Tag)
+{
+	ActiveGameplayTags.RemoveTag(Tag);
+
+	// Broadcast to native listeners
+	if (FOnGameplayTagRemoved* OnTagRemoved = NativeGameplayTagsRemovedListeners.Find(Tag))
+	{
+		OnTagRemoved->Broadcast();
+	}
+}
+
+bool URSActionSystemComponent::HasAnyGameplayTagFrom(const FGameplayTagContainer& TagContainer)
+{
+	return ActiveGameplayTags.HasAny(TagContainer);
+}
+
+bool URSActionSystemComponent::HasGameplayTag(FGameplayTag Tag)
+{
+	return ActiveGameplayTags.HasTag(Tag);
+}
+
 URSAttributeSet* URSActionSystemComponent::FindOwningAttributeSet(FRSAttribute* Attribute) const
 {
 	if (URSAttributeSet* const* FoundAttributeSet = CachedAttributeSets.Find(Attribute))
@@ -265,4 +313,14 @@ void URSActionSystemComponent::RemoveDynamicAttributeListener(FOnAttributeChange
 			break;
 		}
 	}
+}
+
+FOnGameplayTagAdded& URSActionSystemComponent::GetGameplayTagAddedListener(FGameplayTag Tag)
+{
+	return NativeGameplayTagsAddedListeners.FindOrAdd(Tag);
+}
+
+FOnGameplayTagRemoved& URSActionSystemComponent::GetGameplayTagRemovedListener(FGameplayTag Tag)
+{
+	return NativeGameplayTagsRemovedListeners.FindOrAdd(Tag);
 }
