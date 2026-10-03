@@ -56,11 +56,11 @@ FRSInteractionPrompt URSPurchasableComponent::GetInteractionPrompt(ARSPlayerStat
 	return Prompt;
 }
 
-void URSPurchasableComponent::Interact(ARSPlayerState* PlayerState)
+bool URSPurchasableComponent::Interact(ARSPlayerState* PlayerState)
 {
 	if (!GetOwner()->HasAuthority())
 	{
-		return;
+		return false;
 	}
 
 	ensure(PlayerState);
@@ -68,7 +68,7 @@ void URSPurchasableComponent::Interact(ARSPlayerState* PlayerState)
 	if (!PlayerState->TrySpendCredits(CreditsCost))
 	{
 		// If the player can't afford this purchasable
-		return;
+		return false;
 	}
 
 	// Get effect
@@ -91,6 +91,7 @@ void URSPurchasableComponent::Interact(ARSPlayerState* PlayerState)
 	}
 
 	// Otherwise unlimited
+	return true;
 }
 
 void URSPurchasableComponent::OnRep_Purchased()

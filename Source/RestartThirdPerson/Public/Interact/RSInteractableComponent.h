@@ -41,8 +41,8 @@ public:
 	/** Client. Called every focus refresh. Drives UI */
 	virtual FRSInteractionPrompt GetInteractionPrompt(ARSPlayerState* PlayerState) const;
 
-	/** Server only. Assumes CanInteract successfully passed */
-	virtual void Interact(ARSPlayerState* PlayerState);
+	/** Server only. Assumes CanInteract successfully passed. Returns whether interaction was successful */
+	virtual bool Interact(ARSPlayerState* PlayerState);
 
 protected:
 	/** Where the prompt draws relative to its location */

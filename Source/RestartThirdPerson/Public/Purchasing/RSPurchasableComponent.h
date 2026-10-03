@@ -27,7 +27,7 @@ public:
 
 	virtual FRSInteractionPrompt GetInteractionPrompt(ARSPlayerState* PlayerState) const override;
 
-	virtual void Interact(ARSPlayerState* PlayerState) override;
+	virtual bool Interact(ARSPlayerState* PlayerState) override;
 	/** URSInteractableComponent End */
 
 	const TInstancedStruct<FRSPurchaseEffect>& GetPurchaseEffect() const { return Effect; }

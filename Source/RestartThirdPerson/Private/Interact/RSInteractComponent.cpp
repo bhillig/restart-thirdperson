@@ -45,8 +45,10 @@ void URSInteractComponent::Server_Interact_Implementation(URSInteractableCompone
 
 	if (Interactable && Interactable->CanInteract(PlayerState))
 	{
-		Interactable->Interact(PlayerState);
-		Multicast_PlayMontage(InteractMontage);
+		if (Interactable->Interact(PlayerState))
+		{
+			Multicast_PlayMontage(InteractMontage);
+		}
 	}
 }
 

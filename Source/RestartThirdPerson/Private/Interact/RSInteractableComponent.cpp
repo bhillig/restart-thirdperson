@@ -23,9 +23,10 @@ FRSInteractionPrompt URSInteractableComponent::GetInteractionPrompt(ARSPlayerSta
 	return Prompt;
 }
 
-void URSInteractableComponent::Interact(ARSPlayerState* PlayerState)
+bool URSInteractableComponent::Interact(ARSPlayerState* PlayerState)
 {
 	rs::LogOnce("Interacted!");
+	return true;
 }
 
 void URSInteractableComponent::BeginPlay()
