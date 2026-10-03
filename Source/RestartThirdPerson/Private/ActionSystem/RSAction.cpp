@@ -65,7 +65,7 @@ bool URSAction::CanStart() const
 	URSActionSystemComponent* ActionSystemComponent = GetOwningComponent();
 	ensure(ActionSystemComponent);
 
-	if (ActionSystemComponent->HasAnyGameplayTagFrom(BlockedTags))
+	if (ActionSystemComponent->GetActiveTags().HasAny(BlockedTags))
 	{
 		rs::LogOnce("Can't start action. Instigator has blocked tags!", FColor::Red, 3.0f);
 		return false;

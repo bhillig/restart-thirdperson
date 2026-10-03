@@ -95,13 +95,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Tags")
 	void RemoveGameplayTag(FGameplayTag Tag);
 
-	/** Returns whether the owning actor has any gameplay tag from a given gameplay tag container */
-	UFUNCTION(BlueprintCallable, Category="Tags")
-	bool HasAnyGameplayTagFrom(const FGameplayTagContainer& TagContainer);
-
-	/** Returns whether the owning actor has a given gameplay tag */
-	UFUNCTION(BlueprintCallable, Category="Tags")
-	bool HasGameplayTag(FGameplayTag Tag);
+	/** Returns the owner's active gameplay tags */
+	const FGameplayTagContainer& GetActiveTags() const
+	{
+		return ActiveGameplayTags;
+	}
 
 public:
 	// Attribute Listeners (listens for attribute changes)

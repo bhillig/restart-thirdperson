@@ -273,16 +273,6 @@ void URSActionSystemComponent::RemoveGameplayTag(FGameplayTag Tag)
 	}
 }
 
-bool URSActionSystemComponent::HasAnyGameplayTagFrom(const FGameplayTagContainer& TagContainer)
-{
-	return ActiveGameplayTags.HasAny(TagContainer);
-}
-
-bool URSActionSystemComponent::HasGameplayTag(FGameplayTag Tag)
-{
-	return ActiveGameplayTags.HasTag(Tag);
-}
-
 URSAttributeSet* URSActionSystemComponent::FindOwningAttributeSet(FRSAttribute* Attribute) const
 {
 	if (URSAttributeSet* const* FoundAttributeSet = CachedAttributeSets.Find(Attribute))
