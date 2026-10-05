@@ -17,6 +17,9 @@ void ARSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Set input mode to game only
+	SetInputMode(FInputModeGameOnly());
+
 	if (IsLocalPlayerController())
 	{
 		CreateUserWidgets();
