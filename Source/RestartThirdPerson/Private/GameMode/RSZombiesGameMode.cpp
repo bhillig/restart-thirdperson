@@ -31,7 +31,7 @@ void ARSZombiesGameMode::AdvanceRound()
 	CurrentRoundNumber++;
 
 	// Calculate the zombies needed this round
-	ZombiesLeftToSpawnThisRound = GetZombieCountForRound(CurrentRoundNumber, 1);
+	ZombiesLeftToSpawnThisRound = GetZombieCountForRound(CurrentRoundNumber, GetNumPlayers());
 
 	// Begin spawner
 	FTimerDelegate Delegate;
@@ -99,7 +99,7 @@ int32 ARSZombiesGameMode::GetZombieCountForRound(int32 RoundNumber, int32 Player
 			break;
 		}
 
-		return FMath::Floor((6 + (ScaleFactor * 6 * FMath::Max(1, RoundNumber / 5.f)) * PostScaleFactor));
+		return FMath::Floor((12 + (ScaleFactor * 6 * FMath::Max(1, RoundNumber / 5.f)) * PostScaleFactor));
 	}
 
 	// Round 10 And Above
@@ -114,7 +114,7 @@ int32 ARSZombiesGameMode::GetConcurrentZombieCap(int32 PlayerCount) const
 
 void ARSZombiesGameMode::TrySpawnZombie()
 {
-	if (ZombiesLeftToSpawnThisRound > 0 && ZombiesAlive < GetConcurrentZombieCap(1))
+	if (ZombiesLeftToSpawnThisRound > 0 && ZombiesAlive < GetConcurrentZombieCap(GetNumPlayers()))
 	{
 		URSZombieDirectorSubsystem* ZombieDirectorSubsystem = GetWorld()->GetSubsystem<URSZombieDirectorSubsystem>();
 		ensure(ZombieDirectorSubsystem);

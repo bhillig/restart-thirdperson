@@ -77,7 +77,7 @@ bool URSAction::CanStart() const
 		if (AttributeAmount < Cost)
 		{
 			const FString Msg = FString::Printf(TEXT("Can't start action. Action requires: %f of %s. Pawn has: %f"), Cost, *AttributeTag.ToString(), AttributeAmount);
-			rs::LogOnce("", FColor::Red, 3.0f);
+			rs::LogOnce(Msg, FColor::Red, 3.0f);
 			return false;
 		}
 	}

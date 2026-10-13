@@ -179,9 +179,6 @@ void AALSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 		// Interact
 		EnhancedInputComp->BindAction(InteractAction, ETriggerEvent::Started, this, &AALSCharacter::OnInteractStarted);
 
-		// Action System
-		EnhancedInputComp->BindAction(TestAction, ETriggerEvent::Started, this, &AALSCharacter::StartAction, RSGameplayTags::Action_Test.GetTag());
-
 		// Crouching
 		EnhancedInputComp->BindAction(ToggleCrouchAction, ETriggerEvent::Started, this, &AALSCharacter::OnCrouchToggled);
 
