@@ -723,6 +723,9 @@ void AALSCharacter::HandleDeath()
 
 	// Zoom camera out
 	SpringArm->TargetArmLength = 600.f;
+
+	// Notify listeners (e.g. player controller hiding the HUD)
+	OnCharacterDeath.Broadcast(this);
 }
 
 void AALSCharacter::OnDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)

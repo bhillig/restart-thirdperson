@@ -6,6 +6,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "RSZombiesGameMode.generated.h"
 
+class AALSCharacter;
 class ATargetPoint;
 class AZombieCharacter;
 
@@ -20,6 +21,9 @@ class RESTARTTHIRDPERSON_API ARSZombiesGameMode : public AGameModeBase
 public:
 	/** Constructor */
 	ARSZombiesGameMode();
+
+	/** Called when a player's pawn is spawned/restarted. Used to listen for player deaths */
+	virtual void SetPlayerDefaults(APawn* PlayerPawn) override;
 
 protected:
 	/** Called when the simulation has started */
@@ -49,6 +53,16 @@ protected:
 	/** Called when a zombie dies */
 	UFUNCTION()
 	void OnZombieDeath(AController* InstigatedBy, bool bWasHeadshot);
+
+	/** Called when a player character dies */
+	UFUNCTION()
+	void OnPlayerCharacterDeath(AALSCharacter* DeadCharacter);
+
+	/** Returns true if no non-spectating player has a living character */
+	bool AreAllPlayersDead() const;
+
+	/** Stops the round flow and notifies the game state the game is over */
+	void EndGame();
 
 protected:
 	/** SPAWN RULES */
@@ -85,6 +99,9 @@ protected:
 
 	UPROPERTY()
 	int32 ZombiesAlive = 0;
+
+	UPROPERTY()
+	bool bIsGameOver = false;
 
 	UPROPERTY()
 	FTimerHandle TimerHandle_ZombieSpawn;

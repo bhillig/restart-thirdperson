@@ -40,8 +40,13 @@ void ARSZombiesGameState::OnRep_RoundState(const FRSRoundState& OldRoundState)
 
 void ARSZombiesGameState::HandleRoundStateChange(const FRSRoundState& OldRoundState)
 {
+	// If the game just ended. Checked first so late-joining clients receiving a jump straight to game over don't broadcast round started
+	if (OldRoundState.RoundPhase != ERSRoundPhase::GameOver && RoundState.RoundPhase == ERSRoundPhase::GameOver)
+	{
+		OnGameOver.Broadcast(RoundState.RoundNumber);
+	}
 	// If we are starting a new round
-	if (OldRoundState.RoundNumber < RoundState.RoundNumber)
+	else if (OldRoundState.RoundNumber < RoundState.RoundNumber)
 	{
 		OnRoundStarted.Broadcast(RoundState.RoundNumber);
 	}

@@ -4,6 +4,7 @@
 #include "GameMode/RSZombiesGameMode.h"
 
 #include "AI/RSZombieDirectorSubsystem.h"
+#include "ALS/Character/ALSCharacter.h"
 #include "Character/Zombies/ZombieCharacter.h"
 #include "GameStates/RSZombiesGameState.h"
 #include "PlayerStates/RSPlayerState.h"
@@ -11,6 +12,17 @@
 ARSZombiesGameMode::ARSZombiesGameMode()
 {
 	CurrentRoundNumber = 0;
+}
+
+void ARSZombiesGameMode::SetPlayerDefaults(APawn* PlayerPawn)
+{
+	Super::SetPlayerDefaults(PlayerPawn);
+
+	// Listen for the player's death to detect game over
+	if (AALSCharacter* PlayerCharacter = Cast<AALSCharacter>(PlayerPawn))
+	{
+		PlayerCharacter->OnCharacterDeath.AddUniqueDynamic(this, &ARSZombiesGameMode::OnPlayerCharacterDeath);
+	}
 }
 
 void ARSZombiesGameMode::BeginPlay()
@@ -149,9 +161,52 @@ void ARSZombiesGameMode::OnZombieDeath(AController* InstigatedBy, bool bWasHeads
 	}
 
 	ZombiesAlive--;
-	if (ZombiesAlive == 0 && ZombiesLeftToSpawnThisRound == 0)
+	if (!bIsGameOver && ZombiesAlive == 0 && ZombiesLeftToSpawnThisRound == 0)
 	{
 		// Round complete
 		CompleteRound();
 	}
+}
+
+void ARSZombiesGameMode::OnPlayerCharacterDeath(AALSCharacter* DeadCharacter)
+{
+	if (!bIsGameOver && AreAllPlayersDead())
+	{
+		EndGame();
+	}
+}
+
+bool ARSZombiesGameMode::AreAllPlayersDead() const
+{
+	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	{
+		APlayerController* PlayerController = Iterator->Get();
+		if (!PlayerController || !PlayerController->PlayerState || MustSpectate(PlayerController))
+		{
+			continue;
+		}
+
+		// A missing pawn counts as dead (dead characters are destroyed after their lifespan expires)
+		const AALSCharacter* PlayerCharacter = Cast<AALSCharacter>(PlayerController->GetPawn());
+		if (PlayerCharacter && !PlayerCharacter->IsDead())
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void ARSZombiesGameMode::EndGame()
+{
+	bIsGameOver = true;
+
+	// Stop the round flow
+	GetWorldTimerManager().ClearTimer(TimerHandle_ZombieSpawn);
+	GetWorldTimerManager().ClearTimer(TimerHandle_RoundBreak);
+
+	// Notify game state the game is over
+	ARSZombiesGameState* ZombiesGameState = GetGameState<ARSZombiesGameState>();
+	ensure(ZombiesGameState);
+	ZombiesGameState->SetRoundState(CurrentRoundNumber, ERSRoundPhase::GameOver);
 }

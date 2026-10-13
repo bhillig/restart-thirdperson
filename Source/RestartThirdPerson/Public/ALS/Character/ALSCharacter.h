@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "ALSCharacter.generated.h"
 
+class AALSCharacter;
 class URSHealthRegenComponent;
 struct FGameplayTag;
 class URSActionSystemComponent;
@@ -75,6 +76,7 @@ struct FGateSettings
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGateSwitched, EGate, Gate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacterDeath, AALSCharacter*, DeadCharacter);
 
 UCLASS()
 class RESTARTTHIRDPERSON_API AALSCharacter : public ACharacter, public IWeaponAimSource
@@ -88,8 +90,13 @@ public:
 	/** Register replicated variables */
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
+	/** Broadcast when the character changes movement state (i.e. starting/stopped sprinting) */
 	UPROPERTY(BlueprintAssignable)
 	FOnGateSwitched OnGateSwitched;
+
+	/** Broadcast when this character dies. Fires on server and clients */
+	UPROPERTY(BlueprintAssignable)
+	FOnCharacterDeath OnCharacterDeath;
 
 public:
 

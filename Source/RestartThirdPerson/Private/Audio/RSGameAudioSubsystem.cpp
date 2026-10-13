@@ -53,6 +53,7 @@ void URSGameAudioSubsystem::BindGameState(AGameStateBase* GameState)
 
 	ZombiesGameState->OnRoundStarted.AddDynamic(this, &URSGameAudioSubsystem::HandleRoundStarted);
 	ZombiesGameState->OnRoundCompleted.AddDynamic(this, &URSGameAudioSubsystem::HandleRoundCompleted);
+	ZombiesGameState->OnGameOver.AddDynamic(this, &URSGameAudioSubsystem::URSGameAudioSubsystem::HandleGameOver);
 	bBound = true;
 }
 
@@ -69,5 +70,13 @@ void URSGameAudioSubsystem::HandleRoundCompleted(int32 RoundNumber)
 	if (GameAudioCatalog && GameAudioCatalog->RoundCompleted)
 	{
 		UGameplayStatics::PlaySound2D(this, GameAudioCatalog->RoundCompleted, 0.3f);
+	}
+}
+
+void URSGameAudioSubsystem::HandleGameOver(int32 /*RoundNumberAchieved*/)
+{
+	if (GameAudioCatalog && GameAudioCatalog->GameOver)
+	{
+		UGameplayStatics::PlaySound2D(this, GameAudioCatalog->GameOver, 0.3f);
 	}
 }

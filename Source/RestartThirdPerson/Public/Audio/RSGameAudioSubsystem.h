@@ -17,6 +17,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<USoundBase> RoundCompleted;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<USoundBase> GameOver;
 };
 
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Game Audio Subsystem Settings"))
@@ -72,4 +75,8 @@ protected:
 	/** Callback for when a zombies round completes */
 	UFUNCTION()
 	void HandleRoundCompleted(int32 RoundNumber);
+
+	/** Callback for when the game goes to GameOver */
+	UFUNCTION()
+	void HandleGameOver(int32 RoundNumberAchieved);
 };

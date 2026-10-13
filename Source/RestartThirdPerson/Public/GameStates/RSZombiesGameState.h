@@ -10,7 +10,8 @@ UENUM(BlueprintType)
 enum class ERSRoundPhase : uint8
 {
 	InProgress,
-	Intermission
+	Intermission,
+	GameOver
 };
 
 USTRUCT(BlueprintType)
@@ -27,6 +28,7 @@ struct FRSRoundState
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRSOnRoundStartedDelegate, int32, RoundNumber);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRSOnRoundCompletedDelegate, int32, RoundNumber);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRSOnGameOverDelegate, int32, RoundNumber);
 
 /**
  * 
@@ -55,6 +57,10 @@ public:
 	/** On Round Completed Delegate */
 	UPROPERTY(BlueprintAssignable)
 	FRSOnRoundCompletedDelegate OnRoundCompleted;
+
+	/** On Game Over Delegate. Broadcast when all players have died */
+	UPROPERTY(BlueprintAssignable)
+	FRSOnGameOverDelegate OnGameOver;
 
 protected:
 	/** Current round state */
