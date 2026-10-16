@@ -7,7 +7,6 @@
 
 ARSPlayerState::ARSPlayerState()
 {
-	AvailableCredits = 0;
 }
 
 void ARSPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -15,6 +14,7 @@ void ARSPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ARSPlayerState, AvailableCredits);
+	DOREPLIFETIME(ARSPlayerState, Stats);
 }
 
 void ARSPlayerState::AddCredits(int32 CreditsToAdd)
@@ -54,8 +54,31 @@ int32 ARSPlayerState::GetAvailableCredits() const
 	return AvailableCredits;
 }
 
+void ARSPlayerState::AddKill(bool bWasHeadshot)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	Stats.Kills += 1;
+	if (bWasHeadshot)
+	{
+		Stats.Headshots += 1;
+	}
+
+	// Broadcast stats changed for server
+	OnStatsChanged.Broadcast(Stats);
+}
+
 void ARSPlayerState::OnRep_Credits(int32 OldCredits)
 {
 	// Broadcast credits change for clients
 	OnCreditsChanged.Broadcast(AvailableCredits, AvailableCredits - OldCredits);
+}
+
+void ARSPlayerState::OnRep_Stats(const FRSPlayerStats& /*OldStats*/)
+{
+	// Broadcast stats changed for clients
+	OnStatsChanged.Broadcast(Stats);
 }

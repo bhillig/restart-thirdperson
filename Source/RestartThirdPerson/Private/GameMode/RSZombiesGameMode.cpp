@@ -153,11 +153,12 @@ void ARSZombiesGameMode::OnZombieHit(AController* InstigatedBy)
 
 void ARSZombiesGameMode::OnZombieDeath(AController* InstigatedBy, bool bWasHeadshot)
 {
-	// Award credits to the instigator
+	// Award kill and credits to the instigator
 	if (ARSPlayerState* PlayerState = InstigatedBy->GetPlayerState<ARSPlayerState>())
 	{
 		const int32 CreditsToAward = bWasHeadshot ? CreditsAwardedPerHeadshotKill : CreditsAwardedPerKill;
 		PlayerState->AddCredits(CreditsToAward);
+		PlayerState->AddKill(bWasHeadshot);
 	}
 
 	ZombiesAlive--;

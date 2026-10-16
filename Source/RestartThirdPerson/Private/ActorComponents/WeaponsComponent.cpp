@@ -45,17 +45,16 @@ void UWeaponsComponent::BeginPlay()
 	}
 }
 
-void UWeaponsComponent::TryAddWeapon(const UWeaponDataAsset* WeaponData)
+void UWeaponsComponent::TryAddWeapon(const UWeaponDataAsset* WeaponData, bool bNotifyClient /* = false */)
 {
 	if (GetOwner()->HasAuthority())
 	{
 		// If we are on the server
-		AddWeapon(WeaponData);
-		return;
+		AddWeapon(WeaponData, bNotifyClient);
 	}
 
 	// Request the server to add the weapon
-	Server_AddWeapon(WeaponData);
+	Server_AddWeapon(WeaponData, bNotifyClient);
 }
 
 bool UWeaponsComponent::HasWeaponInInventory(const UWeaponDataAsset* WeaponData) const
@@ -449,7 +448,12 @@ void UWeaponsComponent::Client_DrawDebugLine_Implementation(FVector Start, FVect
 	DrawDebugLine(GetWorld(), Start, End, Color, false, Duration);
 }
 
-void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData)
+void UWeaponsComponent::Client_NotifyWeaponGranted_Implementation()
+{
+	UGameplayStatics::PlaySoundAtLocation(this, PickupAmmoSound, GetOwner()->GetActorLocation());
+}
+
+void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData, bool bNotifyClient)
 {
 	if (!GetOwner()->HasAuthority())
 	{
@@ -473,6 +477,11 @@ void UWeaponsComponent::AddWeapon(const UWeaponDataAsset* WeaponData)
 	WeaponInventory.Add(FWeaponSlotEntry{ .Weapon = Weapon, .Slot = WeaponConfig.WeaponSlot });
 
 	HandleWeaponInventoryChanged(OldWeaponInventory);
+	
+	if (bNotifyClient)
+	{
+		Client_NotifyWeaponGranted();
+	}
 }
 
 void UWeaponsComponent::UnequipWeapon()
@@ -681,7 +690,7 @@ void UWeaponsComponent::PickupWeapon()
 	// Must be on the server
 	AWeaponPickup* PickupWeapon = WeaponPickupsInRange[0];
 
-	AddWeapon(PickupWeapon->GetWeaponData());
+	AddWeapon(PickupWeapon->GetWeaponData(), true);
 
 	WeaponPickupsInRange.Remove(PickupWeapon);
 	PickupWeapon->Destroy();
@@ -843,9 +852,9 @@ void UWeaponsComponent::Server_UnequipWeapon_Implementation()
 	UnequipWeapon();
 }
 
-void UWeaponsComponent::Server_AddWeapon_Implementation(const UWeaponDataAsset* WeaponData)
+void UWeaponsComponent::Server_AddWeapon_Implementation(const UWeaponDataAsset* WeaponData, bool bNotifyClient)
 {
-	AddWeapon(WeaponData);
+	AddWeapon(WeaponData, bNotifyClient);
 }
 
 bool UWeaponsComponent::CanEquipPrimaryWeapon() const

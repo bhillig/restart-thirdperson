@@ -4,6 +4,7 @@
 #include "GameStates/RSZombiesGameState.h"
 
 #include "Net/UnrealNetwork.h"
+#include "PlayerStates/RSPlayerState.h"
 
 ARSZombiesGameState::ARSZombiesGameState()
 {
@@ -55,4 +56,24 @@ void ARSZombiesGameState::HandleRoundStateChange(const FRSRoundState& OldRoundSt
 	{
 		OnRoundCompleted.Broadcast(RoundState.RoundNumber);
 	}
+}
+
+void ARSZombiesGameState::AddPlayerState(APlayerState* PlayerState)
+{
+	Super::AddPlayerState(PlayerState);
+
+	if (ARSPlayerState* PS = Cast<ARSPlayerState>(PlayerState))
+	{
+		OnPlayerStateAdded.Broadcast(PS);
+	}
+}
+
+void ARSZombiesGameState::RemovePlayerState(APlayerState* PlayerState)
+{
+	if (ARSPlayerState* PS = Cast<ARSPlayerState>(PlayerState))
+	{
+		OnPlayerStateRemoved.Broadcast(PS);
+	}
+
+	Super::RemovePlayerState(PlayerState);
 }

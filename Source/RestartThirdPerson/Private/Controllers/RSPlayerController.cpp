@@ -3,6 +3,8 @@
 
 #include "Controllers/RSPlayerController.h"
 
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
 #include "ALS/Character/ALSCharacter.h"
 #include "Debug/RSCheatManager.h"
 #include "GameStates/RSZombiesGameState.h"
@@ -22,6 +24,13 @@ void ARSPlayerController::BeginPlay()
 
 	if (IsLocalPlayerController())
 	{
+		// Add mapping context
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
+			ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+		{
+			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+		}
+
 		CreateUserWidgets();
 
 		// Try to get the game state
@@ -48,6 +57,17 @@ void ARSPlayerController::BeginPlay()
 			// Must be on server
 			BindToPlayerState(PS);
 		}
+	}
+}
+
+void ARSPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(InputComponent))
+	{
+		EIC->BindAction(IA_CheckScoreboard, ETriggerEvent::Started, this, &ThisClass::OnCheckScoreboardPressed);
+		EIC->BindAction(IA_CheckScoreboard, ETriggerEvent::Completed, this, &ThisClass::OnCheckScoreboardReleased);
 	}
 }
 

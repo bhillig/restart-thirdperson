@@ -6,6 +6,8 @@
 #include "GameFramework/PlayerController.h"
 #include "RSPlayerController.generated.h"
 
+class UInputMappingContext;
+class UInputAction;
 class AALSCharacter;
 class ARSPlayerState;
 class ARSZombiesGameState;
@@ -23,6 +25,9 @@ public:
 
 	/** Called when the game begins */
 	virtual void BeginPlay() override;
+
+	/** Called to set up input */
+	virtual void SetupInputComponent() override;
 
 	/** Called when we possess a pawn (Server and clients) */
 	virtual void AcknowledgePossession(APawn* ) override;
@@ -46,4 +51,21 @@ protected:
 	/** Binds callbacks to the player state delegates (Blueprints) */
 	UFUNCTION(BlueprintImplementableEvent)
 	void BindToPlayerState(ARSPlayerState* RSPlayerState);
+
+protected:
+	/** Call to show the scoreboard */
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnCheckScoreboardPressed();
+
+	/** Call to hide the scoreboard */
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnCheckScoreboardReleased();
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Input")
+	TObjectPtr<UInputMappingContext> DefaultMappingContext;
+
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	TObjectPtr<UInputAction> IA_CheckScoreboard;
+
 };

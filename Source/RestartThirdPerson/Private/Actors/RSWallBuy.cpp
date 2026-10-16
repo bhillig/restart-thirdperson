@@ -28,7 +28,7 @@ void ARSWallBuy::GrantWeapon(const UWeaponDataAsset* WeaponData, ARSPlayerState*
 {
 	if (IWeaponAimSource* WeaponAimSource = Cast<IWeaponAimSource>(PlayerState->GetPawn()))
 	{
-		WeaponAimSource->GetWeaponsComponent()->TryAddWeapon(WeaponData);
+		WeaponAimSource->GetWeaponsComponent()->TryAddWeapon(WeaponData, true);
 	}
 }
 

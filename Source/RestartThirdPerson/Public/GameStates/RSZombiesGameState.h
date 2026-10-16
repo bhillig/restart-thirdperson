@@ -6,6 +6,8 @@
 #include "GameFramework/GameStateBase.h"
 #include "RSZombiesGameState.generated.h"
 
+class ARSPlayerState;
+
 UENUM(BlueprintType)
 enum class ERSRoundPhase : uint8
 {
@@ -29,6 +31,8 @@ struct FRSRoundState
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRSOnRoundStartedDelegate, int32, RoundNumber);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRSOnRoundCompletedDelegate, int32, RoundNumber);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRSOnGameOverDelegate, int32, RoundNumber);
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRSOnPlayerStateChanged, ARSPlayerState*, PlayerState);
 
 /**
  * 
@@ -62,6 +66,14 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FRSOnGameOverDelegate OnGameOver;
 
+	/** Player State Added Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FRSOnPlayerStateChanged OnPlayerStateAdded;
+
+	/** Player State Removed Delegate */
+	UPROPERTY(BlueprintAssignable)
+	FRSOnPlayerStateChanged OnPlayerStateRemoved;
+
 protected:
 	/** Current round state */
 	UPROPERTY(ReplicatedUsing=OnRep_RoundState)
@@ -73,4 +85,10 @@ protected:
 
 	/** Broadcast delegates when round state changes. Called on server and rep notify (for clients) */
 	void HandleRoundStateChange(const FRSRoundState& OldRoundState);
+
+public:
+	// AGameStateBase Implementation
+	virtual void AddPlayerState(APlayerState* PlayerState) override;
+	virtual void RemovePlayerState(APlayerState* PlayerState) override;
+	// AGameStateBase Implementation
 };

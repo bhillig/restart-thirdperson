@@ -53,7 +53,7 @@ public:
 
 	/** Adds a weapon to the player's inventory, does nothing if already exists */
 	UFUNCTION(BlueprintCallable)
-	void TryAddWeapon(const UWeaponDataAsset* WeaponData);
+	void TryAddWeapon(const UWeaponDataAsset* WeaponData, bool bNotifyClient = false);
 
 	/** Returns true if a weapon is equipped */
 	UFUNCTION(BlueprintPure, meta = (BlueprintThreadSafe))
@@ -124,7 +124,7 @@ public:
 protected:
 	/** Client -> Server request to add a weapon to WeaponInventory */
 	UFUNCTION(Server, Reliable)
-	void Server_AddWeapon(const UWeaponDataAsset* WeaponData);
+	void Server_AddWeapon(const UWeaponDataAsset* WeaponData, bool bNotifyClient);
 
 	/** Client -> Server request to unequip a weapon */
 	UFUNCTION(Server, Reliable)
@@ -166,6 +166,10 @@ protected:
 	UFUNCTION(Client, Reliable)
 	void Client_NotifyAmmoGranted();
 
+	/** Server -> Owner notify weapon has been granted */
+	UFUNCTION(Client, Reliable)
+	void Client_NotifyWeaponGranted();
+
 	/** Server -> Owner notify a hit marker type to propagate */
 	UFUNCTION(Client, Unreliable)
 	void Client_NotifyHitType(EHitMarkerType HitMarkerType);
@@ -192,7 +196,7 @@ protected:
 
 protected:
 	/** Only modifier to WeaponInventory. Called on server */
-	void AddWeapon(const UWeaponDataAsset* WeaponData);
+	void AddWeapon(const UWeaponDataAsset* WeaponData, bool bNotifyClient);
 
 	/** Only modifier to unequip a weapon. Called on server */
 	void UnequipWeapon();
